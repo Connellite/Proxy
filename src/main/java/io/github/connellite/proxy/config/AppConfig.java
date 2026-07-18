@@ -13,6 +13,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import javax.sql.DataSource;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.DateTimeException;
+import java.time.ZoneId;
 
 @Configuration
 @EnableConfigurationProperties(ProxyProperties.class)
@@ -21,6 +23,19 @@ public class AppConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public ZoneId appZoneId(ProxyProperties proxyProperties) {
+        String id = proxyProperties.getTimezone();
+        if (id == null || id.isBlank()) {
+            return ZoneId.systemDefault();
+        }
+        try {
+            return ZoneId.of(id.trim());
+        } catch (DateTimeException ex) {
+            throw new IllegalStateException("Invalid proxy.timezone: " + id, ex);
+        }
     }
 
     @Bean

@@ -15,6 +15,8 @@ public class ProxyProperties {
     private boolean authRequired = false;
     private int connectTimeoutMs = 15_000;
     private int idleTimeoutSeconds = 300;
+    /** IANA zone id for admin UI dates (e.g. UTC, America/New_York). */
+    private String timezone = "";
     private final Bootstrap bootstrap = new Bootstrap();
     private final Listener http = new Listener(true, "0.0.0.0", 3128);
     private final Listener https = new Listener(false, "0.0.0.0", 3129);

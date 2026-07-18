@@ -25,9 +25,6 @@
         <label>Expires on (optional)
             <input type="date" th:field="*{expiresAt}"/>
         </label>
-        <label>Remark
-            <input type="text" th:field="*{remark}" maxlength="255"/>
-        </label>
         <div class="form-actions">
             <button type="submit" class="primary" th:text="${creating} ? 'Create' : 'Save'">Save</button>
             <a class="button" th:href="@{/users}">Cancel</a>

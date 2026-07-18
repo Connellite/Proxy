@@ -11,8 +11,14 @@ import java.time.format.DateTimeFormatter;
 @Component("fmt")
 public class FormatHelper {
 
-    private static final DateTimeFormatter DATE_TIME =
-            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm").withZone(ZoneId.systemDefault());
+    private static final DateTimeFormatter DATE_TIME_PATTERN =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+
+    private final DateTimeFormatter dateTime;
+
+    public FormatHelper(ZoneId appZoneId) {
+        this.dateTime = DATE_TIME_PATTERN.withZone(appZoneId);
+    }
 
     public String bytes(long bytes) {
         long abs = bytes == Long.MIN_VALUE ? Long.MAX_VALUE : Math.abs(bytes);
@@ -41,6 +47,6 @@ public class FormatHelper {
         if (instant == null) {
             return "—";
         }
-        return DATE_TIME.format(instant);
+        return dateTime.format(instant);
     }
 }

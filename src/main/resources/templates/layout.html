@@ -3,7 +3,6 @@
 <head th:fragment="head(title)">
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <meta th:if="${refreshSeconds != null}" http-equiv="refresh" th:attr="content=${refreshSeconds}"/>
     <title th:text="${title} + ' — Proxy Admin'">Proxy Admin</title>
     <link rel="stylesheet" th:href="@{/css/app.css}"/>
 </head>
@@ -24,5 +23,18 @@
     <div th:if="${success}" class="flash ok" th:text="${success}"></div>
     <div th:if="${error}" class="flash err" th:text="${error}"></div>
 </div>
+<label th:fragment="refreshControl" class="refresh-control">
+    Auto-refresh
+    <select id="ui-refresh" aria-label="Auto-refresh interval">
+        <option value="0">Off</option>
+        <option value="1">1s</option>
+        <option value="2">2s</option>
+        <option value="3">3s</option>
+        <option value="5">5s</option>
+        <option value="10">10s</option>
+        <option value="30">30s</option>
+    </select>
+</label>
+<script th:fragment="refreshScript" th:src="@{/js/ui-refresh.js}"></script>
 </body>
 </html>

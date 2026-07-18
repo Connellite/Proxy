@@ -7,48 +7,71 @@
     <div th:replace="~{layout :: flashes}"></div>
     <div class="row-between">
         <h1>Users</h1>
-        <a class="button primary" th:href="@{/users/new}">Add user</a>
+        <div class="row-actions">
+            <label th:replace="~{layout :: refreshControl}"></label>
+            <a class="button primary" th:href="@{/users/new}">Add user</a>
+        </div>
     </div>
-    <p class="hint">Speed is the last ~1s average (↑ client→proxy / ↓ proxy→client). Auto-refreshes every 3s.</p>
+    <p class="hint">Speed is the last ~1s average (↑ client→proxy / ↓ proxy→client). Admin accounts are for the web UI only.</p>
     <div class="table-wrap">
-        <table>
+        <table class="users-table">
+            <colgroup>
+                <col class="col-user"/>
+                <col class="col-status"/>
+                <col class="col-conn"/>
+                <col class="col-speed"/>
+                <col class="col-expires"/>
+                <col class="col-traffic"/>
+                <col class="col-last"/>
+                <col class="col-actions"/>
+            </colgroup>
             <thead>
             <tr>
                 <th>Username</th>
                 <th>Status</th>
-                <th>Connections</th>
+                <th>Conn</th>
                 <th>Speed</th>
                 <th>Expires</th>
                 <th>Traffic</th>
                 <th>Last used</th>
-                <th>Remark</th>
-                <th></th>
+                <th>Actions</th>
             </tr>
             </thead>
             <tbody>
+            <tr th:each="a : ${admins}" class="admin-row">
+                <td class="cell-ellipsis" th:text="${a.username}">admin</td>
+                <td><span class="badge admin">admin</span></td>
+                <td class="num muted-cell">—</td>
+                <td class="num muted-cell">—</td>
+                <td class="num muted-cell">never</td>
+                <td class="num muted-cell">—</td>
+                <td class="num" th:text="${@fmt.instant(a.updatedAt)}">—</td>
+                <td class="actions">
+                    <a class="button" th:href="@{/settings}">Password</a>
+                </td>
+            </tr>
             <tr th:each="u : ${users}" th:with="sp=${speedMap[u.id]}">
-                <td th:text="${u.username}">user</td>
+                <td class="cell-ellipsis" th:text="${u.username}">user</td>
                 <td>
                     <span th:if="${u.usable}" class="badge ok">active</span>
                     <span th:if="${!u.enabled}" class="badge muted">disabled</span>
                     <span th:if="${u.enabled and u.expired}" class="badge warn">expired</span>
                 </td>
-                <td>
+                <td class="num">
                     <span th:text="${activeMap[u.id]}">0</span>
                     <span th:if="${u.maxConnections > 0}" th:text="' / ' + ${u.maxConnections}"></span>
                     <span th:if="${u.maxConnections == 0}"> / ∞</span>
                 </td>
                 <td class="speed" th:classappend="${sp != null and !sp.idle} ? ' live'">
-                    ↑ <span th:text="${@fmt.rate(sp != null ? sp.upBytesPerSec : 0)}">0 B/s</span>
-                    · ↓ <span th:text="${@fmt.rate(sp != null ? sp.downBytesPerSec : 0)}">0 B/s</span>
+                    <div class="metric-line">↑ <span class="num" th:text="${@fmt.rate(sp != null ? sp.upBytesPerSec : 0)}">0 B/s</span></div>
+                    <div class="metric-line">↓ <span class="num" th:text="${@fmt.rate(sp != null ? sp.downBytesPerSec : 0)}">0 B/s</span></div>
                 </td>
-                <td th:text="${u.expiresAt != null} ? ${@fmt.instant(u.expiresAt)} : 'never'">never</td>
-                <td>
-                    ↑ <span th:text="${@fmt.bytes(u.bytesUp)}">0</span>
-                    · ↓ <span th:text="${@fmt.bytes(u.bytesDown)}">0</span>
+                <td class="num" th:text="${u.expiresAt != null} ? ${@fmt.instant(u.expiresAt)} : 'never'">never</td>
+                <td class="traffic">
+                    <div class="metric-line">↑ <span class="num" th:text="${@fmt.bytes(u.bytesUp)}">0 B</span></div>
+                    <div class="metric-line">↓ <span class="num" th:text="${@fmt.bytes(u.bytesDown)}">0 B</span></div>
                 </td>
-                <td th:text="${@fmt.instant(u.lastUsedAt)}">—</td>
-                <td th:text="${u.remark} ?: '—'">—</td>
+                <td class="num" th:text="${@fmt.instant(u.lastUsedAt)}">—</td>
                 <td class="actions">
                     <a class="button" th:href="@{/users/{id}/edit(id=${u.id})}">Edit</a>
                     <form th:action="@{/users/{id}/toggle(id=${u.id})}" method="post">
@@ -67,12 +90,13 @@
                     </form>
                 </td>
             </tr>
-            <tr th:if="${#lists.isEmpty(users)}">
-                <td colspan="9" class="empty">No proxy users yet. Create one to authenticate proxy clients.</td>
+            <tr th:if="${#lists.isEmpty(admins) and #lists.isEmpty(users)}">
+                <td colspan="8" class="empty">No accounts yet.</td>
             </tr>
             </tbody>
         </table>
     </div>
 </main>
+<script th:replace="~{layout :: refreshScript}"></script>
 </body>
 </html>

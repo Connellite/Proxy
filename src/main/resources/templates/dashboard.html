@@ -5,7 +5,10 @@
 <header th:replace="~{layout :: header}"></header>
 <main class="container">
     <div th:replace="~{layout :: flashes}"></div>
-    <h1>Dashboard</h1>
+    <div class="row-between">
+        <h1>Dashboard</h1>
+        <label th:replace="~{layout :: refreshControl}"></label>
+    </div>
     <div class="grid stats">
         <div class="stat">
             <div class="label">HTTP proxy</div>
@@ -62,5 +65,6 @@
             SOCKS4 only when auth is <em>off</em>. Chrome often lacks SOCKS password auth.</p>
     </section>
 </main>
+<script th:replace="~{layout :: refreshScript}"></script>
 </body>
 </html>

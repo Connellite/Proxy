@@ -29,9 +29,6 @@ public class ProxyUserForm {
 
     private boolean enabled = true;
 
-    @Size(max = 255)
-    private String remark;
-
     @Min(0)
     @Max(10_000)
     private int maxConnections;

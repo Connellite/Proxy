@@ -45,9 +45,6 @@ public class ProxyUser {
     @Column(nullable = false)
     private boolean enabled = true;
 
-    @Column(length = 255)
-    private String remark;
-
     /** 0 = unlimited */
     @Column(name = "max_connections", nullable = false)
     private int maxConnections = 0;

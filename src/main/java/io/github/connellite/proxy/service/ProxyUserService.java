@@ -10,7 +10,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
+import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.List;
 
 @Service
@@ -20,6 +21,7 @@ public class ProxyUserService {
     private final ProxyUserRepository repository;
     private final PasswordEncoder passwordEncoder;
     private final ProxyAuthService authService;
+    private final ZoneId appZoneId;
 
     @Transactional(readOnly = true)
     public List<ProxyUser> findAll() {
@@ -84,7 +86,6 @@ public class ProxyUserService {
     private void applyForm(ProxyUser user, ProxyUserForm form, boolean creating) {
         user.setUsername(form.getUsername().trim());
         user.setEnabled(form.isEnabled());
-        user.setRemark(blankToNull(form.getRemark()));
         user.setMaxConnections(Math.max(0, form.getMaxConnections()));
         user.setExpiresAt(parseExpireDate(form.getExpiresAt()));
         if (creating || (form.getPassword() != null && !form.getPassword().isBlank())) {
@@ -92,18 +93,12 @@ public class ProxyUserService {
         }
     }
 
-    private static Instant parseExpireDate(String value) {
+    private Instant parseExpireDate(String value) {
         if (value == null || value.isBlank()) {
             return null;
         }
+        // Calendar date from the date picker → end of that day in configured timezone.
         LocalDate date = LocalDate.parse(value);
-        return date.atTime(23, 59, 59).toInstant(ZoneOffset.UTC);
-    }
-
-    private static String blankToNull(String value) {
-        if (value == null || value.isBlank()) {
-            return null;
-        }
-        return value.trim();
+        return date.atTime(LocalTime.of(23, 59, 59)).atZone(appZoneId).toInstant();
     }
 }

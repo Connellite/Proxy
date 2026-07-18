@@ -30,7 +30,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import java.time.ZoneOffset;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
@@ -48,6 +48,7 @@ public class AdminController {
     private final ProxyMetrics proxyMetrics;
     private final TrafficStatsService trafficStatsService;
     private final AdminAccountService adminAccountService;
+    private final ZoneId appZoneId;
 
     @GetMapping("/login")
     public String login() {
@@ -83,9 +84,9 @@ public class AdminController {
             speed.put(user.getId(), trafficStatsService.throughputFor(user.getId()));
         }
         model.addAttribute("users", users);
+        model.addAttribute("admins", adminAccountService.findAll());
         model.addAttribute("activeMap", active);
         model.addAttribute("speedMap", speed);
-        model.addAttribute("refreshSeconds", 3);
         return "users";
     }
 
@@ -103,10 +104,9 @@ public class AdminController {
         form.setId(user.getId());
         form.setUsername(user.getUsername());
         form.setEnabled(user.isEnabled());
-        form.setRemark(user.getRemark());
         form.setMaxConnections(user.getMaxConnections());
         if (user.getExpiresAt() != null) {
-            form.setExpiresAt(DATE_FMT.format(user.getExpiresAt().atZone(ZoneOffset.UTC).toLocalDate()));
+            form.setExpiresAt(DATE_FMT.format(user.getExpiresAt().atZone(appZoneId).toLocalDate()));
         }
         model.addAttribute("form", form);
         model.addAttribute("creating", false);
