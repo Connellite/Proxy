@@ -103,11 +103,27 @@ h2 { margin: 0 0 1rem; font-size: 1.15rem; }
 
 .table-wrap { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
 table { width: 100%; border-collapse: collapse; }
-th, td { padding: 0.75rem 0.9rem; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+th, td { padding: 0.75rem 0.9rem; border-bottom: 1px solid var(--line); text-align: left; vertical-align: middle; }
 th { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
 td.empty { color: var(--muted); text-align: center; padding: 2rem; }
-.actions { display: flex; flex-wrap: wrap; gap: 0.4rem; }
-.actions form { display: inline; }
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+  justify-content: flex-end;
+}
+.actions form { display: inline-flex; margin: 0; }
+.actions .button,
+.actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.2;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.actions a.button:hover { text-decoration: none; }
 
 .badge {
   display: inline-block;
