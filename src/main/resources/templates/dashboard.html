@@ -13,12 +13,17 @@
                  th:text="${httpRunning} ? (${settings.httpBindHost} + ':' + ${settings.httpPort}) : 'stopped'">stopped</div>
         </div>
         <div class="stat">
-            <div class="label">SOCKS5 proxy</div>
+            <div class="label">HTTPS proxy (TLS)</div>
+            <div class="value" th:classappend="${httpsRunning} ? ' up' : ' down'"
+                 th:text="${httpsRunning} ? (${settings.httpsBindHost} + ':' + ${settings.httpsPort}) : 'stopped'">stopped</div>
+        </div>
+        <div class="stat">
+            <div class="label">SOCKS4/5 proxy</div>
             <div class="value" th:classappend="${socksRunning} ? ' up' : ' down'"
                  th:text="${socksRunning} ? (${settings.socksBindHost} + ':' + ${settings.socksPort}) : 'stopped'">stopped</div>
         </div>
         <div class="stat">
-            <div class="label">Active connections</div>
+            <div class="label">Active client TCP channels</div>
             <div class="value" th:text="${activeConnections}">0</div>
         </div>
         <div class="stat">
@@ -27,20 +32,34 @@
         </div>
         <div class="stat">
             <div class="label">Traffic up (since start)</div>
-            <div class="value" th:text="${@fmt.bytes(totalBytesUp)}">0 B</div>
+            <div class="value" th:text="${@fmt.bytes(sessionBytesUp)}">0 B</div>
         </div>
         <div class="stat">
             <div class="label">Traffic down (since start)</div>
+            <div class="value" th:text="${@fmt.bytes(sessionBytesDown)}">0 B</div>
+        </div>
+        <div class="stat">
+            <div class="label">Traffic up (all time)</div>
+            <div class="value" th:text="${@fmt.bytes(totalBytesUp)}">0 B</div>
+        </div>
+        <div class="stat">
+            <div class="label">Traffic down (all time)</div>
             <div class="value" th:text="${@fmt.bytes(totalBytesDown)}">0 B</div>
         </div>
     </div>
     <div th:if="${lastError}" class="flash err" th:text="${lastError}"></div>
     <section class="panel">
+        <h2>Active connections</h2>
+        <p class="muted">Count of <strong>open inbound TCP sockets</strong> from clients (browser/ZeroOmega) that were accepted
+            after auth (or with auth off). One keep-alive / CONNECT tunnel = 1. Drops to 0 when the client closes or idle timeout hits.
+            See <code>docs/PROTOCOLS.md</code>.</p>
+    </section>
+    <section class="panel">
         <h2>ZeroOmega</h2>
-        <p>HTTP profile → protocol <code>HTTP</code>, host of this machine, port
-            <strong th:text="${settings.httpPort}">3128</strong>, auth with proxy username/password.</p>
-        <p>SOCKS5 profile → protocol <code>SOCKS5</code>, same host, port
-            <strong th:text="${settings.socksPort}">1080</strong>. Chrome may not support SOCKS auth — use Firefox or HTTP.</p>
+        <p>HTTP → protocol <code>HTTP</code>, port <strong th:text="${settings.httpPort}">3128</strong>.</p>
+        <p>HTTPS → protocol <code>HTTPS</code>, port <strong th:text="${settings.httpsPort}">3129</strong> (enable in Settings; self-signed cert).</p>
+        <p>SOCKS5 / SOCKS4 → same host, port <strong th:text="${settings.socksPort}">1080</strong>.
+            SOCKS4 only when auth is <em>off</em>. Chrome often lacks SOCKS password auth.</p>
     </section>
 </main>
 </body>

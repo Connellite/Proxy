@@ -1,7 +1,7 @@
 package io.github.connellite.proxy.controller;
 
-import io.github.connellite.proxy.domain.AppSettings;
-import io.github.connellite.proxy.domain.ProxyUser;
+import io.github.connellite.proxy.model.AppSettings;
+import io.github.connellite.proxy.model.ProxyUser;
 import io.github.connellite.proxy.proxy.ProxyServerManager;
 import io.github.connellite.proxy.security.AdminAccountService;
 import io.github.connellite.proxy.service.ProxyMetrics;
@@ -57,6 +57,7 @@ public class AdminController {
         List<ProxyUser> users = userService.findAll();
         model.addAttribute("settings", settings);
         model.addAttribute("httpRunning", proxyServerManager.isHttpRunning());
+        model.addAttribute("httpsRunning", proxyServerManager.isHttpsRunning());
         model.addAttribute("socksRunning", proxyServerManager.isSocksRunning());
         model.addAttribute("activeConnections", proxyMetrics.getActiveConnections());
         model.addAttribute("userCount", users.size());
@@ -64,6 +65,8 @@ public class AdminController {
         model.addAttribute("lastError", proxyServerManager.getLastError());
         model.addAttribute("totalBytesUp", proxyMetrics.getBytesUpTotal());
         model.addAttribute("totalBytesDown", proxyMetrics.getBytesDownTotal());
+        model.addAttribute("sessionBytesUp", proxyMetrics.getBytesUpSession());
+        model.addAttribute("sessionBytesDown", proxyMetrics.getBytesDownSession());
         return "dashboard";
     }
 
@@ -169,17 +172,9 @@ public class AdminController {
 
     @GetMapping("/settings")
     public String settings(Model model) {
-        AppSettings settings = settingsService.get();
-        SettingsForm form = new SettingsForm();
-        form.setHttpEnabled(settings.isHttpEnabled());
-        form.setHttpBindHost(settings.getHttpBindHost());
-        form.setHttpPort(settings.getHttpPort());
-        form.setSocksEnabled(settings.isSocksEnabled());
-        form.setSocksBindHost(settings.getSocksBindHost());
-        form.setSocksPort(settings.getSocksPort());
-        form.setAuthRequired(settings.isAuthRequired());
-        model.addAttribute("form", form);
+        model.addAttribute("form", toForm(settingsService.get()));
         model.addAttribute("httpRunning", proxyServerManager.isHttpRunning());
+        model.addAttribute("httpsRunning", proxyServerManager.isHttpsRunning());
         model.addAttribute("socksRunning", proxyServerManager.isSocksRunning());
         model.addAttribute("lastError", proxyServerManager.getLastError());
         model.addAttribute("passwordForm", new PasswordChangeForm());
@@ -194,17 +189,12 @@ public class AdminController {
         if (bindingResult.hasErrors()) {
             model.addAttribute("passwordForm", new PasswordChangeForm());
             model.addAttribute("httpRunning", proxyServerManager.isHttpRunning());
+            model.addAttribute("httpsRunning", proxyServerManager.isHttpsRunning());
             model.addAttribute("socksRunning", proxyServerManager.isSocksRunning());
             return "settings";
         }
         AppSettings settings = settingsService.get();
-        settings.setHttpEnabled(form.isHttpEnabled());
-        settings.setHttpBindHost(form.getHttpBindHost().trim());
-        settings.setHttpPort(form.getHttpPort());
-        settings.setSocksEnabled(form.isSocksEnabled());
-        settings.setSocksBindHost(form.getSocksBindHost().trim());
-        settings.setSocksPort(form.getSocksPort());
-        settings.setAuthRequired(form.isAuthRequired());
+        applyForm(settings, form);
         settingsService.save(settings);
         proxyServerManager.restart();
         if (proxyServerManager.getLastError() != null) {
@@ -245,23 +235,43 @@ public class AdminController {
     }
 
     private String settingsWithError(Model model, PasswordChangeForm passwordForm, String error) {
-        AppSettings settings = settingsService.get();
-        SettingsForm form = new SettingsForm();
-        form.setHttpEnabled(settings.isHttpEnabled());
-        form.setHttpBindHost(settings.getHttpBindHost());
-        form.setHttpPort(settings.getHttpPort());
-        form.setSocksEnabled(settings.isSocksEnabled());
-        form.setSocksBindHost(settings.getSocksBindHost());
-        form.setSocksPort(settings.getSocksPort());
-        form.setAuthRequired(settings.isAuthRequired());
-        model.addAttribute("form", form);
+        model.addAttribute("form", toForm(settingsService.get()));
         model.addAttribute("passwordForm", passwordForm);
         model.addAttribute("httpRunning", proxyServerManager.isHttpRunning());
+        model.addAttribute("httpsRunning", proxyServerManager.isHttpsRunning());
         model.addAttribute("socksRunning", proxyServerManager.isSocksRunning());
         model.addAttribute("lastError", proxyServerManager.getLastError());
         if (error != null) {
             model.addAttribute("error", error);
         }
         return "settings";
+    }
+
+    private static SettingsForm toForm(AppSettings settings) {
+        SettingsForm form = new SettingsForm();
+        form.setHttpEnabled(settings.isHttpEnabled());
+        form.setHttpBindHost(settings.getHttpBindHost());
+        form.setHttpPort(settings.getHttpPort());
+        form.setHttpsEnabled(settings.isHttpsEnabled());
+        form.setHttpsBindHost(settings.getHttpsBindHost());
+        form.setHttpsPort(settings.getHttpsPort());
+        form.setSocksEnabled(settings.isSocksEnabled());
+        form.setSocksBindHost(settings.getSocksBindHost());
+        form.setSocksPort(settings.getSocksPort());
+        form.setAuthRequired(settings.isAuthRequired());
+        return form;
+    }
+
+    private static void applyForm(AppSettings settings, SettingsForm form) {
+        settings.setHttpEnabled(form.isHttpEnabled());
+        settings.setHttpBindHost(form.getHttpBindHost().trim());
+        settings.setHttpPort(form.getHttpPort());
+        settings.setHttpsEnabled(form.isHttpsEnabled());
+        settings.setHttpsBindHost(form.getHttpsBindHost().trim());
+        settings.setHttpsPort(form.getHttpsPort());
+        settings.setSocksEnabled(form.isSocksEnabled());
+        settings.setSocksBindHost(form.getSocksBindHost().trim());
+        settings.setSocksPort(form.getSocksPort());
+        settings.setAuthRequired(form.isAuthRequired());
     }
 }

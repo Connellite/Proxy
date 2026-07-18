@@ -1,6 +1,6 @@
 package io.github.connellite.proxy.repository;
 
-import io.github.connellite.proxy.domain.ProxyUser;
+import io.github.connellite.proxy.model.ProxyUser;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;

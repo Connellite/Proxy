@@ -13,28 +13,36 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpServerCodec;
+import io.netty.handler.ssl.SslContext;
 import io.netty.handler.timeout.IdleStateHandler;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
 
 import java.net.InetSocketAddress;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
-@Component
-@RequiredArgsConstructor
-public final class HttpProxyServer implements AutoCloseable {
+final class HttpProxyServerInstance implements AutoCloseable {
 
     private final ProxyAuthService authService;
     private final ProxyMetrics metrics;
     private final ProxyProperties properties;
+    private final String label;
 
     private EventLoopGroup bossGroup;
     private EventLoopGroup workerGroup;
     private Channel serverChannel;
 
-    public synchronized void start(String bindHost, int port) throws InterruptedException {
+    HttpProxyServerInstance(ProxyAuthService authService,
+                            ProxyMetrics metrics,
+                            ProxyProperties properties,
+                            String label) {
+        this.authService = authService;
+        this.metrics = metrics;
+        this.properties = properties;
+        this.label = label;
+    }
+
+    synchronized void start(String bindHost, int port, SslContext sslContext) throws InterruptedException {
         stop();
         bossGroup = new NioEventLoopGroup(1);
         workerGroup = new NioEventLoopGroup();
@@ -47,6 +55,9 @@ public final class HttpProxyServer implements AutoCloseable {
                 .childHandler(new ChannelInitializer<SocketChannel>() {
                     @Override
                     protected void initChannel(SocketChannel ch) {
+                        if (sslContext != null) {
+                            ch.pipeline().addLast(sslContext.newHandler(ch.alloc()));
+                        }
                         ch.pipeline().addLast(new IdleStateHandler(0, 0, properties.getIdleTimeoutSeconds(), TimeUnit.SECONDS));
                         ch.pipeline().addLast(new IdleCloseHandler());
                         ch.pipeline().addLast(new HttpServerCodec());
@@ -55,18 +66,11 @@ public final class HttpProxyServer implements AutoCloseable {
                     }
                 });
         serverChannel = bootstrap.bind(new InetSocketAddress(bindHost, port)).sync().channel();
-        log.info("HTTP proxy listening on {}:{}", bindHost, port);
+        log.info("{} listening on {}:{}", label, bindHost, port);
     }
 
-    public synchronized boolean isRunning() {
+    synchronized boolean isRunning() {
         return serverChannel != null && serverChannel.isActive();
-    }
-
-    public synchronized InetSocketAddress localAddress() {
-        if (serverChannel == null) {
-            return null;
-        }
-        return (InetSocketAddress) serverChannel.localAddress();
     }
 
     @Override
@@ -74,7 +78,7 @@ public final class HttpProxyServer implements AutoCloseable {
         stop();
     }
 
-    public synchronized void stop() {
+    synchronized void stop() {
         if (serverChannel != null) {
             try {
                 serverChannel.close().syncUninterruptibly();

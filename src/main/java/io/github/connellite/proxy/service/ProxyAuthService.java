@@ -1,7 +1,7 @@
 package io.github.connellite.proxy.service;
 
-import io.github.connellite.proxy.domain.AppSettings;
-import io.github.connellite.proxy.domain.ProxyUser;
+import io.github.connellite.proxy.model.AppSettings;
+import io.github.connellite.proxy.model.ProxyUser;
 import io.github.connellite.proxy.repository.ProxyUserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -95,6 +95,10 @@ public class ProxyAuthService {
 
     public int totalActiveConnections() {
         return activeConnections.values().stream().mapToInt(AtomicInteger::get).sum();
+    }
+
+    public void clearActiveConnections() {
+        activeConnections.clear();
     }
 
     public AppSettings currentSettings() {

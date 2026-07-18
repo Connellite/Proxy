@@ -1,7 +1,7 @@
 package io.github.connellite.proxy.service;
 
 import io.github.connellite.proxy.config.ProxyProperties;
-import io.github.connellite.proxy.domain.AppSettings;
+import io.github.connellite.proxy.model.AppSettings;
 import io.github.connellite.proxy.repository.AppSettingsRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -22,6 +22,11 @@ public class SettingsService {
     @Transactional
     public AppSettings save(AppSettings settings) {
         settings.setId(AppSettings.SINGLETON_ID);
+        repository.findById(AppSettings.SINGLETON_ID).ifPresent(existing -> {
+            // Do not clobber lifetime traffic flushed concurrently.
+            settings.setBytesUpTotal(existing.getBytesUpTotal());
+            settings.setBytesDownTotal(existing.getBytesDownTotal());
+        });
         return repository.save(settings);
     }
 
@@ -36,6 +41,9 @@ public class SettingsService {
         settings.setHttpEnabled(properties.getHttp().isEnabled());
         settings.setHttpBindHost(properties.getHttp().getBindHost());
         settings.setHttpPort(properties.getHttp().getPort());
+        settings.setHttpsEnabled(properties.getHttps().isEnabled());
+        settings.setHttpsBindHost(properties.getHttps().getBindHost());
+        settings.setHttpsPort(properties.getHttps().getPort());
         settings.setSocksEnabled(properties.getSocks5().isEnabled());
         settings.setSocksBindHost(properties.getSocks5().getBindHost());
         settings.setSocksPort(properties.getSocks5().getPort());

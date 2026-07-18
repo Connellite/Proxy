@@ -1,4 +1,4 @@
-package io.github.connellite.proxy.domain;
+package io.github.connellite.proxy.model;
 
 #if SPRING_BOOT_3
 import jakarta.persistence.Column;

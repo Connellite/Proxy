@@ -1,4 +1,4 @@
-package io.github.connellite.proxy.domain;
+package io.github.connellite.proxy.model;
 
 #if SPRING_BOOT_3
 import jakarta.persistence.Column;
@@ -8,6 +8,7 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 #else
+
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
@@ -19,6 +20,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.Instant;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -26,10 +28,13 @@ import java.time.Instant;
 @Table(name = "app_settings")
 public class AppSettings {
 
-    public static final String SINGLETON_ID = "default";
+    /**
+     * Fixed singleton row id.
+     */
+    public static final UUID SINGLETON_ID = new UUID(0, 0);
 
     @Id
-    private String id = SINGLETON_ID;
+    private UUID id = SINGLETON_ID;
 
     @Column(name = "http_enabled", nullable = false)
     private boolean httpEnabled = true;
@@ -39,6 +44,15 @@ public class AppSettings {
 
     @Column(name = "http_port", nullable = false)
     private int httpPort = 3128;
+
+    @Column(name = "https_enabled", nullable = false)
+    private boolean httpsEnabled = false;
+
+    @Column(name = "https_bind_host", nullable = false, length = 64)
+    private String httpsBindHost = "0.0.0.0";
+
+    @Column(name = "https_port", nullable = false)
+    private int httpsPort = 3129;
 
     @Column(name = "socks_enabled", nullable = false)
     private boolean socksEnabled = true;
@@ -50,7 +64,13 @@ public class AppSettings {
     private int socksPort = 1080;
 
     @Column(name = "auth_required", nullable = false)
-    private boolean authRequired = true;
+    private boolean authRequired = false;
+
+    @Column(name = "bytes_up_total", nullable = false)
+    private long bytesUpTotal = 0;
+
+    @Column(name = "bytes_down_total", nullable = false)
+    private long bytesDownTotal = 0;
 
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;

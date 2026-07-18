@@ -1,7 +1,7 @@
 package io.github.connellite.proxy.service;
 
 import io.github.connellite.proxy.config.ProxyProperties;
-import io.github.connellite.proxy.domain.AdminAccount;
+import io.github.connellite.proxy.model.AdminAccount;
 import io.github.connellite.proxy.repository.AdminAccountRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

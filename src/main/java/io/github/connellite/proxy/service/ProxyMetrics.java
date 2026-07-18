@@ -2,52 +2,49 @@ package io.github.connellite.proxy.service;
 
 import io.netty.channel.Channel;
 import io.netty.util.AttributeKey;
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.LongAdder;
 
 /**
- * Live proxy metrics (works with or without authenticated users).
+ * Live proxy metrics (active connections) + traffic accounting via {@link TrafficStatsService}.
  */
 @Service
 @RequiredArgsConstructor
 public class ProxyMetrics {
 
-    private static final AttributeKey<Boolean> TRACKED = AttributeKey.valueOf("proxyMetricsTracked");
+    private static final AttributeKey<AtomicBoolean> TRACKED = AttributeKey.valueOf("proxyMetricsTracked");
 
     private final ProxyAuthService authService;
     private final TrafficStatsService trafficStatsService;
 
     private final AtomicInteger activeConnections = new AtomicInteger();
-    @Getter
-    private final LongAdder bytesUp = new LongAdder();
-    @Getter
-    private final LongAdder bytesDown = new LongAdder();
 
-    /**
-     * Registers an active client connection once per channel. Releases on channel close.
-     *
-     * @return false if a named user hit their connection limit
-     */
     public boolean track(Channel channel, AuthenticatedSession session) {
-        if (Boolean.TRUE.equals(channel.attr(TRACKED).get())) {
+        AtomicBoolean flag = channel.attr(TRACKED).get();
+        if (flag != null) {
             return true;
         }
         if (session != null && !authService.tryAcquireConnection(session)) {
             return false;
         }
-        channel.attr(TRACKED).set(true);
+        AtomicBoolean tracked = new AtomicBoolean(true);
+        channel.attr(TRACKED).set(tracked);
         activeConnections.incrementAndGet();
         channel.closeFuture().addListener(future -> {
-            if (Boolean.TRUE.equals(channel.attr(TRACKED).getAndSet(false))) {
-                activeConnections.decrementAndGet();
+            if (tracked.compareAndSet(true, false)) {
+                activeConnections.updateAndGet(v -> Math.max(0, v - 1));
                 authService.releaseConnection(session);
             }
         });
         return true;
+    }
+
+    public void resetActiveConnections() {
+        activeConnections.set(0);
+        authService.clearActiveConnections();
     }
 
     public int getActiveConnections() {
@@ -55,22 +52,22 @@ public class ProxyMetrics {
     }
 
     public long getBytesUpTotal() {
-        return bytesUp.sum();
+        return trafficStatsService.lifetimeBytesUp();
     }
 
     public long getBytesDownTotal() {
-        return bytesDown.sum();
+        return trafficStatsService.lifetimeBytesDown();
+    }
+
+    public long getBytesUpSession() {
+        return trafficStatsService.sessionBytesUp();
+    }
+
+    public long getBytesDownSession() {
+        return trafficStatsService.sessionBytesDown();
     }
 
     public void recordTraffic(Long userId, long up, long down) {
-        if (up > 0) {
-            bytesUp.add(up);
-        }
-        if (down > 0) {
-            bytesDown.add(down);
-        }
-        if (userId != null) {
-            trafficStatsService.record(userId, up, down);
-        }
+        trafficStatsService.record(userId, up, down);
     }
 }

@@ -1,6 +1,6 @@
 package io.github.connellite.proxy.security;
 
-import io.github.connellite.proxy.domain.AdminAccount;
+import io.github.connellite.proxy.model.AdminAccount;
 import io.github.connellite.proxy.repository.AdminAccountRepository;
 import io.github.connellite.proxy.dto.PasswordChangeForm;
 import lombok.RequiredArgsConstructor;

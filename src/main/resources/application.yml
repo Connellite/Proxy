@@ -33,11 +33,15 @@ proxy:
     enabled: true
     bind-host: 0.0.0.0
     port: 3128
+  https:
+    enabled: false
+    bind-host: 0.0.0.0
+    port: 3129
   socks5:
     enabled: true
     bind-host: 0.0.0.0
     port: 1080
-  auth-required: true
+  auth-required: false
   connect-timeout-ms: 15000
   idle-timeout-seconds: 300
 

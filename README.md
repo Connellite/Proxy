@@ -1,45 +1,38 @@
 # Proxy (JAR + WAR, Spring Boot 2 / 3)
 
-HTTP and SOCKS5 proxy with SQLite accounts and admin web UI.
+HTTP / HTTPS / SOCKS4 / SOCKS5 proxy with SQLite accounts and admin web UI.
+
+Package: `io.github.connellite.proxy`.
 
 ## Build profiles
 
-Same layout as a dual Spring Boot project: Manifold `#if SPRING_BOOT_2/3`, default **spring-2**, optional **spring-3**. Each `package` produces **JAR** (Spring Boot repackage) and **WAR**.
+Manifold `#if SPRING_BOOT_2/3`, default **spring-2**. Each `package` produces **JAR** + **WAR**.
 
 ```bash
-# Spring Boot 2.7 (default) → proxy-1.0.0.jar + proxy-1.0.0.war
-mvn -Pspring-2 clean package
-
-# Spring Boot 3.5 → proxy-1.0.0-spring-3.jar + proxy-1.0.0-spring-3.war
-mvn -Pspring-3 clean package
+mvn -Pspring-2 clean package   # proxy-1.0.0.jar / .war
+mvn -Pspring-3 clean package   # proxy-1.0.0-spring-3.jar / .war
 ```
 
 ## Run (embedded)
 
 ```bash
 java -jar target/proxy-1.0.0.jar
-# or
-java -jar target/proxy-1.0.0-spring-3.jar
 ```
 
 - Admin UI: http://localhost:8080/ (`admin` / `admin`)
-- HTTP proxy: `:3128`
-- SOCKS5: `:1080`
+- HTTP `:3128` · HTTPS TLS-to-proxy `:3129` (off by default) · SOCKS4/5 `:1080`
 
-## Tomcat
+## Protocols / ZeroOmega
 
-Deploy the `.war`. Listeners still bind the configured HTTP/SOCKS ports when the webapp starts.
+Full detail: [docs/PROTOCOLS.md](docs/PROTOCOLS.md)
 
-SQLite: `./data/proxy.db` (process working directory). Override:
+| Profile | Protocol | Port | Notes |
+|---------|----------|------|--------|
+| HTTP | HTTP | 3128 | HTTPS websites via `CONNECT` |
+| HTTPS | HTTPS | 3129 | TLS to proxy; enable in Settings (self-signed) |
+| SOCKS5 | SOCKS5 | 1080 | user/password when auth on |
+| SOCKS4 | SOCKS4 | 1080 | only when auth is **off** |
 
-```yaml
-proxy:
-  data-dir: /var/lib/proxy
-```
+## Active connections
 
-## ZeroOmega
-
-| Profile | Protocol | Port | Auth |
-|---------|----------|------|------|
-| HTTP | HTTP | 3128 | proxy user / password |
-| SOCKS5 | SOCKS5 | 1080 | proxy user / password (Firefox; Chrome often lacks SOCKS auth) |
+Open inbound client TCP channels after accept (not “users”). Released on channel close; reset on listener restart. See docs.

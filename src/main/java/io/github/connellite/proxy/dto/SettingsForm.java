@@ -28,6 +28,16 @@ public class SettingsForm {
     @Max(65535)
     private int httpPort = 3128;
 
+    private boolean httpsEnabled = false;
+
+    @NotBlank
+    @Size(max = 64)
+    private String httpsBindHost = "0.0.0.0";
+
+    @Min(1)
+    @Max(65535)
+    private int httpsPort = 3129;
+
     private boolean socksEnabled = true;
 
     @NotBlank
@@ -38,5 +48,5 @@ public class SettingsForm {
     @Max(65535)
     private int socksPort = 1080;
 
-    private boolean authRequired = true;
+    private boolean authRequired = false;
 }

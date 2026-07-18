@@ -15,7 +15,8 @@
     <div th:if="${lastError}" class="flash err" th:text="${lastError}"></div>
     <p class="muted">
         HTTP: <span th:text="${httpRunning} ? 'running' : 'stopped'">stopped</span>
-        · SOCKS5: <span th:text="${socksRunning} ? 'running' : 'stopped'">stopped</span>
+        · HTTPS: <span th:text="${httpsRunning} ? 'running' : 'stopped'">stopped</span>
+        · SOCKS4/5: <span th:text="${socksRunning} ? 'running' : 'stopped'">stopped</span>
     </p>
 
     <form class="panel form" th:action="@{/settings}" th:object="${form}" method="post">
@@ -30,16 +31,25 @@
                 <input type="number" th:field="*{httpPort}" min="1" max="65535" required/>
             </label>
         </div>
-        <label class="checkbox"><input type="checkbox" th:field="*{socksEnabled}"/> Enable SOCKS5 proxy</label>
+        <label class="checkbox"><input type="checkbox" th:field="*{httpsEnabled}"/> Enable HTTPS proxy (TLS to proxy, ZeroOmega “HTTPS”)</label>
         <div class="two-col">
-            <label>SOCKS5 bind host
+            <label>HTTPS bind host
+                <input type="text" th:field="*{httpsBindHost}" required/>
+            </label>
+            <label>HTTPS port
+                <input type="number" th:field="*{httpsPort}" min="1" max="65535" required/>
+            </label>
+        </div>
+        <label class="checkbox"><input type="checkbox" th:field="*{socksEnabled}"/> Enable SOCKS4/5 proxy</label>
+        <div class="two-col">
+            <label>SOCKS bind host
                 <input type="text" th:field="*{socksBindHost}" required/>
             </label>
-            <label>SOCKS5 port
+            <label>SOCKS port
                 <input type="number" th:field="*{socksPort}" min="1" max="65535" required/>
             </label>
         </div>
-        <label class="checkbox"><input type="checkbox" th:field="*{authRequired}"/> Require username/password</label>
+        <label class="checkbox"><input type="checkbox" th:field="*{authRequired}"/> Require username/password (SOCKS4 disabled while on)</label>
         <div class="form-actions">
             <button type="submit" class="primary">Save &amp; restart</button>
         </div>

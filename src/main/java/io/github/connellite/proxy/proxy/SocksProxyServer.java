@@ -8,15 +8,23 @@ import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
+import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
+import io.netty.channel.ChannelPipeline;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.codec.socksx.SocksMessage;
+import io.netty.handler.codec.socksx.SocksPortUnificationServerHandler;
+import io.netty.handler.codec.socksx.v4.DefaultSocks4CommandResponse;
+import io.netty.handler.codec.socksx.v4.Socks4CommandRequest;
+import io.netty.handler.codec.socksx.v4.Socks4CommandStatus;
+import io.netty.handler.codec.socksx.v4.Socks4CommandType;
 import io.netty.handler.codec.socksx.v5.DefaultSocks5CommandResponse;
 import io.netty.handler.codec.socksx.v5.DefaultSocks5InitialResponse;
 import io.netty.handler.codec.socksx.v5.DefaultSocks5PasswordAuthResponse;
@@ -27,12 +35,9 @@ import io.netty.handler.codec.socksx.v5.Socks5CommandRequestDecoder;
 import io.netty.handler.codec.socksx.v5.Socks5CommandStatus;
 import io.netty.handler.codec.socksx.v5.Socks5CommandType;
 import io.netty.handler.codec.socksx.v5.Socks5InitialRequest;
-import io.netty.handler.codec.socksx.v5.Socks5InitialRequestDecoder;
-import io.netty.handler.codec.socksx.v5.Socks5Message;
 import io.netty.handler.codec.socksx.v5.Socks5PasswordAuthRequest;
 import io.netty.handler.codec.socksx.v5.Socks5PasswordAuthRequestDecoder;
 import io.netty.handler.codec.socksx.v5.Socks5PasswordAuthStatus;
-import io.netty.handler.codec.socksx.v5.Socks5ServerEncoder;
 import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.AttributeKey;
 import lombok.RequiredArgsConstructor;
@@ -40,13 +45,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public final class Socks5ProxyServer implements AutoCloseable {
+public final class SocksProxyServer implements AutoCloseable {
 
     private static final AttributeKey<AuthenticatedSession> SESSION_KEY = AttributeKey.valueOf("socksSession");
 
@@ -72,24 +79,16 @@ public final class Socks5ProxyServer implements AutoCloseable {
                     protected void initChannel(SocketChannel ch) {
                         ch.pipeline().addLast(new IdleStateHandler(0, 0, properties.getIdleTimeoutSeconds(), TimeUnit.SECONDS));
                         ch.pipeline().addLast(new IdleCloseHandler());
-                        ch.pipeline().addLast(Socks5ServerEncoder.DEFAULT);
-                        ch.pipeline().addLast(new Socks5InitialRequestDecoder());
-                        ch.pipeline().addLast(new Socks5InitialHandler());
+                        ch.pipeline().addLast(new SocksPortUnificationServerHandler());
+                        ch.pipeline().addLast(new SocksClientHandler());
                     }
                 });
         serverChannel = bootstrap.bind(new InetSocketAddress(bindHost, port)).sync().channel();
-        log.info("SOCKS5 proxy listening on {}:{}", bindHost, port);
+        log.info("SOCKS4/5 proxy listening on {}:{}", bindHost, port);
     }
 
     public synchronized boolean isRunning() {
         return serverChannel != null && serverChannel.isActive();
-    }
-
-    public synchronized InetSocketAddress localAddress() {
-        if (serverChannel == null) {
-            return null;
-        }
-        return (InetSocketAddress) serverChannel.localAddress();
     }
 
     @Override
@@ -115,16 +114,44 @@ public final class Socks5ProxyServer implements AutoCloseable {
         }
     }
 
-    private final class Socks5InitialHandler extends SimpleChannelInboundHandler<Socks5Message> {
+    private final class SocksClientHandler extends SimpleChannelInboundHandler<SocksMessage> {
+
         @Override
-        protected void channelRead0(ChannelHandlerContext ctx, Socks5Message msg) {
-            if (!(msg instanceof Socks5InitialRequest)) {
+        protected void channelRead0(ChannelHandlerContext ctx, SocksMessage msg) {
+            if (msg instanceof Socks4CommandRequest request) {
+                handleSocks4(ctx, request);
+            } else if (msg instanceof Socks5InitialRequest) {
+                handleSocks5Initial(ctx);
+            } else if (msg instanceof Socks5PasswordAuthRequest request) {
+                handleSocks5Password(ctx, request);
+            } else if (msg instanceof Socks5CommandRequest request) {
+                handleSocks5Command(ctx, request);
+            } else {
                 ctx.close();
+            }
+        }
+
+        private void handleSocks4(ChannelHandlerContext ctx, Socks4CommandRequest request) {
+            if (authService.isAuthRequired()) {
+                ctx.writeAndFlush(new DefaultSocks4CommandResponse(Socks4CommandStatus.REJECTED_OR_FAILED))
+                        .addListener(ChannelFutureListener.CLOSE);
                 return;
             }
-            boolean authRequired = authService.isAuthRequired();
-            if (authRequired) {
-                ctx.pipeline().replace(this, "socks5Auth", new Socks5PasswordHandler());
+            if (request.type() != Socks4CommandType.CONNECT) {
+                ctx.writeAndFlush(new DefaultSocks4CommandResponse(Socks4CommandStatus.REJECTED_OR_FAILED))
+                        .addListener(ChannelFutureListener.CLOSE);
+                return;
+            }
+            if (!metrics.track(ctx.channel(), null)) {
+                ctx.writeAndFlush(new DefaultSocks4CommandResponse(Socks4CommandStatus.REJECTED_OR_FAILED))
+                        .addListener(ChannelFutureListener.CLOSE);
+                return;
+            }
+            relay(ctx, request.dstAddr(), request.dstPort(), null, true);
+        }
+
+        private void handleSocks5Initial(ChannelHandlerContext ctx) {
+            if (authService.isAuthRequired()) {
                 ctx.pipeline().addFirst(new Socks5PasswordAuthRequestDecoder());
                 ctx.writeAndFlush(new DefaultSocks5InitialResponse(Socks5AuthMethod.PASSWORD));
             } else {
@@ -132,27 +159,12 @@ public final class Socks5ProxyServer implements AutoCloseable {
                     ctx.close();
                     return;
                 }
-                ctx.pipeline().replace(this, "socks5Cmd", new Socks5CommandHandler());
                 ctx.pipeline().addFirst(new Socks5CommandRequestDecoder());
                 ctx.writeAndFlush(new DefaultSocks5InitialResponse(Socks5AuthMethod.NO_AUTH));
             }
-            ctx.pipeline().remove(Socks5InitialRequestDecoder.class);
         }
 
-        @Override
-        public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-            log.debug("SOCKS5 init error: {}", cause.toString());
-            ctx.close();
-        }
-    }
-
-    private final class Socks5PasswordHandler extends SimpleChannelInboundHandler<Socks5Message> {
-        @Override
-        protected void channelRead0(ChannelHandlerContext ctx, Socks5Message msg) {
-            if (!(msg instanceof Socks5PasswordAuthRequest request)) {
-                ctx.close();
-                return;
-            }
+        private void handleSocks5Password(ChannelHandlerContext ctx, Socks5PasswordAuthRequest request) {
             Optional<AuthenticatedSession> session = authService.authenticate(request.username(), request.password());
             if (session.isEmpty() || !metrics.track(ctx.channel(), session.get())) {
                 ctx.writeAndFlush(new DefaultSocks5PasswordAuthResponse(Socks5PasswordAuthStatus.FAILURE))
@@ -160,34 +172,26 @@ public final class Socks5ProxyServer implements AutoCloseable {
                 return;
             }
             ctx.channel().attr(SESSION_KEY).set(session.get());
-            ctx.pipeline().replace(this, "socks5Cmd", new Socks5CommandHandler());
+            if (ctx.pipeline().get(Socks5PasswordAuthRequestDecoder.class) != null) {
+                ctx.pipeline().remove(Socks5PasswordAuthRequestDecoder.class);
+            }
             ctx.pipeline().addFirst(new Socks5CommandRequestDecoder());
-            ctx.pipeline().remove(Socks5PasswordAuthRequestDecoder.class);
             ctx.writeAndFlush(new DefaultSocks5PasswordAuthResponse(Socks5PasswordAuthStatus.SUCCESS));
         }
 
-        @Override
-        public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-            ctx.close();
-        }
-    }
-
-    private final class Socks5CommandHandler extends SimpleChannelInboundHandler<Socks5Message> {
-        @Override
-        protected void channelRead0(ChannelHandlerContext ctx, Socks5Message msg) {
-            if (!(msg instanceof Socks5CommandRequest request)) {
-                ctx.close();
-                return;
-            }
+        private void handleSocks5Command(ChannelHandlerContext ctx, Socks5CommandRequest request) {
             if (request.type() != Socks5CommandType.CONNECT) {
                 ctx.writeAndFlush(new DefaultSocks5CommandResponse(
                                 Socks5CommandStatus.COMMAND_UNSUPPORTED, request.dstAddrType()))
                         .addListener(ChannelFutureListener.CLOSE);
                 return;
             }
+            relay(ctx, request.dstAddr(), request.dstPort(), ctx.channel().attr(SESSION_KEY).get(), false);
+        }
 
+        private void relay(ChannelHandlerContext ctx, String host, int port,
+                           AuthenticatedSession session, boolean socks4) {
             Channel inbound = ctx.channel();
-            AuthenticatedSession session = inbound.attr(SESSION_KEY).get();
             Long userId = session == null ? null : session.getUserId();
             Bootstrap bootstrap = new Bootstrap();
             bootstrap.group(inbound.eventLoop())
@@ -202,33 +206,26 @@ public final class Socks5ProxyServer implements AutoCloseable {
                         }
                     });
 
-            bootstrap.connect(request.dstAddr(), request.dstPort()).addListener((ChannelFutureListener) future -> {
+            bootstrap.connect(host, port).addListener((ChannelFutureListener) future -> {
                 if (!future.isSuccess()) {
-                    inbound.writeAndFlush(new DefaultSocks5CommandResponse(
-                                    Socks5CommandStatus.FAILURE, request.dstAddrType()))
-                            .addListener(ChannelFutureListener.CLOSE);
+                    Object fail = socks4
+                            ? new DefaultSocks4CommandResponse(Socks4CommandStatus.REJECTED_OR_FAILED)
+                            : new DefaultSocks5CommandResponse(Socks5CommandStatus.FAILURE, Socks5AddressType.IPv4);
+                    inbound.writeAndFlush(fail).addListener(ChannelFutureListener.CLOSE);
                     return;
                 }
                 Channel outbound = future.channel();
-                inbound.writeAndFlush(new DefaultSocks5CommandResponse(
-                        Socks5CommandStatus.SUCCESS,
-                        Socks5AddressType.IPv4,
-                        "0.0.0.0",
-                        0)).addListener((ChannelFutureListener) written -> {
+                Object success = socks4
+                        ? new DefaultSocks4CommandResponse(Socks4CommandStatus.SUCCESS)
+                        : new DefaultSocks5CommandResponse(
+                        Socks5CommandStatus.SUCCESS, Socks5AddressType.IPv4, "0.0.0.0", 0);
+                inbound.writeAndFlush(success).addListener((ChannelFutureListener) written -> {
                     if (!written.isSuccess()) {
                         outbound.close();
                         inbound.close();
                         return;
                     }
-                    if (inbound.pipeline().get(Socks5CommandHandler.class) != null) {
-                        inbound.pipeline().remove(Socks5CommandHandler.class);
-                    }
-                    if (inbound.pipeline().get(Socks5CommandRequestDecoder.class) != null) {
-                        inbound.pipeline().remove(Socks5CommandRequestDecoder.class);
-                    }
-                    if (inbound.pipeline().get(Socks5ServerEncoder.class) != null) {
-                        inbound.pipeline().remove(Socks5ServerEncoder.class);
-                    }
+                    stripSocksHandlers(inbound.pipeline());
                     inbound.pipeline().addLast(new RelayHandler(outbound,
                             bytes -> metrics.recordTraffic(userId, bytes, 0)));
                     inbound.config().setAutoRead(true);
@@ -237,9 +234,35 @@ public final class Socks5ProxyServer implements AutoCloseable {
             });
         }
 
+        private void stripSocksHandlers(ChannelPipeline pipeline) {
+            List<String> remove = new ArrayList<>();
+            for (String name : pipeline.names()) {
+                ChannelHandler handler = pipeline.get(name);
+                if (handler == null) {
+                    continue;
+                }
+                String className = handler.getClass().getName();
+                if (handler instanceof SocksClientHandler
+                        || handler instanceof SocksPortUnificationServerHandler
+                        || className.contains("socksx")
+                        || className.contains("Socks4")
+                        || className.contains("Socks5")) {
+                    remove.add(name);
+                }
+            }
+            for (String name : remove) {
+                try {
+                    if (pipeline.context(name) != null) {
+                        pipeline.remove(name);
+                    }
+                } catch (Exception ignored) {
+                }
+            }
+        }
+
         @Override
         public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-            log.debug("SOCKS5 command error: {}", cause.toString());
+            log.debug("SOCKS client error: {}", cause.toString());
             ctx.close();
         }
     }

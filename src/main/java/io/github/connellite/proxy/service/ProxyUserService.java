@@ -1,6 +1,6 @@
 package io.github.connellite.proxy.service;
 
-import io.github.connellite.proxy.domain.ProxyUser;
+import io.github.connellite.proxy.model.ProxyUser;
 import io.github.connellite.proxy.repository.ProxyUserRepository;
 import io.github.connellite.proxy.dto.ProxyUserForm;
 import lombok.RequiredArgsConstructor;
