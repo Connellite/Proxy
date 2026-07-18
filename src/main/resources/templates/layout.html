@@ -3,6 +3,7 @@
 <head th:fragment="head(title)">
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <meta th:if="${refreshSeconds != null}" http-equiv="refresh" th:attr="content=${refreshSeconds}"/>
     <title th:text="${title} + ' — Proxy Admin'">Proxy Admin</title>
     <link rel="stylesheet" th:href="@{/css/app.css}"/>
 </head>

@@ -16,11 +16,14 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
 
 @Service
 @RequiredArgsConstructor
 public class TrafficStatsService {
+
+    private static final long RATE_IDLE_EVICT_MS = 30_000;
 
     private final ProxyUserRepository userRepository;
     private final AppSettingsRepository settingsRepository;
@@ -30,6 +33,8 @@ public class TrafficStatsService {
     private final TrafficDelta pendingGlobal = new TrafficDelta();
     /** Bytes observed since this JVM process started (not reset on flush). */
     private final TrafficDelta sessionTotal = new TrafficDelta();
+    /** Sliding 1s windows → B/s per user. */
+    private final ConcurrentHashMap<Long, RateSample> rates = new ConcurrentHashMap<>();
 
     /**
      * Queue traffic for durable flush. {@code userId} may be null (anonymous / auth off).
@@ -42,7 +47,22 @@ public class TrafficStatsService {
         pendingGlobal.add(bytesUp, bytesDown);
         if (userId != null) {
             pendingUsers.computeIfAbsent(userId, id -> new TrafficDelta()).add(bytesUp, bytesDown);
+            rates.computeIfAbsent(userId, id -> new RateSample()).add(bytesUp, bytesDown);
         }
+    }
+
+    public UserThroughput throughputFor(Long userId) {
+        if (userId == null) {
+            return UserThroughput.ZERO;
+        }
+        RateSample sample = rates.get(userId);
+        return sample == null ? UserThroughput.ZERO : sample.snapshot();
+    }
+
+    public Map<Long, UserThroughput> throughputSnapshot() {
+        Map<Long, UserThroughput> map = new ConcurrentHashMap<>();
+        rates.forEach((id, sample) -> map.put(id, sample.snapshot()));
+        return map;
     }
 
     /** Since process start. */
@@ -75,6 +95,18 @@ public class TrafficStatsService {
         return settingsRepository.findById(AppSettings.SINGLETON_ID)
                 .map(AppSettings::getBytesDownTotal)
                 .orElse(0L);
+    }
+
+    /** Roll the 1-second throughput window. */
+    @Scheduled(fixedRate = 1_000)
+    public void tickRates() {
+        long now = System.currentTimeMillis();
+        rates.forEach((id, sample) -> {
+            sample.tick(now);
+            if (sample.isStale(now, RATE_IDLE_EVICT_MS)) {
+                rates.remove(id, sample);
+            }
+        });
     }
 
     @Scheduled(fixedDelay = 5_000)
@@ -125,6 +157,43 @@ public class TrafficStatsService {
             if (bytesDown > 0) {
                 down.add(bytesDown);
             }
+        }
+    }
+
+    private static final class RateSample {
+        private final AtomicLong windowUp = new AtomicLong();
+        private final AtomicLong windowDown = new AtomicLong();
+        private volatile long upBps;
+        private volatile long downBps;
+        private volatile long lastActivityMs = System.currentTimeMillis();
+        private volatile long windowStartMs = System.currentTimeMillis();
+
+        void add(long bytesUp, long bytesDown) {
+            if (bytesUp > 0) {
+                windowUp.addAndGet(bytesUp);
+            }
+            if (bytesDown > 0) {
+                windowDown.addAndGet(bytesDown);
+            }
+            lastActivityMs = System.currentTimeMillis();
+        }
+
+        synchronized void tick(long nowMs) {
+            long elapsedMs = Math.max(1L, nowMs - windowStartMs);
+            long up = windowUp.getAndSet(0);
+            long down = windowDown.getAndSet(0);
+            upBps = up * 1000L / elapsedMs;
+            downBps = down * 1000L / elapsedMs;
+            windowStartMs = nowMs;
+        }
+
+        UserThroughput snapshot() {
+            return new UserThroughput(upBps, downBps);
+        }
+
+        boolean isStale(long nowMs, long idleMs) {
+            return upBps == 0 && downBps == 0 && windowUp.get() == 0 && windowDown.get() == 0
+                    && (nowMs - lastActivityMs) > idleMs;
         }
     }
 }

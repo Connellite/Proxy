@@ -71,7 +71,7 @@ button:hover, .button:hover { filter: brightness(0.98); }
 h1 { margin: 0 0 1rem; font-size: 1.7rem; }
 h2 { margin: 0 0 1rem; font-size: 1.15rem; }
 .muted, .hint { color: var(--muted); }
-.hint { font-size: 0.9rem; margin-top: 1rem; }
+.hint { font-size: 0.9rem; margin: -0.25rem 0 1rem; }
 
 .flash {
   padding: 0.75rem 1rem;
@@ -135,6 +135,9 @@ td.empty { color: var(--muted); text-align: center; padding: 2rem; }
 .badge.ok { background: #e8f6ee; color: var(--ok); }
 .badge.warn { background: #fff4d6; color: var(--warn); }
 .badge.muted { background: #eee9e1; color: var(--muted); }
+
+.speed { font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--muted); }
+.speed.live { color: var(--text); font-weight: 600; }
 
 .form label { display: block; margin-bottom: 0.9rem; font-weight: 600; }
 .form input[type="text"],

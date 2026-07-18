@@ -7,6 +7,8 @@ import io.github.connellite.proxy.security.AdminAccountService;
 import io.github.connellite.proxy.service.ProxyMetrics;
 import io.github.connellite.proxy.service.ProxyUserService;
 import io.github.connellite.proxy.service.SettingsService;
+import io.github.connellite.proxy.service.TrafficStatsService;
+import io.github.connellite.proxy.service.UserThroughput;
 import io.github.connellite.proxy.dto.PasswordChangeForm;
 import io.github.connellite.proxy.dto.ProxyUserForm;
 import io.github.connellite.proxy.dto.SettingsForm;
@@ -44,6 +46,7 @@ public class AdminController {
     private final SettingsService settingsService;
     private final ProxyServerManager proxyServerManager;
     private final ProxyMetrics proxyMetrics;
+    private final TrafficStatsService trafficStatsService;
     private final AdminAccountService adminAccountService;
 
     @GetMapping("/login")
@@ -74,11 +77,15 @@ public class AdminController {
     public String users(Model model) {
         List<ProxyUser> users = userService.findAll();
         Map<Long, Integer> active = new HashMap<>();
+        Map<Long, UserThroughput> speed = new HashMap<>();
         for (ProxyUser user : users) {
             active.put(user.getId(), userService.activeConnections(user.getId()));
+            speed.put(user.getId(), trafficStatsService.throughputFor(user.getId()));
         }
         model.addAttribute("users", users);
         model.addAttribute("activeMap", active);
+        model.addAttribute("speedMap", speed);
+        model.addAttribute("refreshSeconds", 3);
         return "users";
     }
 

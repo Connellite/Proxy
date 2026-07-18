@@ -29,6 +29,14 @@ public class FormatHelper {
         return String.format("%.1f %cB", value / 1024.0, ci.current());
     }
 
+    /** Throughput, e.g. {@code 1.2 MB/s}. */
+    public String rate(long bytesPerSec) {
+        if (bytesPerSec <= 0) {
+            return "0 B/s";
+        }
+        return bytes(bytesPerSec) + "/s";
+    }
+
     public String instant(Instant instant) {
         if (instant == null) {
             return "—";

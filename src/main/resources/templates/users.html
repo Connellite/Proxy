@@ -9,6 +9,7 @@
         <h1>Users</h1>
         <a class="button primary" th:href="@{/users/new}">Add user</a>
     </div>
+    <p class="hint">Speed is the last ~1s average (↑ client→proxy / ↓ proxy→client). Auto-refreshes every 3s.</p>
     <div class="table-wrap">
         <table>
             <thead>
@@ -16,6 +17,7 @@
                 <th>Username</th>
                 <th>Status</th>
                 <th>Connections</th>
+                <th>Speed</th>
                 <th>Expires</th>
                 <th>Traffic</th>
                 <th>Last used</th>
@@ -24,7 +26,7 @@
             </tr>
             </thead>
             <tbody>
-            <tr th:each="u : ${users}">
+            <tr th:each="u : ${users}" th:with="sp=${speedMap[u.id]}">
                 <td th:text="${u.username}">user</td>
                 <td>
                     <span th:if="${u.usable}" class="badge ok">active</span>
@@ -35,6 +37,10 @@
                     <span th:text="${activeMap[u.id]}">0</span>
                     <span th:if="${u.maxConnections > 0}" th:text="' / ' + ${u.maxConnections}"></span>
                     <span th:if="${u.maxConnections == 0}"> / ∞</span>
+                </td>
+                <td class="speed" th:classappend="${sp != null and !sp.idle} ? ' live'">
+                    ↑ <span th:text="${@fmt.rate(sp != null ? sp.upBytesPerSec : 0)}">0 B/s</span>
+                    · ↓ <span th:text="${@fmt.rate(sp != null ? sp.downBytesPerSec : 0)}">0 B/s</span>
                 </td>
                 <td th:text="${u.expiresAt != null} ? ${@fmt.instant(u.expiresAt)} : 'never'">never</td>
                 <td>
@@ -62,7 +68,7 @@
                 </td>
             </tr>
             <tr th:if="${#lists.isEmpty(users)}">
-                <td colspan="8" class="empty">No proxy users yet. Create one to authenticate proxy clients.</td>
+                <td colspan="9" class="empty">No proxy users yet. Create one to authenticate proxy clients.</td>
             </tr>
             </tbody>
         </table>
