@@ -3,7 +3,7 @@ package io.github.connellite.proxy.proxy;
 import io.github.connellite.proxy.config.ProxyProperties;
 import io.github.connellite.proxy.service.AuthenticatedSession;
 import io.github.connellite.proxy.service.ProxyAuthService;
-import io.github.connellite.proxy.service.TrafficStatsService;
+import io.github.connellite.proxy.service.ProxyMetrics;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
@@ -42,7 +42,6 @@ import org.springframework.stereotype.Component;
 import java.net.InetSocketAddress;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 @Slf4j
 @Component
@@ -50,10 +49,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public final class Socks5ProxyServer implements AutoCloseable {
 
     private static final AttributeKey<AuthenticatedSession> SESSION_KEY = AttributeKey.valueOf("socksSession");
-    private static final AttributeKey<AtomicBoolean> HELD_KEY = AttributeKey.valueOf("socksHeld");
 
     private final ProxyAuthService authService;
-    private final TrafficStatsService trafficStatsService;
+    private final ProxyMetrics metrics;
     private final ProxyProperties properties;
 
     private EventLoopGroup bossGroup;
@@ -130,6 +128,10 @@ public final class Socks5ProxyServer implements AutoCloseable {
                 ctx.pipeline().addFirst(new Socks5PasswordAuthRequestDecoder());
                 ctx.writeAndFlush(new DefaultSocks5InitialResponse(Socks5AuthMethod.PASSWORD));
             } else {
+                if (!metrics.track(ctx.channel(), null)) {
+                    ctx.close();
+                    return;
+                }
                 ctx.pipeline().replace(this, "socks5Cmd", new Socks5CommandHandler());
                 ctx.pipeline().addFirst(new Socks5CommandRequestDecoder());
                 ctx.writeAndFlush(new DefaultSocks5InitialResponse(Socks5AuthMethod.NO_AUTH));
@@ -152,13 +154,12 @@ public final class Socks5ProxyServer implements AutoCloseable {
                 return;
             }
             Optional<AuthenticatedSession> session = authService.authenticate(request.username(), request.password());
-            if (session.isEmpty() || !authService.tryAcquireConnection(session.get())) {
+            if (session.isEmpty() || !metrics.track(ctx.channel(), session.get())) {
                 ctx.writeAndFlush(new DefaultSocks5PasswordAuthResponse(Socks5PasswordAuthStatus.FAILURE))
                         .addListener(ChannelFutureListener.CLOSE);
                 return;
             }
             ctx.channel().attr(SESSION_KEY).set(session.get());
-            ctx.channel().attr(HELD_KEY).set(new AtomicBoolean(true));
             ctx.pipeline().replace(this, "socks5Cmd", new Socks5CommandHandler());
             ctx.pipeline().addFirst(new Socks5CommandRequestDecoder());
             ctx.pipeline().remove(Socks5PasswordAuthRequestDecoder.class);
@@ -166,13 +167,7 @@ public final class Socks5ProxyServer implements AutoCloseable {
         }
 
         @Override
-        public void channelInactive(ChannelHandlerContext ctx) {
-            release(ctx);
-        }
-
-        @Override
         public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-            release(ctx);
             ctx.close();
         }
     }
@@ -193,6 +188,7 @@ public final class Socks5ProxyServer implements AutoCloseable {
 
             Channel inbound = ctx.channel();
             AuthenticatedSession session = inbound.attr(SESSION_KEY).get();
+            Long userId = session == null ? null : session.getUserId();
             Bootstrap bootstrap = new Bootstrap();
             bootstrap.group(inbound.eventLoop())
                     .channel(NioSocketChannel.class)
@@ -201,11 +197,8 @@ public final class Socks5ProxyServer implements AutoCloseable {
                     .handler(new ChannelInitializer<SocketChannel>() {
                         @Override
                         protected void initChannel(SocketChannel ch) {
-                            ch.pipeline().addLast(new RelayHandler(inbound, bytes -> {
-                                if (session != null) {
-                                    trafficStatsService.record(session.getUserId(), 0, bytes);
-                                }
-                            }));
+                            ch.pipeline().addLast(new RelayHandler(inbound,
+                                    bytes -> metrics.recordTraffic(userId, 0, bytes)));
                         }
                     });
 
@@ -236,17 +229,8 @@ public final class Socks5ProxyServer implements AutoCloseable {
                     if (inbound.pipeline().get(Socks5ServerEncoder.class) != null) {
                         inbound.pipeline().remove(Socks5ServerEncoder.class);
                     }
-                    inbound.pipeline().addLast(new RelayHandler(outbound, bytes -> {
-                        if (session != null) {
-                            trafficStatsService.record(session.getUserId(), bytes, 0);
-                        }
-                    }) {
-                        @Override
-                        public void channelInactive(ChannelHandlerContext c) {
-                            release(c);
-                            super.channelInactive(c);
-                        }
-                    });
+                    inbound.pipeline().addLast(new RelayHandler(outbound,
+                            bytes -> metrics.recordTraffic(userId, bytes, 0)));
                     inbound.config().setAutoRead(true);
                     outbound.config().setAutoRead(true);
                 });
@@ -254,22 +238,9 @@ public final class Socks5ProxyServer implements AutoCloseable {
         }
 
         @Override
-        public void channelInactive(ChannelHandlerContext ctx) {
-            release(ctx);
-        }
-
-        @Override
         public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
             log.debug("SOCKS5 command error: {}", cause.toString());
-            release(ctx);
             ctx.close();
-        }
-    }
-
-    private void release(ChannelHandlerContext ctx) {
-        AtomicBoolean held = ctx.channel().attr(HELD_KEY).get();
-        if (held != null && held.compareAndSet(true, false)) {
-            authService.releaseConnection(ctx.channel().attr(SESSION_KEY).get());
         }
     }
 }

@@ -2,7 +2,7 @@ package io.github.connellite.proxy.proxy;
 
 import io.github.connellite.proxy.config.ProxyProperties;
 import io.github.connellite.proxy.service.ProxyAuthService;
-import io.github.connellite.proxy.service.TrafficStatsService;
+import io.github.connellite.proxy.service.ProxyMetrics;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
@@ -27,7 +27,7 @@ import java.util.concurrent.TimeUnit;
 public final class HttpProxyServer implements AutoCloseable {
 
     private final ProxyAuthService authService;
-    private final TrafficStatsService trafficStatsService;
+    private final ProxyMetrics metrics;
     private final ProxyProperties properties;
 
     private EventLoopGroup bossGroup;
@@ -51,7 +51,7 @@ public final class HttpProxyServer implements AutoCloseable {
                         ch.pipeline().addLast(new IdleCloseHandler());
                         ch.pipeline().addLast(new HttpServerCodec());
                         ch.pipeline().addLast(new HttpObjectAggregator(8 * 1024 * 1024));
-                        ch.pipeline().addLast(new HttpProxyClientHandler(authService, trafficStatsService, properties));
+                        ch.pipeline().addLast(new HttpProxyClientHandler(authService, metrics, properties));
                     }
                 });
         serverChannel = bootstrap.bind(new InetSocketAddress(bindHost, port)).sync().channel();

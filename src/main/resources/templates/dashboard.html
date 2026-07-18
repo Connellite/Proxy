@@ -26,11 +26,11 @@
             <div class="value"><span th:text="${enabledUsers}">0</span> / <span th:text="${userCount}">0</span></div>
         </div>
         <div class="stat">
-            <div class="label">Traffic up</div>
+            <div class="label">Traffic up (since start)</div>
             <div class="value" th:text="${@fmt.bytes(totalBytesUp)}">0 B</div>
         </div>
         <div class="stat">
-            <div class="label">Traffic down</div>
+            <div class="label">Traffic down (since start)</div>
             <div class="value" th:text="${@fmt.bytes(totalBytesDown)}">0 B</div>
         </div>
     </div>

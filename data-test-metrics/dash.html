@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>Dashboard — Proxy Admin</title>
+    <link rel="stylesheet" href="/css/app.css"/>
+</head>
+<body>
+<header class="topbar">
+    <div class="brand"><a href="/">Proxy Admin</a></div>
+    <nav>
+        <a href="/">Dashboard</a>
+        <a href="/users">Users</a>
+        <a href="/settings">Settings</a>
+    </nav>
+    <form action="/logout" method="post" class="logout"><input type="hidden" name="_csrf" value="936339d1-06c5-41de-b401-53da8931a4e2"/>
+        <input type="hidden" name="_csrf" value="936339d1-06c5-41de-b401-53da8931a4e2"/>
+        <button type="submit">Logout</button>
+    </form>
+</header>
+<main class="container">
+    <div>
+    
+    
+</div>
+    <h1>Dashboard</h1>
+    <div class="grid stats">
+        <div class="stat">
+            <div class="label">HTTP proxy</div>
+            <div class="value  up">0.0.0.0:13128</div>
+        </div>
+        <div class="stat">
+            <div class="label">SOCKS5 proxy</div>
+            <div class="value  up">0.0.0.0:11080</div>
+        </div>
+        <div class="stat">
+            <div class="label">Active connections</div>
+            <div class="value">0</div>
+        </div>
+        <div class="stat">
+            <div class="label">Users</div>
+            <div class="value"><span>0</span> / <span>0</span></div>
+        </div>
+        <div class="stat">
+            <div class="label">Traffic up (since start)</div>
+            <div class="value">75 B</div>
+        </div>
+        <div class="stat">
+            <div class="label">Traffic down (since start)</div>
+            <div class="value">1,4 KB</div>
+        </div>
+    </div>
+    
+    <section class="panel">
+        <h2>ZeroOmega</h2>
+        <p>HTTP profile → protocol <code>HTTP</code>, host of this machine, port
+            <strong>13128</strong>, auth with proxy username/password.</p>
+        <p>SOCKS5 profile → protocol <code>SOCKS5</code>, same host, port
+            <strong>11080</strong>. Chrome may not support SOCKS auth — use Firefox or HTTP.</p>
+    </section>
+</main>
+</body>
+</html>

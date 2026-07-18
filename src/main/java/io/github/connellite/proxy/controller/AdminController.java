@@ -4,7 +4,7 @@ import io.github.connellite.proxy.domain.AppSettings;
 import io.github.connellite.proxy.domain.ProxyUser;
 import io.github.connellite.proxy.proxy.ProxyServerManager;
 import io.github.connellite.proxy.security.AdminAccountService;
-import io.github.connellite.proxy.service.ProxyAuthService;
+import io.github.connellite.proxy.service.ProxyMetrics;
 import io.github.connellite.proxy.service.ProxyUserService;
 import io.github.connellite.proxy.service.SettingsService;
 import io.github.connellite.proxy.dto.PasswordChangeForm;
@@ -43,7 +43,7 @@ public class AdminController {
     private final ProxyUserService userService;
     private final SettingsService settingsService;
     private final ProxyServerManager proxyServerManager;
-    private final ProxyAuthService authService;
+    private final ProxyMetrics proxyMetrics;
     private final AdminAccountService adminAccountService;
 
     @GetMapping("/login")
@@ -58,12 +58,12 @@ public class AdminController {
         model.addAttribute("settings", settings);
         model.addAttribute("httpRunning", proxyServerManager.isHttpRunning());
         model.addAttribute("socksRunning", proxyServerManager.isSocksRunning());
-        model.addAttribute("activeConnections", authService.totalActiveConnections());
+        model.addAttribute("activeConnections", proxyMetrics.getActiveConnections());
         model.addAttribute("userCount", users.size());
         model.addAttribute("enabledUsers", users.stream().filter(ProxyUser::isUsable).count());
         model.addAttribute("lastError", proxyServerManager.getLastError());
-        model.addAttribute("totalBytesUp", users.stream().mapToLong(ProxyUser::getBytesUp).sum());
-        model.addAttribute("totalBytesDown", users.stream().mapToLong(ProxyUser::getBytesDown).sum());
+        model.addAttribute("totalBytesUp", proxyMetrics.getBytesUpTotal());
+        model.addAttribute("totalBytesDown", proxyMetrics.getBytesDownTotal());
         return "dashboard";
     }
 

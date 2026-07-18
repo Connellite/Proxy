@@ -3,12 +3,11 @@ package io.github.connellite.proxy.proxy;
 import io.github.connellite.proxy.config.ProxyProperties;
 import io.github.connellite.proxy.service.AuthenticatedSession;
 import io.github.connellite.proxy.service.ProxyAuthService;
-import io.github.connellite.proxy.service.TrafficStatsService;
+import io.github.connellite.proxy.service.ProxyMetrics;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
@@ -40,8 +39,6 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -50,9 +47,8 @@ final class HttpProxyClientHandler extends SimpleChannelInboundHandler<FullHttpR
     static final AttributeKey<AuthenticatedSession> SESSION_KEY = AttributeKey.valueOf("proxySession");
 
     private final ProxyAuthService authService;
-    private final TrafficStatsService trafficStatsService;
+    private final ProxyMetrics metrics;
     private final ProxyProperties properties;
-    private final AtomicBoolean connectionHeld = new AtomicBoolean(false);
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest request) {
@@ -65,16 +61,18 @@ final class HttpProxyClientHandler extends SimpleChannelInboundHandler<FullHttpR
                     return;
                 }
                 session = authenticated.get();
-                if (!authService.tryAcquireConnection(session)) {
+                if (!metrics.track(ctx.channel(), session)) {
                     sendError(ctx, HttpResponseStatus.PROXY_AUTHENTICATION_REQUIRED, "Connection limit reached");
                     return;
                 }
-                connectionHeld.set(true);
                 ctx.channel().attr(SESSION_KEY).set(session);
-            } else if (authenticated.isPresent()) {
-                session = authenticated.get();
-                if (authService.tryAcquireConnection(session)) {
-                    connectionHeld.set(true);
+            } else {
+                session = authenticated.orElse(null);
+                if (!metrics.track(ctx.channel(), session)) {
+                    sendError(ctx, HttpResponseStatus.PROXY_AUTHENTICATION_REQUIRED, "Connection limit reached");
+                    return;
+                }
+                if (session != null) {
                     ctx.channel().attr(SESSION_KEY).set(session);
                 }
             }
@@ -118,7 +116,7 @@ final class HttpProxyClientHandler extends SimpleChannelInboundHandler<FullHttpR
         }
 
         Channel inbound = ctx.channel();
-        TrafficCounter traffic = new TrafficCounter(session, trafficStatsService);
+        Long userId = session == null ? null : session.getUserId();
 
         Bootstrap bootstrap = new Bootstrap();
         bootstrap.group(inbound.eventLoop())
@@ -128,7 +126,7 @@ final class HttpProxyClientHandler extends SimpleChannelInboundHandler<FullHttpR
                 .handler(new ChannelInitializer<SocketChannel>() {
                     @Override
                     protected void initChannel(SocketChannel ch) {
-                        ch.pipeline().addLast(new RelayHandler(inbound, traffic::onDownlink));
+                        ch.pipeline().addLast(new RelayHandler(inbound, bytes -> metrics.recordTraffic(userId, 0, bytes)));
                     }
                 });
 
@@ -152,7 +150,7 @@ final class HttpProxyClientHandler extends SimpleChannelInboundHandler<FullHttpR
                     if (inbound.pipeline().get(io.netty.handler.codec.http.HttpServerCodec.class) != null) {
                         inbound.pipeline().remove(io.netty.handler.codec.http.HttpServerCodec.class);
                     }
-                    inbound.pipeline().addLast(new RelayHandler(outbound, traffic::onUplink));
+                    inbound.pipeline().addLast(new RelayHandler(outbound, bytes -> metrics.recordTraffic(userId, bytes, 0)));
                     inbound.config().setAutoRead(true);
                     outbound.config().setAutoRead(true);
                 });
@@ -189,7 +187,7 @@ final class HttpProxyClientHandler extends SimpleChannelInboundHandler<FullHttpR
         outboundRequest.headers().remove("Proxy-Connection");
 
         Channel inbound = ctx.channel();
-        TrafficCounter traffic = new TrafficCounter(session, trafficStatsService);
+        Long userId = session == null ? null : session.getUserId();
 
         Bootstrap bootstrap = new Bootstrap();
         bootstrap.group(inbound.eventLoop())
@@ -205,9 +203,9 @@ final class HttpProxyClientHandler extends SimpleChannelInboundHandler<FullHttpR
                             @Override
                             public void channelRead(ChannelHandlerContext c, Object msg) {
                                 if (msg instanceof ByteBuf buf) {
-                                    traffic.onDownlink(buf.readableBytes());
+                                    metrics.recordTraffic(userId, 0, buf.readableBytes());
                                 } else if (msg instanceof io.netty.handler.codec.http.HttpContent content) {
-                                    traffic.onDownlink(content.content().readableBytes());
+                                    metrics.recordTraffic(userId, 0, content.content().readableBytes());
                                 }
                                 if (inbound.isActive()) {
                                     inbound.writeAndFlush(msg).addListener((ChannelFutureListener) f -> {
@@ -236,15 +234,14 @@ final class HttpProxyClientHandler extends SimpleChannelInboundHandler<FullHttpR
                     }
                 });
 
-        ChannelFuture connectFuture = bootstrap.connect(host, port);
-        connectFuture.addListener((ChannelFutureListener) future -> {
+        bootstrap.connect(host, port).addListener((ChannelFutureListener) future -> {
             if (!future.isSuccess()) {
                 outboundRequest.release();
                 sendError(ctx, HttpResponseStatus.BAD_GATEWAY, "Unable to connect to target");
                 return;
             }
             Channel outbound = future.channel();
-            traffic.onUplink(outboundRequest.content().readableBytes());
+            metrics.recordTraffic(userId, outboundRequest.content().readableBytes(), 0);
             outbound.writeAndFlush(outboundRequest).addListener((ChannelFutureListener) written -> {
                 if (!written.isSuccess()) {
                     outbound.close();
@@ -278,43 +275,8 @@ final class HttpProxyClientHandler extends SimpleChannelInboundHandler<FullHttpR
     }
 
     @Override
-    public void channelInactive(ChannelHandlerContext ctx) {
-        release(ctx);
-    }
-
-    @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
         log.debug("HTTP proxy client error: {}", cause.toString());
-        release(ctx);
         ctx.close();
-    }
-
-    private void release(ChannelHandlerContext ctx) {
-        if (connectionHeld.compareAndSet(true, false)) {
-            AuthenticatedSession session = ctx.channel().attr(SESSION_KEY).get();
-            authService.releaseConnection(session);
-        }
-    }
-
-    @RequiredArgsConstructor
-    private static final class TrafficCounter {
-        private final AuthenticatedSession session;
-        private final TrafficStatsService stats;
-        private final AtomicLong up = new AtomicLong();
-        private final AtomicLong down = new AtomicLong();
-
-        void onUplink(long bytes) {
-            if (session != null && bytes > 0) {
-                up.addAndGet(bytes);
-                stats.record(session.getUserId(), bytes, 0);
-            }
-        }
-
-        void onDownlink(long bytes) {
-            if (session != null && bytes > 0) {
-                down.addAndGet(bytes);
-                stats.record(session.getUserId(), 0, bytes);
-            }
-        }
     }
 }
