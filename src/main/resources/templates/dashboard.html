@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Dashboard')}"></head>
+<body>
+<header th:replace="~{layout :: header}"></header>
+<main class="container">
+    <div th:replace="~{layout :: flashes}"></div>
+    <h1>Dashboard</h1>
+    <div class="grid stats">
+        <div class="stat">
+            <div class="label">HTTP proxy</div>
+            <div class="value" th:classappend="${httpRunning} ? ' up' : ' down'"
+                 th:text="${httpRunning} ? (${settings.httpBindHost} + ':' + ${settings.httpPort}) : 'stopped'">stopped</div>
+        </div>
+        <div class="stat">
+            <div class="label">SOCKS5 proxy</div>
+            <div class="value" th:classappend="${socksRunning} ? ' up' : ' down'"
+                 th:text="${socksRunning} ? (${settings.socksBindHost} + ':' + ${settings.socksPort}) : 'stopped'">stopped</div>
+        </div>
+        <div class="stat">
+            <div class="label">Active connections</div>
+            <div class="value" th:text="${activeConnections}">0</div>
+        </div>
+        <div class="stat">
+            <div class="label">Users</div>
+            <div class="value"><span th:text="${enabledUsers}">0</span> / <span th:text="${userCount}">0</span></div>
+        </div>
+        <div class="stat">
+            <div class="label">Traffic up</div>
+            <div class="value" th:text="${@fmt.bytes(totalBytesUp)}">0 B</div>
+        </div>
+        <div class="stat">
+            <div class="label">Traffic down</div>
+            <div class="value" th:text="${@fmt.bytes(totalBytesDown)}">0 B</div>
+        </div>
+    </div>
+    <div th:if="${lastError}" class="flash err" th:text="${lastError}"></div>
+    <section class="panel">
+        <h2>ZeroOmega</h2>
+        <p>HTTP profile → protocol <code>HTTP</code>, host of this machine, port
+            <strong th:text="${settings.httpPort}">3128</strong>, auth with proxy username/password.</p>
+        <p>SOCKS5 profile → protocol <code>SOCKS5</code>, same host, port
+            <strong th:text="${settings.socksPort}">1080</strong>. Chrome may not support SOCKS auth — use Firefox or HTTP.</p>
+    </section>
+</main>
+</body>
+</html>

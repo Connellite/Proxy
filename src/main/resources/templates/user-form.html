@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head(${creating} ? 'New user' : 'Edit user')}"></head>
+<body>
+<header th:replace="~{layout :: header}"></header>
+<main class="container">
+    <div th:replace="~{layout :: flashes}"></div>
+    <h1 th:text="${creating} ? 'New user' : 'Edit user'">User</h1>
+    <form class="panel form" th:action="${creating} ? @{/users} : @{/users/{id}(id=${form.id})}"
+          th:object="${form}" method="post">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+        <label>Username
+            <input type="text" th:field="*{username}" required maxlength="64"/>
+        </label>
+        <label>
+            <span th:text="${creating} ? 'Password' : 'Password (leave blank to keep)'">Password</span>
+            <input type="password" th:field="*{password}" th:required="${creating}" maxlength="128"/>
+        </label>
+        <label class="checkbox">
+            <input type="checkbox" th:field="*{enabled}"/> Enabled
+        </label>
+        <label>Max connections (0 = unlimited)
+            <input type="number" th:field="*{maxConnections}" min="0" max="10000"/>
+        </label>
+        <label>Expires on (optional)
+            <input type="date" th:field="*{expiresAt}"/>
+        </label>
+        <label>Remark
+            <input type="text" th:field="*{remark}" maxlength="255"/>
+        </label>
+        <div class="form-actions">
+            <button type="submit" class="primary" th:text="${creating} ? 'Create' : 'Save'">Save</button>
+            <a class="button" th:href="@{/users}">Cancel</a>
+        </div>
+    </form>
+</main>
+</body>
+</html>

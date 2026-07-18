@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>Login — Proxy Admin</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}"/>
+</head>
+<body class="login-page">
+<main class="login-card">
+    <h1>Proxy Admin</h1>
+    <p class="muted">Sign in to manage accounts and listeners</p>
+    <div th:if="${param.error}" class="flash err">Invalid username or password</div>
+    <div th:if="${param.logout}" class="flash ok">Signed out</div>
+    <form th:action="@{/login}" method="post">
+        <label>Username
+            <input type="text" name="username" autofocus required/>
+        </label>
+        <label>Password
+            <input type="password" name="password" required/>
+        </label>
+        <button type="submit" class="primary">Sign in</button>
+    </form>
+</main>
+</body>
+</html>

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Settings')}"></head>
+<body>
+<header th:replace="~{layout :: header}"></header>
+<main class="container">
+    <div th:replace="~{layout :: flashes}"></div>
+    <div class="row-between">
+        <h1>Settings</h1>
+        <form th:action="@{/settings/restart}" method="post">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+            <button type="submit">Restart listeners</button>
+        </form>
+    </div>
+    <div th:if="${lastError}" class="flash err" th:text="${lastError}"></div>
+    <p class="muted">
+        HTTP: <span th:text="${httpRunning} ? 'running' : 'stopped'">stopped</span>
+        · SOCKS5: <span th:text="${socksRunning} ? 'running' : 'stopped'">stopped</span>
+    </p>
+
+    <form class="panel form" th:action="@{/settings}" th:object="${form}" method="post">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+        <h2>Listeners</h2>
+        <label class="checkbox"><input type="checkbox" th:field="*{httpEnabled}"/> Enable HTTP proxy</label>
+        <div class="two-col">
+            <label>HTTP bind host
+                <input type="text" th:field="*{httpBindHost}" required/>
+            </label>
+            <label>HTTP port
+                <input type="number" th:field="*{httpPort}" min="1" max="65535" required/>
+            </label>
+        </div>
+        <label class="checkbox"><input type="checkbox" th:field="*{socksEnabled}"/> Enable SOCKS5 proxy</label>
+        <div class="two-col">
+            <label>SOCKS5 bind host
+                <input type="text" th:field="*{socksBindHost}" required/>
+            </label>
+            <label>SOCKS5 port
+                <input type="number" th:field="*{socksPort}" min="1" max="65535" required/>
+            </label>
+        </div>
+        <label class="checkbox"><input type="checkbox" th:field="*{authRequired}"/> Require username/password</label>
+        <div class="form-actions">
+            <button type="submit" class="primary">Save &amp; restart</button>
+        </div>
+    </form>
+
+    <form class="panel form" th:action="@{/settings/password}" th:object="${passwordForm}" method="post">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+        <h2>Admin password</h2>
+        <label>Current password
+            <input type="password" th:field="*{currentPassword}" required/>
+        </label>
+        <label>New password
+            <input type="password" th:field="*{newPassword}" required minlength="4"/>
+        </label>
+        <label>Confirm new password
+            <input type="password" th:field="*{confirmPassword}" required minlength="4"/>
+        </label>
+        <div class="form-actions">
+            <button type="submit" class="primary">Change password</button>
+        </div>
+    </form>
+</main>
+</body>
+</html>
