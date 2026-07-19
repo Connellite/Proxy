@@ -17,5 +17,5 @@ public class UpstreamProxyRowDto implements IsSerializable {
     private int port;
     private String username;
     private boolean selected;
-    private boolean hasAuth;
+    private boolean authEnabled;
 }

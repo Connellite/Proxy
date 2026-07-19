@@ -78,7 +78,7 @@ public class UpstreamProxiesPage extends Composite {
     }
 
     private void render(UpstreamProxiesPageDto page) {
-        if (page.getSelectedId() == null) {
+        if (page.getSelectedId() == 0L) {
             status.setText("Active: direct (no upstream)");
         } else {
             String selectedName = "";
@@ -114,7 +114,7 @@ public class UpstreamProxiesPage extends Composite {
                 table.setText(row, 1, nullToEmpty(proxy.getType()));
                 table.setText(row, 2, nullToEmpty(proxy.getHost()) + ":" + proxy.getPort());
                 table.getCellFormatter().addStyleName(row, 2, "num");
-                table.setHTML(row, 3, proxy.isHasAuth()
+                table.setHTML(row, 3, proxy.isAuthEnabled()
                         ? "<span class=\"badge ok\">yes</span>"
                         : "<span class=\"badge muted\">no</span>");
                 table.setHTML(row, 4, proxy.isSelected()

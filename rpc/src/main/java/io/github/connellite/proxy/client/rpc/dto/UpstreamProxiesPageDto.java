@@ -14,5 +14,5 @@ import java.util.List;
 public class UpstreamProxiesPageDto implements IsSerializable {
 
     private List<UpstreamProxyRowDto> proxies = new ArrayList<>();
-    private Long selectedId;
+    private long selectedId;
 }

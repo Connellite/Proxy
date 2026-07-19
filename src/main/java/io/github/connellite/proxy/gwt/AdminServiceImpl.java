@@ -1,6 +1,12 @@
 package io.github.connellite.proxy.gwt;
 
+#if SPRING_BOOT_3
+import com.google.gwt.user.server.rpc.jakarta.RemoteServiceServlet;
+import jakarta.servlet.http.HttpServletRequest;
+#else
 import com.google.gwt.user.server.rpc.RemoteServiceServlet;
+import javax.servlet.http.HttpServletRequest;
+#endif
 import com.google.gwt.user.server.rpc.SerializationPolicy;
 import com.google.gwt.user.server.rpc.SerializationPolicyLoader;
 import io.github.connellite.proxy.client.rpc.AdminRpcException;
@@ -42,11 +48,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
-#if SPRING_BOOT_3
-import jakarta.servlet.http.HttpServletRequest;
-#else
-import javax.servlet.http.HttpServletRequest;
-#endif
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.ParseException;
@@ -242,7 +243,7 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
             row.setPort(proxy.getPort());
             row.setUsername(proxy.getUsername());
             row.setSelected(proxy.isSelected());
-            row.setHasAuth(proxy.hasAuth());
+            row.setAuthEnabled(proxy.hasAuth());
             page.getProxies().add(row);
             if (proxy.isSelected()) {
                 page.setSelectedId(proxy.getId());

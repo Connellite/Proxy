@@ -37,6 +37,9 @@
         <native-build-tools.version>0.10.6</native-build-tools.version>
         <!-- provided for WAR; compile for standalone / native -->
         <tomcat.scope>provided</tomcat.scope>
+        <!-- Boot 2 uses javax servlet GWT; Boot 3 / native use jakarta -->
+        <gwt.servlet.artifactId>gwt-servlet</gwt.servlet.artifactId>
+        <gwt.servlet.version>2.10.0</gwt.servlet.version>
     </properties>
 
     <dependencies>
@@ -97,8 +100,8 @@
         </dependency>
         <dependency>
             <groupId>org.gwtproject</groupId>
-            <artifactId>gwt-servlet</artifactId>
-            <version>2.10.0</version>
+            <artifactId>${gwt.servlet.artifactId}</artifactId>
+            <version>${gwt.servlet.version}</version>
             <exclusions>
                 <!-- Keep IDE classpath free of GWT client/compiler artifacts -->
                 <exclusion>
@@ -240,7 +243,7 @@
                 <configuration>
                     <mainClass>io.github.connellite.proxy.ProxyApplication</mainClass>
                     <!-- GWT-RPC serializes Throwable via reflection (detailMessage); required on JDK 16+ -->
-                    <jvmArguments>--add-opens java.base/java.lang=ALL-UNNAMED</jvmArguments>
+                    <jvmArguments>--add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED</jvmArguments>
                     <excludes>
                         <exclude>
                             <groupId>org.projectlombok</groupId>
@@ -313,6 +316,8 @@
                 <spring.boot.compat.version>3.5.13</spring.boot.compat.version>
                 <sqlite.dialect>org.hibernate.community.dialect.SQLiteDialect</sqlite.dialect>
                 <netty.version>4.1.121.Final</netty.version>
+                <gwt.servlet.artifactId>gwt-servlet-jakarta</gwt.servlet.artifactId>
+                <gwt.servlet.version>2.11.0</gwt.servlet.version>
             </properties>
             <dependencyManagement>
                 <dependencies>
@@ -371,6 +376,8 @@
                 <sqlite.dialect>org.hibernate.community.dialect.SQLiteDialect</sqlite.dialect>
                 <netty.version>4.1.121.Final</netty.version>
                 <tomcat.scope>compile</tomcat.scope>
+                <gwt.servlet.artifactId>gwt-servlet-jakarta</gwt.servlet.artifactId>
+                <gwt.servlet.version>2.11.0</gwt.servlet.version>
             </properties>
             <dependencyManagement>
                 <dependencies>
@@ -459,6 +466,9 @@
                                 <buildArg>--enable-url-protocols=http,https</buildArg>
                                 <!-- SQLite JDBC uses System.load; required on JDK 24+ (JEP 472) -->
                                 <buildArg>--enable-native-access=ALL-UNNAMED</buildArg>
+                                <!-- GWT-RPC setAccessible on Throwable / ArrayList / HashMap fields -->
+                                <buildArg>--add-opens=java.base/java.lang=ALL-UNNAMED</buildArg>
+                                <buildArg>--add-opens=java.base/java.util=ALL-UNNAMED</buildArg>
                                 <buildArg>-H:+ReportExceptionStackTraces</buildArg>
                             </buildArgs>
                         </configuration>
