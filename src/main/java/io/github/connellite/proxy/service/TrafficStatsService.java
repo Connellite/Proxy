@@ -3,6 +3,10 @@ package io.github.connellite.proxy.service;
 import io.github.connellite.proxy.model.AppSettings;
 import io.github.connellite.proxy.repository.AppSettingsRepository;
 import io.github.connellite.proxy.repository.ProxyUserRepository;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.Meter;
+import io.micrometer.core.instrument.MeterRegistry;
 #if SPRING_BOOT_3
 import jakarta.annotation.PreDestroy;
 #else
@@ -14,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -28,13 +33,14 @@ public class TrafficStatsService {
     private final ProxyUserRepository userRepository;
     private final AppSettingsRepository settingsRepository;
     private final SettingsService settingsService;
+    private final MeterRegistry meterRegistry;
 
     private final ConcurrentHashMap<Long, TrafficDelta> pendingUsers = new ConcurrentHashMap<>();
     private final TrafficDelta pendingGlobal = new TrafficDelta();
     /** Bytes observed since this JVM process started (not reset on flush). */
     private final TrafficDelta sessionTotal = new TrafficDelta();
-    /** Sliding 1s windows → B/s per user. */
-    private final ConcurrentHashMap<Long, RateSample> rates = new ConcurrentHashMap<>();
+    /** Micrometer-backed live throughput meters per user. */
+    private final ConcurrentHashMap<Long, ThroughputMeters> throughputMeters = new ConcurrentHashMap<>();
 
     /**
      * Queue traffic for durable flush. {@code userId} may be null (anonymous / auth off).
@@ -47,7 +53,7 @@ public class TrafficStatsService {
         pendingGlobal.add(bytesUp, bytesDown);
         if (userId != null) {
             pendingUsers.computeIfAbsent(userId, id -> new TrafficDelta()).add(bytesUp, bytesDown);
-            rates.computeIfAbsent(userId, id -> new RateSample()).add(bytesUp, bytesDown);
+            throughputMeters.computeIfAbsent(userId, id -> new ThroughputMeters(meterRegistry, id)).record(bytesUp, bytesDown);
         }
     }
 
@@ -55,13 +61,13 @@ public class TrafficStatsService {
         if (userId == null) {
             return UserThroughput.ZERO;
         }
-        RateSample sample = rates.get(userId);
-        return sample == null ? UserThroughput.ZERO : sample.snapshot();
+        ThroughputMeters meters = throughputMeters.get(userId);
+        return meters == null ? UserThroughput.ZERO : meters.snapshot();
     }
 
     public Map<Long, UserThroughput> throughputSnapshot() {
         Map<Long, UserThroughput> map = new ConcurrentHashMap<>();
-        rates.forEach((id, sample) -> map.put(id, sample.snapshot()));
+        throughputMeters.forEach((id, meters) -> map.put(id, meters.snapshot()));
         return map;
     }
 
@@ -101,10 +107,10 @@ public class TrafficStatsService {
     @Scheduled(fixedRate = 1_000)
     public void tickRates() {
         long now = System.currentTimeMillis();
-        rates.forEach((id, sample) -> {
-            sample.tick(now);
-            if (sample.isStale(now, RATE_IDLE_EVICT_MS)) {
-                rates.remove(id, sample);
+        throughputMeters.forEach((id, meters) -> {
+            meters.tick(now);
+            if (meters.isStale(now, RATE_IDLE_EVICT_MS) && throughputMeters.remove(id, meters)) {
+                meters.removeFrom(meterRegistry);
             }
         });
     }
@@ -160,40 +166,76 @@ public class TrafficStatsService {
         }
     }
 
-    private static final class RateSample {
-        private final AtomicLong windowUp = new AtomicLong();
-        private final AtomicLong windowDown = new AtomicLong();
-        private volatile long upBps;
-        private volatile long downBps;
-        private volatile long lastActivityMs = System.currentTimeMillis();
-        private volatile long windowStartMs = System.currentTimeMillis();
+    private static final class ThroughputMeters {
+        private final LongAdder windowUp = new LongAdder();
+        private final LongAdder windowDown = new LongAdder();
+        private final AtomicLong upBps = new AtomicLong();
+        private final AtomicLong downBps = new AtomicLong();
+        private final AtomicLong lastActivityMs = new AtomicLong(System.currentTimeMillis());
+        private final AtomicLong windowStartMs = new AtomicLong(System.currentTimeMillis());
+        private final List<Meter> meters;
 
-        void add(long bytesUp, long bytesDown) {
+        ThroughputMeters(MeterRegistry meterRegistry, Long userId) {
+            String userTag = String.valueOf(userId);
+            Counter upCounter = Counter.builder("proxy.user.traffic.bytes")
+                    .description("Total upstream proxy bytes observed for a user in this process")
+                    .baseUnit("bytes")
+                    .tag("direction", "up")
+                    .tag("user.id", userTag)
+                    .register(meterRegistry);
+            Counter downCounter = Counter.builder("proxy.user.traffic.bytes")
+                    .description("Total downstream proxy bytes observed for a user in this process")
+                    .baseUnit("bytes")
+                    .tag("direction", "down")
+                    .tag("user.id", userTag)
+                    .register(meterRegistry);
+            Gauge upGauge = Gauge.builder("proxy.user.throughput.bytes_per_second", upBps, AtomicLong::get)
+                    .description("Current upstream proxy throughput for a user")
+                    .baseUnit("bytes/second")
+                    .tag("direction", "up")
+                    .tag("user.id", userTag)
+                    .register(meterRegistry);
+            Gauge downGauge = Gauge.builder("proxy.user.throughput.bytes_per_second", downBps, AtomicLong::get)
+                    .description("Current downstream proxy throughput for a user")
+                    .baseUnit("bytes/second")
+                    .tag("direction", "down")
+                    .tag("user.id", userTag)
+                    .register(meterRegistry);
+            meters = List.of(upCounter, downCounter, upGauge, downGauge);
+        }
+
+        void record(long bytesUp, long bytesDown) {
             if (bytesUp > 0) {
-                windowUp.addAndGet(bytesUp);
+                windowUp.add(bytesUp);
+                ((Counter) meters.get(0)).increment(bytesUp);
             }
             if (bytesDown > 0) {
-                windowDown.addAndGet(bytesDown);
+                windowDown.add(bytesDown);
+                ((Counter) meters.get(1)).increment(bytesDown);
             }
-            lastActivityMs = System.currentTimeMillis();
+            lastActivityMs.set(System.currentTimeMillis());
         }
 
         synchronized void tick(long nowMs) {
-            long elapsedMs = Math.max(1L, nowMs - windowStartMs);
-            long up = windowUp.getAndSet(0);
-            long down = windowDown.getAndSet(0);
-            upBps = up * 1000L / elapsedMs;
-            downBps = down * 1000L / elapsedMs;
-            windowStartMs = nowMs;
+            long previousWindowStart = windowStartMs.getAndSet(nowMs);
+            long elapsedMs = Math.max(1L, nowMs - previousWindowStart);
+            long up = windowUp.sumThenReset();
+            long down = windowDown.sumThenReset();
+            upBps.set(up * 1000L / elapsedMs);
+            downBps.set(down * 1000L / elapsedMs);
         }
 
         UserThroughput snapshot() {
-            return new UserThroughput(upBps, downBps);
+            return new UserThroughput(upBps.get(), downBps.get());
         }
 
         boolean isStale(long nowMs, long idleMs) {
-            return upBps == 0 && downBps == 0 && windowUp.get() == 0 && windowDown.get() == 0
-                    && (nowMs - lastActivityMs) > idleMs;
+            return upBps.get() == 0 && downBps.get() == 0 && windowUp.sum() == 0 && windowDown.sum() == 0
+                    && (nowMs - lastActivityMs.get()) > idleMs;
+        }
+
+        void removeFrom(MeterRegistry meterRegistry) {
+            meters.forEach(meterRegistry::remove);
         }
     }
 }

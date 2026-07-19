@@ -83,6 +83,10 @@
             <version>${guava.version}</version>
         </dependency>
         <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-core</artifactId>
+        </dependency>
+        <dependency>
             <groupId>wtf.metio.storage-units</groupId>
             <artifactId>storage-units-model</artifactId>
             <version>${storage-units.version}</version>
