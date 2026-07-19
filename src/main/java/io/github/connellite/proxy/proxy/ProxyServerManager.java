@@ -38,13 +38,14 @@ public class ProxyServerManager implements ApplicationRunner {
                               ProxyAuthService authService,
                               ProxyProperties properties,
                               ProxyTlsService tlsService,
-                              SocksProxyServer socksProxyServer) {
+                              SocksProxyServer socksProxyServer,
+                              OutboundConnector outboundConnector) {
         this.settingsService = settingsService;
         this.metrics = metrics;
         this.tlsService = tlsService;
         this.socksProxyServer = socksProxyServer;
-        this.httpServer = new HttpProxyServerInstance(authService, metrics, properties, "HTTP proxy");
-        this.httpsServer = new HttpProxyServerInstance(authService, metrics, properties, "HTTPS proxy");
+        this.httpServer = new HttpProxyServerInstance(authService, metrics, properties, outboundConnector, "HTTP proxy");
+        this.httpsServer = new HttpProxyServerInstance(authService, metrics, properties, outboundConnector, "HTTPS proxy");
     }
 
     @Override

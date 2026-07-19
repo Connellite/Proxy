@@ -11,6 +11,9 @@ import io.github.connellite.proxy.client.rpc.dto.EncryptionDto;
 import io.github.connellite.proxy.client.rpc.dto.PasswordChangeDto;
 import io.github.connellite.proxy.client.rpc.dto.SettingsDto;
 import io.github.connellite.proxy.client.rpc.dto.TlsStatusDto;
+import io.github.connellite.proxy.client.rpc.dto.UpstreamProxiesPageDto;
+import io.github.connellite.proxy.client.rpc.dto.UpstreamProxyFormDto;
+import io.github.connellite.proxy.client.rpc.dto.UpstreamProxyRowDto;
 import io.github.connellite.proxy.client.rpc.dto.UserFormDto;
 import io.github.connellite.proxy.client.rpc.dto.UserRowDto;
 import io.github.connellite.proxy.client.rpc.dto.UsersPageDto;
@@ -19,9 +22,12 @@ import io.github.connellite.proxy.dto.EncryptionForm;
 import io.github.connellite.proxy.dto.PasswordChangeForm;
 import io.github.connellite.proxy.dto.ProxyUserForm;
 import io.github.connellite.proxy.dto.TlsStatus;
+import io.github.connellite.proxy.dto.UpstreamProxyForm;
 import io.github.connellite.proxy.dto.UserThroughput;
 import io.github.connellite.proxy.model.AdminAccount;
 import io.github.connellite.proxy.model.ProxyUser;
+import io.github.connellite.proxy.model.UpstreamProxy;
+import io.github.connellite.proxy.model.UpstreamProxyType;
 import io.github.connellite.proxy.proxy.ProxyServerManager;
 import io.github.connellite.proxy.proxy.ProxyTlsService;
 import io.github.connellite.proxy.security.AdminAccountService;
@@ -29,6 +35,7 @@ import io.github.connellite.proxy.service.ProxyMetrics;
 import io.github.connellite.proxy.service.ProxyUserService;
 import io.github.connellite.proxy.service.SettingsService;
 import io.github.connellite.proxy.service.TrafficStatsService;
+import io.github.connellite.proxy.service.UpstreamProxyService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.security.core.Authentication;
@@ -56,6 +63,7 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
     private static final DateTimeFormatter DATE_TIME_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
     private final ProxyUserService userService;
+    private final UpstreamProxyService upstreamProxyService;
     private final SettingsService settingsService;
     private final ProxyServerManager proxyServerManager;
     private final ProxyMetrics proxyMetrics;
@@ -65,6 +73,7 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
     private final ZoneId appZoneId;
 
     public AdminServiceImpl(ProxyUserService userService,
+                            UpstreamProxyService upstreamProxyService,
                             SettingsService settingsService,
                             ProxyServerManager proxyServerManager,
                             ProxyMetrics proxyMetrics,
@@ -73,6 +82,7 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
                             ProxyTlsService tlsService,
                             ZoneId appZoneId) {
         this.userService = userService;
+        this.upstreamProxyService = upstreamProxyService;
         this.settingsService = settingsService;
         this.proxyServerManager = proxyServerManager;
         this.proxyMetrics = proxyMetrics;
@@ -217,6 +227,89 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
     @Override
     public void deleteUser(long id) {
         userService.delete(id);
+    }
+
+    @Override
+    public UpstreamProxiesPageDto getUpstreamProxies() {
+        UpstreamProxiesPageDto page = new UpstreamProxiesPageDto();
+        page.setProxies(new ArrayList<>());
+        for (UpstreamProxy proxy : upstreamProxyService.findAll()) {
+            UpstreamProxyRowDto row = new UpstreamProxyRowDto();
+            row.setId(proxy.getId());
+            row.setName(proxy.getName());
+            row.setType(proxy.getType() == null ? UpstreamProxyType.HTTP.name() : proxy.getType().name());
+            row.setHost(proxy.getHost());
+            row.setPort(proxy.getPort());
+            row.setUsername(proxy.getUsername());
+            row.setSelected(proxy.isSelected());
+            row.setHasAuth(proxy.hasAuth());
+            page.getProxies().add(row);
+            if (proxy.isSelected()) {
+                page.setSelectedId(proxy.getId());
+            }
+        }
+        return page;
+    }
+
+    @Override
+    public UpstreamProxyFormDto getUpstreamProxyForm(Long id) {
+        UpstreamProxyFormDto form = new UpstreamProxyFormDto();
+        if (id == null) {
+            form.setCreating(true);
+            form.setType(UpstreamProxyType.HTTP.name());
+            form.setPort(8080);
+            return form;
+        }
+        UpstreamProxy proxy = upstreamProxyService.getRequired(id);
+        form.setCreating(false);
+        form.setId(proxy.getId());
+        form.setName(proxy.getName());
+        form.setType(proxy.getType() == null ? UpstreamProxyType.HTTP.name() : proxy.getType().name());
+        form.setHost(proxy.getHost());
+        form.setPort(proxy.getPort());
+        form.setUsername(proxy.getUsername());
+        form.setPasswordSaved(StringUtils.isNotBlank(proxy.getPassword()));
+        return form;
+    }
+
+    @Override
+    public void createUpstreamProxy(UpstreamProxyFormDto form) throws AdminRpcException {
+        try {
+            upstreamProxyService.create(toUpstreamForm(form, true));
+        } catch (RuntimeException ex) {
+            throw toRpcException("Failed to create upstream proxy", ex);
+        }
+    }
+
+    @Override
+    public void updateUpstreamProxy(UpstreamProxyFormDto form) throws AdminRpcException {
+        if (form.getId() == null) {
+            throw new AdminRpcException("Upstream proxy id is required");
+        }
+        try {
+            upstreamProxyService.update(form.getId(), toUpstreamForm(form, false));
+        } catch (RuntimeException ex) {
+            throw toRpcException("Failed to update upstream proxy", ex);
+        }
+    }
+
+    @Override
+    public void deleteUpstreamProxy(long id) {
+        upstreamProxyService.delete(id);
+    }
+
+    @Override
+    public void selectUpstreamProxy(long id) throws AdminRpcException {
+        try {
+            upstreamProxyService.select(id);
+        } catch (RuntimeException ex) {
+            throw toRpcException("Failed to select upstream proxy", ex);
+        }
+    }
+
+    @Override
+    public void clearUpstreamProxySelection() {
+        upstreamProxyService.clearSelection();
     }
 
     @Override
@@ -390,6 +483,23 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
             settings.setHttpsPrivateKey(null);
             settings.setHttpsPrivateKeyPath(null);
         }
+    }
+
+    private static UpstreamProxyForm toUpstreamForm(UpstreamProxyFormDto form, boolean creating) {
+        UpstreamProxyForm target = new UpstreamProxyForm();
+        target.setName(form.getName());
+        try {
+            target.setType(UpstreamProxyType.valueOf(
+                    StringUtils.isBlank(form.getType()) ? "HTTP" : form.getType().trim().toUpperCase()));
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException("Type must be HTTP or SOCKS5");
+        }
+        target.setHost(form.getHost());
+        target.setPort(form.getPort());
+        target.setUsername(form.getUsername());
+        target.setPassword(form.getPassword());
+        target.setUpdatePassword(creating || StringUtils.isNotBlank(form.getPassword()));
+        return target;
     }
 
     private static ProxyUserForm toProxyUserForm(UserFormDto form) {

@@ -26,6 +26,7 @@ final class HttpProxyServerInstance implements AutoCloseable {
     private final ProxyAuthService authService;
     private final ProxyMetrics metrics;
     private final ProxyProperties properties;
+    private final OutboundConnector outboundConnector;
     private final String label;
 
     private EventLoopGroup bossGroup;
@@ -35,10 +36,12 @@ final class HttpProxyServerInstance implements AutoCloseable {
     HttpProxyServerInstance(ProxyAuthService authService,
                             ProxyMetrics metrics,
                             ProxyProperties properties,
+                            OutboundConnector outboundConnector,
                             String label) {
         this.authService = authService;
         this.metrics = metrics;
         this.properties = properties;
+        this.outboundConnector = outboundConnector;
         this.label = label;
     }
 
@@ -62,7 +65,7 @@ final class HttpProxyServerInstance implements AutoCloseable {
                         ch.pipeline().addLast(new IdleCloseHandler());
                         ch.pipeline().addLast(new HttpServerCodec());
                         ch.pipeline().addLast(new HttpObjectAggregator(properties.getHttpMaxContentLengthBytes()));
-                        ch.pipeline().addLast(new HttpProxyClientHandler(authService, metrics, properties));
+                        ch.pipeline().addLast(new HttpProxyClientHandler(authService, metrics, outboundConnector));
                     }
                 });
         serverChannel = bootstrap.bind(new InetSocketAddress(bindHost, port)).sync().channel();

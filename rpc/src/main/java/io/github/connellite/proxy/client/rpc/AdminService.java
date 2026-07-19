@@ -7,6 +7,8 @@ import io.github.connellite.proxy.client.rpc.dto.EncryptionDto;
 import io.github.connellite.proxy.client.rpc.dto.PasswordChangeDto;
 import io.github.connellite.proxy.client.rpc.dto.SettingsDto;
 import io.github.connellite.proxy.client.rpc.dto.TlsStatusDto;
+import io.github.connellite.proxy.client.rpc.dto.UpstreamProxiesPageDto;
+import io.github.connellite.proxy.client.rpc.dto.UpstreamProxyFormDto;
 import io.github.connellite.proxy.client.rpc.dto.UserFormDto;
 import io.github.connellite.proxy.client.rpc.dto.UsersPageDto;
 
@@ -28,6 +30,20 @@ public interface AdminService extends RemoteService {
     void resetUserTraffic(long id);
 
     void deleteUser(long id);
+
+    UpstreamProxiesPageDto getUpstreamProxies();
+
+    UpstreamProxyFormDto getUpstreamProxyForm(Long id);
+
+    void createUpstreamProxy(UpstreamProxyFormDto form) throws AdminRpcException;
+
+    void updateUpstreamProxy(UpstreamProxyFormDto form) throws AdminRpcException;
+
+    void deleteUpstreamProxy(long id);
+
+    void selectUpstreamProxy(long id) throws AdminRpcException;
+
+    void clearUpstreamProxySelection();
 
     SettingsDto getSettings();
 

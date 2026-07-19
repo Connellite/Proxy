@@ -6,6 +6,8 @@ import io.github.connellite.proxy.client.rpc.dto.EncryptionDto;
 import io.github.connellite.proxy.client.rpc.dto.PasswordChangeDto;
 import io.github.connellite.proxy.client.rpc.dto.SettingsDto;
 import io.github.connellite.proxy.client.rpc.dto.TlsStatusDto;
+import io.github.connellite.proxy.client.rpc.dto.UpstreamProxiesPageDto;
+import io.github.connellite.proxy.client.rpc.dto.UpstreamProxyFormDto;
 import io.github.connellite.proxy.client.rpc.dto.UserFormDto;
 import io.github.connellite.proxy.client.rpc.dto.UsersPageDto;
 
@@ -26,6 +28,20 @@ public interface AdminServiceAsync {
     void resetUserTraffic(long id, AsyncCallback<Void> callback);
 
     void deleteUser(long id, AsyncCallback<Void> callback);
+
+    void getUpstreamProxies(AsyncCallback<UpstreamProxiesPageDto> callback);
+
+    void getUpstreamProxyForm(Long id, AsyncCallback<UpstreamProxyFormDto> callback);
+
+    void createUpstreamProxy(UpstreamProxyFormDto form, AsyncCallback<Void> callback);
+
+    void updateUpstreamProxy(UpstreamProxyFormDto form, AsyncCallback<Void> callback);
+
+    void deleteUpstreamProxy(long id, AsyncCallback<Void> callback);
+
+    void selectUpstreamProxy(long id, AsyncCallback<Void> callback);
+
+    void clearUpstreamProxySelection(AsyncCallback<Void> callback);
 
     void getSettings(AsyncCallback<SettingsDto> callback);
 

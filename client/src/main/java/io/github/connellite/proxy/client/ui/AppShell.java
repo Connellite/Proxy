@@ -65,6 +65,14 @@ public class AppShell extends Composite {
                 showSettings();
             }
         }));
+        nav.add(navLink("Upstream", new ClickHandler() {
+            @Override
+            public void onClick(ClickEvent event) {
+                event.preventDefault();
+                clearFlash();
+                showUpstreamProxies();
+            }
+        }));
         nav.add(navLink("Encryption", new ClickHandler() {
             @Override
             public void onClick(ClickEvent event) {
@@ -138,6 +146,17 @@ public class AppShell extends Composite {
     public void showSettings() {
         stopRefresh();
         content.setWidget(new SettingsPage(this));
+    }
+
+    public void showUpstreamProxies() {
+        stopRefresh();
+        content.setWidget(new UpstreamProxiesPage(this));
+    }
+
+    public void showUpstreamForm(Long id) {
+        stopRefresh();
+        clearFlash();
+        content.setWidget(new UpstreamProxyFormPage(this, id));
     }
 
     public void showEncryption() {

@@ -20,7 +20,6 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.socksx.SocksMessage;
 import io.netty.handler.codec.socksx.SocksPortUnificationServerHandler;
 import io.netty.handler.codec.socksx.v4.DefaultSocks4CommandResponse;
@@ -62,6 +61,7 @@ public final class SocksProxyServer implements AutoCloseable {
     private final ProxyAuthService authService;
     private final ProxyMetrics metrics;
     private final ProxyProperties properties;
+    private final OutboundConnector outboundConnector;
 
     private EventLoopGroup bossGroup;
     private EventLoopGroup workerGroup;
@@ -264,44 +264,37 @@ public final class SocksProxyServer implements AutoCloseable {
                            AuthenticatedSession session, boolean socks4) {
             Channel inbound = ctx.channel();
             Long userId = session == null ? null : session.userId();
-            Bootstrap bootstrap = new Bootstrap();
-            bootstrap.group(inbound.eventLoop())
-                    .channel(NioSocketChannel.class)
-                    .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, properties.getConnectTimeoutMs())
-                    .option(ChannelOption.SO_KEEPALIVE, true)
-                    .handler(new ChannelInitializer<SocketChannel>() {
-                        @Override
-                        protected void initChannel(SocketChannel ch) {
-                            ch.pipeline().addLast(new RelayHandler(inbound,
-                                    bytes -> metrics.recordTraffic(userId, 0, bytes)));
+            outboundConnector.openTunnel(inbound, host, port, new OutboundConnector.TunnelCallback() {
+                @Override
+                public void onSuccess(Channel outbound) {
+                    outbound.pipeline().addLast(new RelayHandler(inbound,
+                            bytes -> metrics.recordTraffic(userId, 0, bytes)));
+                    Object success = socks4
+                            ? new DefaultSocks4CommandResponse(Socks4CommandStatus.SUCCESS)
+                            : new DefaultSocks5CommandResponse(
+                            Socks5CommandStatus.SUCCESS, Socks5AddressType.IPv4, "0.0.0.0", 0);
+                    inbound.writeAndFlush(success).addListener((ChannelFutureListener) written -> {
+                        if (!written.isSuccess()) {
+                            outbound.close();
+                            inbound.close();
+                            return;
                         }
+                        stripSocksHandlers(inbound.pipeline());
+                        inbound.pipeline().addLast(new RelayHandler(outbound,
+                                bytes -> metrics.recordTraffic(userId, bytes, 0)));
+                        inbound.config().setAutoRead(true);
+                        outbound.config().setAutoRead(true);
                     });
+                }
 
-            bootstrap.connect(host, port).addListener((ChannelFutureListener) future -> {
-                if (!future.isSuccess()) {
+                @Override
+                public void onFailure(Throwable cause) {
+                    log.debug("SOCKS connect failed to {}:{} — {}", host, port, cause.toString());
                     Object fail = socks4
                             ? new DefaultSocks4CommandResponse(Socks4CommandStatus.REJECTED_OR_FAILED)
                             : new DefaultSocks5CommandResponse(Socks5CommandStatus.FAILURE, Socks5AddressType.IPv4);
                     inbound.writeAndFlush(fail).addListener(ChannelFutureListener.CLOSE);
-                    return;
                 }
-                Channel outbound = future.channel();
-                Object success = socks4
-                        ? new DefaultSocks4CommandResponse(Socks4CommandStatus.SUCCESS)
-                        : new DefaultSocks5CommandResponse(
-                        Socks5CommandStatus.SUCCESS, Socks5AddressType.IPv4, "0.0.0.0", 0);
-                inbound.writeAndFlush(success).addListener((ChannelFutureListener) written -> {
-                    if (!written.isSuccess()) {
-                        outbound.close();
-                        inbound.close();
-                        return;
-                    }
-                    stripSocksHandlers(inbound.pipeline());
-                    inbound.pipeline().addLast(new RelayHandler(outbound,
-                            bytes -> metrics.recordTraffic(userId, bytes, 0)));
-                    inbound.config().setAutoRead(true);
-                    outbound.config().setAutoRead(true);
-                });
             });
         }
 

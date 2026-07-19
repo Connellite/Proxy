@@ -1,22 +1,16 @@
 package io.github.connellite.proxy.proxy;
 
 import com.google.common.net.HostAndPort;
-import io.github.connellite.proxy.config.ProxyProperties;
 import io.github.connellite.proxy.dto.AuthenticatedSession;
 import io.github.connellite.proxy.service.ProxyAuthService;
 import io.github.connellite.proxy.service.ProxyMetrics;
-import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
 import io.netty.channel.SimpleChannelInboundHandler;
-import io.netty.channel.socket.SocketChannel;
-import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.DefaultHttpHeaders;
 import io.netty.handler.codec.http.FullHttpRequest;
@@ -32,10 +26,10 @@ import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.LastHttpContent;
 import io.netty.util.AttributeKey;
 import io.netty.util.CharsetUtil;
-import org.apache.commons.lang3.StringUtils;
 import io.netty.util.ReferenceCountUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -50,7 +44,7 @@ final class HttpProxyClientHandler extends SimpleChannelInboundHandler<FullHttpR
 
     private final ProxyAuthService authService;
     private final ProxyMetrics metrics;
-    private final ProxyProperties properties;
+    private final OutboundConnector outboundConnector;
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest request) {
@@ -118,21 +112,10 @@ final class HttpProxyClientHandler extends SimpleChannelInboundHandler<FullHttpR
         Channel inbound = ctx.channel();
         Long userId = session == null ? null : session.userId();
 
-        Bootstrap bootstrap = new Bootstrap();
-        bootstrap.group(inbound.eventLoop())
-                .channel(NioSocketChannel.class)
-                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, properties.getConnectTimeoutMs())
-                .option(ChannelOption.SO_KEEPALIVE, true)
-                .handler(new ChannelInitializer<SocketChannel>() {
-                    @Override
-                    protected void initChannel(SocketChannel ch) {
-                        ch.pipeline().addLast(new RelayHandler(inbound, bytes -> metrics.recordTraffic(userId, 0, bytes)));
-                    }
-                });
-
-        bootstrap.connect(host, port).addListener((ChannelFutureListener) future -> {
-            if (future.isSuccess()) {
-                Channel outbound = future.channel();
+        outboundConnector.openTunnel(inbound, host, port, new OutboundConnector.TunnelCallback() {
+            @Override
+            public void onSuccess(Channel outbound) {
+                outbound.pipeline().addLast(new RelayHandler(inbound, bytes -> metrics.recordTraffic(userId, 0, bytes)));
                 DefaultFullHttpResponse response = new DefaultFullHttpResponse(
                         HttpVersion.HTTP_1_1,
                         new HttpResponseStatus(200, "Connection Established"),
@@ -154,8 +137,11 @@ final class HttpProxyClientHandler extends SimpleChannelInboundHandler<FullHttpR
                     inbound.config().setAutoRead(true);
                     outbound.config().setAutoRead(true);
                 });
-            } else {
-                log.debug("CONNECT failed to {}:{} — {}", host, port, future.cause().toString());
+            }
+
+            @Override
+            public void onFailure(Throwable cause) {
+                log.debug("CONNECT failed to {}:{} — {}", host, port, cause.toString());
                 sendError(ctx, HttpResponseStatus.BAD_GATEWAY, "Unable to connect to target");
             }
         });
@@ -199,66 +185,59 @@ final class HttpProxyClientHandler extends SimpleChannelInboundHandler<FullHttpR
         Channel inbound = ctx.channel();
         Long userId = session == null ? null : session.userId();
 
-        Bootstrap bootstrap = new Bootstrap();
-        bootstrap.group(inbound.eventLoop())
-                .channel(NioSocketChannel.class)
-                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, properties.getConnectTimeoutMs())
-                .option(ChannelOption.SO_KEEPALIVE, true)
-                .handler(new ChannelInitializer<SocketChannel>() {
+        outboundConnector.openTunnel(inbound, host, port, new OutboundConnector.TunnelCallback() {
+            @Override
+            public void onSuccess(Channel outbound) {
+                outbound.pipeline().addLast(new HttpRequestEncoder());
+                outbound.pipeline().addLast(new HttpResponseDecoder());
+                outbound.pipeline().addLast(new ChannelInboundHandlerAdapter() {
                     @Override
-                    protected void initChannel(SocketChannel ch) {
-                        ch.pipeline().addLast(new HttpRequestEncoder());
-                        ch.pipeline().addLast(new HttpResponseDecoder());
-                        ch.pipeline().addLast(new ChannelInboundHandlerAdapter() {
-                            @Override
-                            public void channelRead(ChannelHandlerContext c, Object msg) {
-                                if (msg instanceof ByteBuf buf) {
-                                    metrics.recordTraffic(userId, 0, buf.readableBytes());
-                                } else if (msg instanceof io.netty.handler.codec.http.HttpContent content) {
-                                    metrics.recordTraffic(userId, 0, content.content().readableBytes());
-                                }
-                                if (inbound.isActive()) {
-                                    inbound.writeAndFlush(msg).addListener((ChannelFutureListener) f -> {
-                                        if (!f.isSuccess()) {
-                                            c.close();
-                                        }
-                                    });
-                                } else {
-                                    ReferenceCountUtil.release(msg);
-                                }
-                                if (msg instanceof LastHttpContent) {
+                    public void channelRead(ChannelHandlerContext c, Object msg) {
+                        if (msg instanceof ByteBuf buf) {
+                            metrics.recordTraffic(userId, 0, buf.readableBytes());
+                        } else if (msg instanceof io.netty.handler.codec.http.HttpContent content) {
+                            metrics.recordTraffic(userId, 0, content.content().readableBytes());
+                        }
+                        if (inbound.isActive()) {
+                            inbound.writeAndFlush(msg).addListener((ChannelFutureListener) f -> {
+                                if (!f.isSuccess()) {
                                     c.close();
                                 }
-                            }
+                            });
+                        } else {
+                            ReferenceCountUtil.release(msg);
+                        }
+                        if (msg instanceof LastHttpContent) {
+                            c.close();
+                        }
+                    }
 
-                            @Override
-                            public void channelInactive(ChannelHandlerContext c) {
-                                RelayHandler.closeOnFlush(inbound);
-                            }
+                    @Override
+                    public void channelInactive(ChannelHandlerContext c) {
+                        RelayHandler.closeOnFlush(inbound);
+                    }
 
-                            @Override
-                            public void exceptionCaught(ChannelHandlerContext c, Throwable cause) {
-                                RelayHandler.closeOnFlush(c.channel());
-                            }
-                        });
+                    @Override
+                    public void exceptionCaught(ChannelHandlerContext c, Throwable cause) {
+                        RelayHandler.closeOnFlush(c.channel());
                     }
                 });
-
-        bootstrap.connect(host, port).addListener((ChannelFutureListener) future -> {
-            if (!future.isSuccess()) {
-                outboundRequest.release();
-                sendError(ctx, HttpResponseStatus.BAD_GATEWAY, "Unable to connect to target");
-                return;
+                metrics.recordTraffic(userId, outboundRequest.content().readableBytes(), 0);
+                outbound.writeAndFlush(outboundRequest).addListener((ChannelFutureListener) written -> {
+                    if (!written.isSuccess()) {
+                        outbound.close();
+                        inbound.close();
+                    }
+                });
+                inbound.closeFuture().addListener(f -> outbound.close());
             }
-            Channel outbound = future.channel();
-            metrics.recordTraffic(userId, outboundRequest.content().readableBytes(), 0);
-            outbound.writeAndFlush(outboundRequest).addListener((ChannelFutureListener) written -> {
-                if (!written.isSuccess()) {
-                    outbound.close();
-                    inbound.close();
-                }
-            });
-            inbound.closeFuture().addListener(f -> outbound.close());
+
+            @Override
+            public void onFailure(Throwable cause) {
+                outboundRequest.release();
+                log.debug("HTTP forward failed to {}:{} — {}", host, port, cause.toString());
+                sendError(ctx, HttpResponseStatus.BAD_GATEWAY, "Unable to connect to target");
+            }
         });
     }
 
