@@ -2,7 +2,7 @@ package io.github.connellite.proxy.proxy;
 
 import com.google.common.net.HostAndPort;
 import io.github.connellite.proxy.config.ProxyProperties;
-import io.github.connellite.proxy.service.AuthenticatedSession;
+import io.github.connellite.proxy.dto.AuthenticatedSession;
 import io.github.connellite.proxy.service.ProxyAuthService;
 import io.github.connellite.proxy.service.ProxyMetrics;
 import io.netty.bootstrap.Bootstrap;
@@ -115,7 +115,7 @@ final class HttpProxyClientHandler extends SimpleChannelInboundHandler<FullHttpR
         int port = target.port();
 
         Channel inbound = ctx.channel();
-        Long userId = session == null ? null : session.getUserId();
+        Long userId = session == null ? null : session.userId();
 
         Bootstrap bootstrap = new Bootstrap();
         bootstrap.group(inbound.eventLoop())
@@ -196,7 +196,7 @@ final class HttpProxyClientHandler extends SimpleChannelInboundHandler<FullHttpR
         outboundRequest.headers().remove("Proxy-Connection");
 
         Channel inbound = ctx.channel();
-        Long userId = session == null ? null : session.getUserId();
+        Long userId = session == null ? null : session.userId();
 
         Bootstrap bootstrap = new Bootstrap();
         bootstrap.group(inbound.eventLoop())

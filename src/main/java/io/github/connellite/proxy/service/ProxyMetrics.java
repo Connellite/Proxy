@@ -1,5 +1,6 @@
 package io.github.connellite.proxy.service;
 
+import io.github.connellite.proxy.dto.AuthenticatedSession;
 import io.netty.channel.Channel;
 import io.netty.util.AttributeKey;
 import lombok.RequiredArgsConstructor;

@@ -1,7 +1,7 @@
 package io.github.connellite.proxy.proxy;
 
 import io.github.connellite.proxy.config.ProxyProperties;
-import io.github.connellite.proxy.service.AuthenticatedSession;
+import io.github.connellite.proxy.dto.AuthenticatedSession;
 import io.github.connellite.proxy.service.ProxyAuthService;
 import io.github.connellite.proxy.service.ProxyMetrics;
 import io.netty.bootstrap.Bootstrap;
@@ -192,7 +192,7 @@ public final class SocksProxyServer implements AutoCloseable {
         private void relay(ChannelHandlerContext ctx, String host, int port,
                            AuthenticatedSession session, boolean socks4) {
             Channel inbound = ctx.channel();
-            Long userId = session == null ? null : session.getUserId();
+            Long userId = session == null ? null : session.userId();
             Bootstrap bootstrap = new Bootstrap();
             bootstrap.group(inbound.eventLoop())
                     .channel(NioSocketChannel.class)

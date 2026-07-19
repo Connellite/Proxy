@@ -1,5 +1,6 @@
 package io.github.connellite.proxy.service;
 
+import io.github.connellite.proxy.dto.AuthenticatedSession;
 import io.github.connellite.proxy.model.AppSettings;
 import io.github.connellite.proxy.model.ProxyUser;
 import io.github.connellite.proxy.repository.ProxyUserRepository;
@@ -50,11 +51,11 @@ public class ProxyAuthService {
         if (session == null) {
             return Optional.of(ConnectionPermit.NOOP);
         }
-        ProxyUser user = userRepository.findById(session.getUserId()).orElse(null);
+        ProxyUser user = userRepository.findById(session.userId()).orElse(null);
         if (user == null || !user.isUsable()) {
             return Optional.empty();
         }
-        UserConnectionState state = connectionStates.computeIfAbsent(session.getUserId(), id -> new UserConnectionState());
+        UserConnectionState state = connectionStates.computeIfAbsent(session.userId(), id -> new UserConnectionState());
         return state.tryAcquire(user.getMaxConnections());
     }
 
