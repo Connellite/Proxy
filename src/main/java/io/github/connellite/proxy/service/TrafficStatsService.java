@@ -1,8 +1,10 @@
 package io.github.connellite.proxy.service;
 
-import io.github.connellite.proxy.model.AppSettings;
-import io.github.connellite.proxy.repository.AppSettingsRepository;
+import io.github.connellite.proxy.dto.UserThroughput;
+import io.github.connellite.proxy.model.ConfigEntry;
+import io.github.connellite.proxy.repository.ConfigRepository;
 import io.github.connellite.proxy.repository.ProxyUserRepository;
+import com.google.common.primitives.Longs;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.Meter;
@@ -31,7 +33,7 @@ public class TrafficStatsService {
     private static final long RATE_IDLE_EVICT_MS = 30_000;
 
     private final ProxyUserRepository userRepository;
-    private final AppSettingsRepository settingsRepository;
+    private final ConfigRepository configRepository;
     private final SettingsService settingsService;
     private final MeterRegistry meterRegistry;
 
@@ -92,14 +94,16 @@ public class TrafficStatsService {
     }
 
     private long persistedBytesUp() {
-        return settingsRepository.findById(AppSettings.SINGLETON_ID)
-                .map(AppSettings::getBytesUpTotal)
+        return configRepository.findById(ConfigEntry.BYTES_UP_TOTAL)
+                .map(ConfigEntry::getValue)
+                .map(Longs::tryParse)
                 .orElse(0L);
     }
 
     private long persistedBytesDown() {
-        return settingsRepository.findById(AppSettings.SINGLETON_ID)
-                .map(AppSettings::getBytesDownTotal)
+        return configRepository.findById(ConfigEntry.BYTES_DOWN_TOTAL)
+                .map(ConfigEntry::getValue)
+                .map(Longs::tryParse)
                 .orElse(0L);
     }
 
@@ -132,7 +136,12 @@ public class TrafficStatsService {
         long globalUp = pendingGlobal.up.sumThenReset();
         long globalDown = pendingGlobal.down.sumThenReset();
         if (globalUp > 0 || globalDown > 0) {
-            settingsRepository.addTraffic(AppSettings.SINGLETON_ID, globalUp, globalDown);
+            if (globalUp > 0) {
+                configRepository.addToLong(ConfigEntry.BYTES_UP_TOTAL, globalUp);
+            }
+            if (globalDown > 0) {
+                configRepository.addToLong(ConfigEntry.BYTES_DOWN_TOTAL, globalDown);
+            }
         }
 
         if (pendingUsers.isEmpty()) {

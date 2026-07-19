@@ -1,6 +1,6 @@
 package io.github.connellite.proxy.controller;
 
-import io.github.connellite.proxy.model.AppSettings;
+import io.github.connellite.proxy.dto.AppSettings;
 import io.github.connellite.proxy.model.ProxyUser;
 import io.github.connellite.proxy.proxy.ProxyServerManager;
 import io.github.connellite.proxy.proxy.ProxyTlsService;
@@ -9,7 +9,7 @@ import io.github.connellite.proxy.service.ProxyMetrics;
 import io.github.connellite.proxy.service.ProxyUserService;
 import io.github.connellite.proxy.service.SettingsService;
 import io.github.connellite.proxy.service.TrafficStatsService;
-import io.github.connellite.proxy.service.UserThroughput;
+import io.github.connellite.proxy.dto.UserThroughput;
 import io.github.connellite.proxy.dto.EncryptionForm;
 import io.github.connellite.proxy.dto.PasswordChangeForm;
 import io.github.connellite.proxy.dto.ProxyUserForm;
@@ -392,7 +392,6 @@ public class AdminController {
 
     private static AppSettings copySettings(AppSettings source) {
         AppSettings copy = new AppSettings();
-        copy.setId(source.getId());
         copy.setHttpEnabled(source.isHttpEnabled());
         copy.setHttpBindHost(source.getHttpBindHost());
         copy.setHttpPort(source.getHttpPort());

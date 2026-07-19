@@ -1,7 +1,7 @@
 package io.github.connellite.proxy.service;
 
 import io.github.connellite.proxy.dto.AuthenticatedSession;
-import io.github.connellite.proxy.model.AppSettings;
+import io.github.connellite.proxy.dto.AppSettings;
 import io.github.connellite.proxy.model.ProxyUser;
 import io.github.connellite.proxy.repository.ProxyUserRepository;
 import lombok.RequiredArgsConstructor;

@@ -1,4 +1,4 @@
-package io.github.connellite.proxy.service;
+package io.github.connellite.proxy.dto;
 
 /**
  * Instantaneous throughput for a proxy user (bytes per second).
