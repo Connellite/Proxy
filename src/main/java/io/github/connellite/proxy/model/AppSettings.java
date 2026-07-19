@@ -89,6 +89,10 @@ public class AppSettings {
     @Column(name = "socks_auth_required", nullable = false)
     private boolean socksAuthRequired = false;
 
+    /** When true, SOCKS5 accepts UDP ASSOCIATE in addition to TCP CONNECT. */
+    @Column(name = "socks_udp_enabled", nullable = false)
+    private boolean socksUdpEnabled = false;
+
     @Column(name = "bytes_up_total", nullable = false)
     private long bytesUpTotal = 0;
 

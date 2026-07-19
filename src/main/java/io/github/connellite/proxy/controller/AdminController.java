@@ -314,6 +314,7 @@ public class AdminController {
         form.setSocksPort(settings.getSocksPort());
         form.setHttpAuthRequired(settings.isHttpAuthRequired());
         form.setSocksAuthRequired(settings.isSocksAuthRequired());
+        form.setSocksUdpEnabled(settings.isSocksUdpEnabled());
         return form;
     }
 
@@ -340,6 +341,7 @@ public class AdminController {
         settings.setSocksPort(form.getSocksPort());
         settings.setHttpAuthRequired(form.isHttpAuthRequired());
         settings.setSocksAuthRequired(form.isSocksAuthRequired());
+        settings.setSocksUdpEnabled(form.isSocksUdpEnabled());
     }
 
     private static void applyEncryptionForm(AppSettings settings, EncryptionForm form) {
@@ -406,6 +408,7 @@ public class AdminController {
         copy.setSocksPort(source.getSocksPort());
         copy.setHttpAuthRequired(source.isHttpAuthRequired());
         copy.setSocksAuthRequired(source.isSocksAuthRequired());
+        copy.setSocksUdpEnabled(source.isSocksUdpEnabled());
         copy.setBytesUpTotal(source.getBytesUpTotal());
         copy.setBytesDownTotal(source.getBytesDownTotal());
         return copy;

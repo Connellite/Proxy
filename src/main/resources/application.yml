@@ -48,6 +48,7 @@ proxy:
     port: 1080
   http-auth-required: false
   socks-auth-required: false
+  socks-udp-enabled: false
   connect-timeout-ms: 15000
   idle-timeout-seconds: 300
   http-max-content-length-bytes: 8388608

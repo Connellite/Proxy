@@ -52,6 +52,7 @@ public class SettingsService {
         settings.setSocksPort(properties.getSocks5().getPort());
         settings.setHttpAuthRequired(properties.isHttpAuthRequired());
         settings.setSocksAuthRequired(properties.isSocksAuthRequired());
+        settings.setSocksUdpEnabled(properties.isSocksUdpEnabled());
         return settings;
     }
 

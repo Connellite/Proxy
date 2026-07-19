@@ -43,6 +43,8 @@
             </label>
         </div>
         <label class="checkbox"><input type="checkbox" th:field="*{socksAuthRequired}"/> Require username/password for SOCKS5 (SOCKS4 disabled while on)</label>
+        <label class="checkbox"><input type="checkbox" th:field="*{socksUdpEnabled}"/> Full SOCKS5 with UDP (TCP CONNECT + UDP ASSOCIATE)</label>
+        <p class="muted">When off, SOCKS5 accepts only TCP CONNECT (current default). UDP ASSOCIATE is needed for some apps (DNS-over-SOCKS, games, VoIP).</p>
         <div class="form-actions">
             <button type="submit" class="primary">Save &amp; restart</button>
         </div>

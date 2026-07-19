@@ -32,6 +32,10 @@ public class ProxyAuthService {
         return settingsService.get().isSocksAuthRequired();
     }
 
+    public boolean isSocksUdpEnabled() {
+        return settingsService.get().isSocksUdpEnabled();
+    }
+
     @Transactional(readOnly = true)
     public Optional<AuthenticatedSession> authenticate(String username, String password) {
         if (username == null || username.isBlank() || password == null) {

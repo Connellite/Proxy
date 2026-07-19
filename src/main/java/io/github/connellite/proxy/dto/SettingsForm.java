@@ -41,4 +41,7 @@ public class SettingsForm {
     private boolean httpAuthRequired = false;
 
     private boolean socksAuthRequired = false;
+
+    /** Full SOCKS5: TCP CONNECT + UDP ASSOCIATE. Off = TCP CONNECT only. */
+    private boolean socksUdpEnabled = false;
 }

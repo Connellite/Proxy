@@ -10,6 +10,7 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPipeline;
@@ -17,6 +18,7 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
+import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.socksx.SocksMessage;
@@ -180,13 +182,82 @@ public final class SocksProxyServer implements AutoCloseable {
         }
 
         private void handleSocks5Command(ChannelHandlerContext ctx, Socks5CommandRequest request) {
-            if (request.type() != Socks5CommandType.CONNECT) {
+            if (request.type() == Socks5CommandType.CONNECT) {
+                relay(ctx, request.dstAddr(), request.dstPort(), ctx.channel().attr(SESSION_KEY).get(), false);
+                return;
+            }
+            if (request.type() == Socks5CommandType.UDP_ASSOCIATE) {
+                if (!authService.isSocksUdpEnabled()) {
+                    ctx.writeAndFlush(new DefaultSocks5CommandResponse(
+                                    Socks5CommandStatus.COMMAND_UNSUPPORTED, request.dstAddrType()))
+                            .addListener(ChannelFutureListener.CLOSE);
+                    return;
+                }
+                associateUdp(ctx, request);
+                return;
+            }
+            ctx.writeAndFlush(new DefaultSocks5CommandResponse(
+                            Socks5CommandStatus.COMMAND_UNSUPPORTED, request.dstAddrType()))
+                    .addListener(ChannelFutureListener.CLOSE);
+        }
+
+        private void associateUdp(ChannelHandlerContext ctx, Socks5CommandRequest request) {
+            Channel inbound = ctx.channel();
+            AuthenticatedSession session = inbound.attr(SESSION_KEY).get();
+            InetSocketAddress localTcp = (InetSocketAddress) inbound.localAddress();
+            if (localTcp == null || localTcp.getAddress() == null) {
                 ctx.writeAndFlush(new DefaultSocks5CommandResponse(
-                                Socks5CommandStatus.COMMAND_UNSUPPORTED, request.dstAddrType()))
+                                Socks5CommandStatus.FAILURE, request.dstAddrType()))
                         .addListener(ChannelFutureListener.CLOSE);
                 return;
             }
-            relay(ctx, request.dstAddr(), request.dstPort(), ctx.channel().attr(SESSION_KEY).get(), false);
+
+            Bootstrap udpBootstrap = new Bootstrap();
+            udpBootstrap.group(inbound.eventLoop())
+                    .channel(NioDatagramChannel.class)
+                    .option(ChannelOption.SO_REUSEADDR, true)
+                    .handler(new ChannelInitializer<NioDatagramChannel>() {
+                        @Override
+                        protected void initChannel(NioDatagramChannel ch) {
+                            ch.pipeline().addLast(new Socks5UdpRelayHandler(inbound, session, metrics));
+                        }
+                    });
+
+            udpBootstrap.bind(new InetSocketAddress(localTcp.getAddress(), 0)).addListener((ChannelFutureListener) future -> {
+                if (!future.isSuccess()) {
+                    log.debug("UDP ASSOCIATE bind failed: {}", future.cause().toString());
+                    inbound.writeAndFlush(new DefaultSocks5CommandResponse(
+                                    Socks5CommandStatus.FAILURE, request.dstAddrType()))
+                            .addListener(ChannelFutureListener.CLOSE);
+                    return;
+                }
+                Channel udpChannel = future.channel();
+                InetSocketAddress bound = (InetSocketAddress) udpChannel.localAddress();
+                Socks5AddressType bndType = Socks5UdpMessages.addressType(bound.getAddress());
+                String bndHost = Socks5UdpMessages.normalizeHost(bound.getAddress());
+                inbound.writeAndFlush(new DefaultSocks5CommandResponse(
+                                Socks5CommandStatus.SUCCESS, bndType, bndHost, bound.getPort()))
+                        .addListener((ChannelFutureListener) written -> {
+                            if (!written.isSuccess()) {
+                                udpChannel.close();
+                                inbound.close();
+                                return;
+                            }
+                            stripSocksHandlers(inbound.pipeline());
+                            inbound.pipeline().addLast(new ChannelInboundHandlerAdapter() {
+                                @Override
+                                public void channelInactive(ChannelHandlerContext c) {
+                                    udpChannel.close();
+                                }
+
+                                @Override
+                                public void exceptionCaught(ChannelHandlerContext c, Throwable cause) {
+                                    udpChannel.close();
+                                    c.close();
+                                }
+                            });
+                        });
+            });
         }
 
         private void relay(ChannelHandlerContext ctx, String host, int port,
