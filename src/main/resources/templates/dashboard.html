@@ -62,7 +62,7 @@
         <p>HTTP → protocol <code>HTTP</code>, port <strong th:text="${settings.httpPort}">3128</strong>.</p>
         <p>HTTPS → protocol <code>HTTPS</code>, port <strong th:text="${settings.httpsPort}">3129</strong> (enable in Settings; self-signed cert).</p>
         <p>SOCKS5 / SOCKS4 → same host, port <strong th:text="${settings.socksPort}">1080</strong>.
-            SOCKS4 only when auth is <em>off</em>. Chrome often lacks SOCKS password auth.</p>
+            SOCKS4 only when SOCKS auth is <em>off</em>. Chrome often lacks SOCKS password auth.</p>
     </section>
 </main>
 <script th:replace="~{layout :: refreshScript}"></script>

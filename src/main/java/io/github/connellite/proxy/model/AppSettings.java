@@ -63,8 +63,11 @@ public class AppSettings {
     @Column(name = "socks_port", nullable = false)
     private int socksPort = 1080;
 
-    @Column(name = "auth_required", nullable = false)
-    private boolean authRequired = false;
+    @Column(name = "http_auth_required", nullable = false)
+    private boolean httpAuthRequired = false;
+
+    @Column(name = "socks_auth_required", nullable = false)
+    private boolean socksAuthRequired = false;
 
     @Column(name = "bytes_up_total", nullable = false)
     private long bytesUpTotal = 0;

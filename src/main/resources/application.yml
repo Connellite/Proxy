@@ -41,7 +41,8 @@ proxy:
     enabled: true
     bind-host: 0.0.0.0
     port: 1080
-  auth-required: false
+  http-auth-required: false
+  socks-auth-required: false
   connect-timeout-ms: 15000
   idle-timeout-seconds: 300
   http-max-content-length-bytes: 8388608

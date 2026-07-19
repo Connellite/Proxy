@@ -31,6 +31,7 @@
                 <input type="number" th:field="*{httpPort}" min="1" max="65535" required/>
             </label>
         </div>
+        <label class="checkbox"><input type="checkbox" th:field="*{httpAuthRequired}"/> Require username/password for HTTP / HTTPS proxy</label>
         <label class="checkbox"><input type="checkbox" th:field="*{httpsEnabled}"/> Enable HTTPS proxy (TLS to proxy, ZeroOmega “HTTPS”)</label>
         <div class="two-col">
             <label>HTTPS bind host
@@ -49,7 +50,7 @@
                 <input type="number" th:field="*{socksPort}" min="1" max="65535" required/>
             </label>
         </div>
-        <label class="checkbox"><input type="checkbox" th:field="*{authRequired}"/> Require username/password (SOCKS4 disabled while on)</label>
+        <label class="checkbox"><input type="checkbox" th:field="*{socksAuthRequired}"/> Require username/password for SOCKS5 (SOCKS4 disabled while on)</label>
         <div class="form-actions">
             <button type="submit" class="primary">Save &amp; restart</button>
         </div>

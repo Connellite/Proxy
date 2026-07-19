@@ -132,7 +132,7 @@ public final class SocksProxyServer implements AutoCloseable {
         }
 
         private void handleSocks4(ChannelHandlerContext ctx, Socks4CommandRequest request) {
-            if (authService.isAuthRequired()) {
+            if (authService.isSocksAuthRequired()) {
                 ctx.writeAndFlush(new DefaultSocks4CommandResponse(Socks4CommandStatus.REJECTED_OR_FAILED))
                         .addListener(ChannelFutureListener.CLOSE);
                 return;
@@ -151,7 +151,7 @@ public final class SocksProxyServer implements AutoCloseable {
         }
 
         private void handleSocks5Initial(ChannelHandlerContext ctx) {
-            if (authService.isAuthRequired()) {
+            if (authService.isSocksAuthRequired()) {
                 ctx.pipeline().addFirst(new Socks5PasswordAuthRequestDecoder());
                 ctx.writeAndFlush(new DefaultSocks5InitialResponse(Socks5AuthMethod.PASSWORD));
             } else {

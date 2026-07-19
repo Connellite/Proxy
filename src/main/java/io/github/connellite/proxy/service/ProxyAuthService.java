@@ -24,8 +24,12 @@ public class ProxyAuthService {
     private final SettingsService settingsService;
     private final ConcurrentHashMap<Long, UserConnectionState> connectionStates = new ConcurrentHashMap<>();
 
-    public boolean isAuthRequired() {
-        return settingsService.get().isAuthRequired();
+    public boolean isHttpAuthRequired() {
+        return settingsService.get().isHttpAuthRequired();
+    }
+
+    public boolean isSocksAuthRequired() {
+        return settingsService.get().isSocksAuthRequired();
     }
 
     @Transactional(readOnly = true)

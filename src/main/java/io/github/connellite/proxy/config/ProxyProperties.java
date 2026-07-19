@@ -12,7 +12,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class ProxyProperties {
 
     private String dataDir = "./data";
-    private boolean authRequired = false;
+    private boolean httpAuthRequired = false;
+    private boolean socksAuthRequired = false;
     private int connectTimeoutMs = 15_000;
     private int idleTimeoutSeconds = 300;
     private int httpMaxContentLengthBytes = 8 * 1024 * 1024;

@@ -265,7 +265,8 @@ public class AdminController {
         form.setSocksEnabled(settings.isSocksEnabled());
         form.setSocksBindHost(settings.getSocksBindHost());
         form.setSocksPort(settings.getSocksPort());
-        form.setAuthRequired(settings.isAuthRequired());
+        form.setHttpAuthRequired(settings.isHttpAuthRequired());
+        form.setSocksAuthRequired(settings.isSocksAuthRequired());
         return form;
     }
 
@@ -279,6 +280,7 @@ public class AdminController {
         settings.setSocksEnabled(form.isSocksEnabled());
         settings.setSocksBindHost(form.getSocksBindHost().trim());
         settings.setSocksPort(form.getSocksPort());
-        settings.setAuthRequired(form.isAuthRequired());
+        settings.setHttpAuthRequired(form.isHttpAuthRequired());
+        settings.setSocksAuthRequired(form.isSocksAuthRequired());
     }
 }

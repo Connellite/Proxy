@@ -56,7 +56,7 @@ final class HttpProxyClientHandler extends SimpleChannelInboundHandler<FullHttpR
         AuthenticatedSession session = ctx.channel().attr(SESSION_KEY).get();
         if (session == null) {
             Optional<AuthenticatedSession> authenticated = authenticate(request);
-            if (authService.isAuthRequired()) {
+            if (authService.isHttpAuthRequired()) {
                 if (authenticated.isEmpty()) {
                     sendProxyAuthRequired(ctx);
                     return;

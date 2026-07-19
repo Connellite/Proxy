@@ -48,5 +48,7 @@ public class SettingsForm {
     @Max(65535)
     private int socksPort = 1080;
 
-    private boolean authRequired = false;
+    private boolean httpAuthRequired = false;
+
+    private boolean socksAuthRequired = false;
 }

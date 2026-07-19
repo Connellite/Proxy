@@ -47,7 +47,8 @@ public class SettingsService {
         settings.setSocksEnabled(properties.getSocks5().isEnabled());
         settings.setSocksBindHost(properties.getSocks5().getBindHost());
         settings.setSocksPort(properties.getSocks5().getPort());
-        settings.setAuthRequired(properties.isAuthRequired());
+        settings.setHttpAuthRequired(properties.isHttpAuthRequired());
+        settings.setSocksAuthRequired(properties.isSocksAuthRequired());
         return settings;
     }
 }

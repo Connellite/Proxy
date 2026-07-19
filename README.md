@@ -31,7 +31,7 @@ Full detail: [docs/PROTOCOLS.md](docs/PROTOCOLS.md)
 | HTTP | HTTP | 3128 | HTTPS websites via `CONNECT` |
 | HTTPS | HTTPS | 3129 | TLS to proxy; enable in Settings (self-signed) |
 | SOCKS5 | SOCKS5 | 1080 | user/password when auth on |
-| SOCKS4 | SOCKS4 | 1080 | only when auth is **off** |
+| SOCKS4 | SOCKS4 | 1080 | only when SOCKS auth is **off** |
 
 ## Active connections
 
