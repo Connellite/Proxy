@@ -4,7 +4,9 @@ package io.github.connellite.proxy.gwt;
 import com.google.gwt.user.server.rpc.jakarta.RemoteServiceServlet;
 import jakarta.servlet.http.HttpServletRequest;
 #else
+
 import com.google.gwt.user.server.rpc.RemoteServiceServlet;
+
 import javax.servlet.http.HttpServletRequest;
 #endif
 import com.google.gwt.user.server.rpc.SerializationPolicy;
@@ -23,6 +25,7 @@ import io.github.connellite.proxy.client.rpc.dto.UpstreamProxyRowDto;
 import io.github.connellite.proxy.client.rpc.dto.UserFormDto;
 import io.github.connellite.proxy.client.rpc.dto.UserRowDto;
 import io.github.connellite.proxy.client.rpc.dto.UsersPageDto;
+import io.github.connellite.proxy.util.LocalBindAddresses;
 import io.github.connellite.proxy.dto.AppSettings;
 import io.github.connellite.proxy.dto.EncryptionForm;
 import io.github.connellite.proxy.dto.PasswordChangeForm;
@@ -400,6 +403,7 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
         dto.setHttpsRunning(proxyServerManager.isHttpsRunning());
         dto.setSocksRunning(proxyServerManager.isSocksRunning());
         dto.setLastError(proxyServerManager.getLastError());
+        dto.setBindHostOptions(new ArrayList<>(LocalBindAddresses.optionsIncluding(settings.getHttpBindHost(), settings.getSocksBindHost())));
         return dto;
     }
 
@@ -416,6 +420,7 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
         dto.setPrivateKeySaved(StringUtils.isNotBlank(settings.getHttpsPrivateKey()));
         dto.setHttpsRunning(proxyServerManager.isHttpsRunning());
         dto.setLastError(proxyServerManager.getLastError());
+        dto.setBindHostOptions(new ArrayList<>(LocalBindAddresses.optionsIncluding(settings.getHttpsBindHost())));
         return dto;
     }
 

@@ -20,7 +20,7 @@ public class SecurityConfig {
 #if SPRING_BOOT_3
         http
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/css/**", "/login").permitAll()
+                        .requestMatchers("/css/**", "/icons/**", "/login").permitAll()
                         .anyRequest().authenticated())
                 .formLogin(form -> form
                         .loginPage("/login")
@@ -35,7 +35,7 @@ public class SecurityConfig {
 #else
         http
                 .authorizeRequests()
-                .antMatchers("/css/**", "/login").permitAll()
+                .antMatchers("/css/**", "/icons/**", "/login").permitAll()
                 .anyRequest().authenticated()
                 .and()
                 .formLogin()

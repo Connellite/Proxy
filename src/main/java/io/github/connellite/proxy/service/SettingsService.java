@@ -1,6 +1,6 @@
 package io.github.connellite.proxy.service;
 
-import io.github.connellite.proxy.config.AdminServerPortStore;
+import io.github.connellite.proxy.util.AdminServerPortStore;
 import io.github.connellite.proxy.config.ProxyProperties;
 import io.github.connellite.proxy.dto.AppSettings;
 import io.github.connellite.proxy.model.ConfigEntry;

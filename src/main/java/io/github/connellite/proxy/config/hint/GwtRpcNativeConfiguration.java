@@ -1,4 +1,4 @@
-package io.github.connellite.proxy.config;
+package io.github.connellite.proxy.config.hint;
 
 #if SPRING_BOOT_3
 import com.google.gwt.user.client.rpc.CustomFieldSerializer;
@@ -155,8 +155,8 @@ public class GwtRpcNativeConfiguration {
 
             hints.resources().registerPattern("static/proxyAdmin/*");
             hints.resources().registerPattern("static/proxyAdmin/**");
-            hints.resources().registerPattern("icons/*");
-            hints.resources().registerPattern("icons/**");
+            hints.resources().registerPattern("static/icons/*");
+            hints.resources().registerPattern("static/icons/**");
         }
 
         private static void registerTypeName(RuntimeHints hints, String className) {

@@ -9,10 +9,12 @@ import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.FlowPanel;
 import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.Label;
+import com.google.gwt.user.client.ui.ListBox;
 import com.google.gwt.user.client.ui.TextArea;
 import com.google.gwt.user.client.ui.TextBox;
 import io.github.connellite.proxy.client.rpc.dto.EncryptionDto;
 import io.github.connellite.proxy.client.rpc.dto.TlsStatusDto;
+import io.github.connellite.proxy.client.util.BindHostList;
 import io.github.connellite.proxy.client.util.Forms;
 import io.github.connellite.proxy.client.util.PlainIntegerBox;
 import io.github.connellite.proxy.client.util.Rpc;
@@ -22,7 +24,7 @@ public class EncryptionPage extends Composite {
     private final AppShell shell;
 
     private final CheckBox httpsEnabled = Forms.checkbox("Enable HTTPS proxy encryption");
-    private final TextBox httpsBindHost = new TextBox();
+    private final ListBox httpsBindHost = BindHostList.create();
     private final PlainIntegerBox httpsPort = new PlainIntegerBox();
     private final TextBox serverName = new TextBox();
     private final TextArea certificateChain = new TextArea();
@@ -64,7 +66,8 @@ public class EncryptionPage extends Composite {
         form.setStyleName("panel form");
         form.add(httpsEnabled);
         form.add(Forms.twoCol(
-                Forms.field("HTTPS bind host", httpsBindHost),
+                Forms.field("HTTPS bind address", httpsBindHost,
+                        "0.0.0.0 = all interfaces; 127.0.0.1 = this PC only."),
                 Forms.field("HTTPS port", httpsPort)));
         form.add(Forms.field("Server name", serverName,
                 "Must match a DNS name or IP in the certificate."));
@@ -124,7 +127,7 @@ public class EncryptionPage extends Composite {
     private void apply(EncryptionDto dto) {
         privateKeySaved = dto.isPrivateKeySaved();
         httpsEnabled.setValue(dto.isHttpsEnabled());
-        httpsBindHost.setText(nullToEmpty(dto.getHttpsBindHost()));
+        BindHostList.fill(httpsBindHost, dto.getBindHostOptions(), dto.getHttpsBindHost());
         httpsPort.setIntValue(dto.getHttpsPort());
         serverName.setText(nullToEmpty(dto.getServerName()));
         certificateChain.setText(nullToEmpty(dto.getCertificateChain()));
@@ -165,7 +168,7 @@ public class EncryptionPage extends Composite {
     private EncryptionDto collect() {
         EncryptionDto dto = new EncryptionDto();
         dto.setHttpsEnabled(httpsEnabled.getValue());
-        dto.setHttpsBindHost(httpsBindHost.getText().trim());
+        dto.setHttpsBindHost(BindHostList.selected(httpsBindHost));
         Integer port = httpsPort.getIntValue();
         dto.setHttpsPort(port == null ? 0 : port);
         dto.setServerName(serverName.getText().trim());

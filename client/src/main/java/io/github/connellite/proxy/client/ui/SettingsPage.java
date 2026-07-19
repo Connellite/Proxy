@@ -10,10 +10,11 @@ import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.FlowPanel;
 import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.Label;
+import com.google.gwt.user.client.ui.ListBox;
 import com.google.gwt.user.client.ui.PasswordTextBox;
-import com.google.gwt.user.client.ui.TextBox;
 import io.github.connellite.proxy.client.rpc.dto.PasswordChangeDto;
 import io.github.connellite.proxy.client.rpc.dto.SettingsDto;
+import io.github.connellite.proxy.client.util.BindHostList;
 import io.github.connellite.proxy.client.util.Forms;
 import io.github.connellite.proxy.client.util.PlainIntegerBox;
 import io.github.connellite.proxy.client.util.Rpc;
@@ -28,8 +29,8 @@ public class SettingsPage extends Composite {
     private final CheckBox socksAuthRequired = Forms.checkbox(
             "Require username/password for SOCKS5 (SOCKS4 disabled while on)");
     private final CheckBox socksUdpEnabled = Forms.checkbox("Full SOCKS5 with UDP (TCP CONNECT + UDP ASSOCIATE)");
-    private final TextBox httpBindHost = new TextBox();
-    private final TextBox socksBindHost = new TextBox();
+    private final ListBox httpBindHost = BindHostList.create();
+    private final ListBox socksBindHost = BindHostList.create();
     private final PlainIntegerBox httpPort = new PlainIntegerBox();
     private final PlainIntegerBox socksPort = new PlainIntegerBox();
     private final PlainIntegerBox adminServerPort = new PlainIntegerBox();
@@ -86,12 +87,14 @@ public class SettingsPage extends Composite {
         listeners.add(new HTML("<h2>Listeners</h2>"));
         listeners.add(httpEnabled);
         listeners.add(Forms.twoCol(
-                Forms.field("HTTP bind host", httpBindHost),
+                Forms.field("HTTP bind address", httpBindHost,
+                        "0.0.0.0 = all interfaces; 127.0.0.1 = this PC only."),
                 Forms.field("HTTP port", httpPort)));
         listeners.add(httpAuthRequired);
         listeners.add(socksEnabled);
         listeners.add(Forms.twoCol(
-                Forms.field("SOCKS bind host", socksBindHost),
+                Forms.field("SOCKS bind address", socksBindHost,
+                        "0.0.0.0 = all interfaces; 127.0.0.1 = this PC only."),
                 Forms.field("SOCKS port", socksPort)));
         listeners.add(socksAuthRequired);
         listeners.add(socksUdpEnabled);
@@ -163,8 +166,8 @@ public class SettingsPage extends Composite {
                 httpAuthRequired.setValue(dto.isHttpAuthRequired());
                 socksAuthRequired.setValue(dto.isSocksAuthRequired());
                 socksUdpEnabled.setValue(dto.isSocksUdpEnabled());
-                httpBindHost.setText(nullToEmpty(dto.getHttpBindHost()));
-                socksBindHost.setText(nullToEmpty(dto.getSocksBindHost()));
+                BindHostList.fill(httpBindHost, dto.getBindHostOptions(), dto.getHttpBindHost());
+                BindHostList.fill(socksBindHost, dto.getBindHostOptions(), dto.getSocksBindHost());
                 httpPort.setIntValue(dto.getHttpPort());
                 socksPort.setIntValue(dto.getSocksPort());
                 adminServerPort.setIntValue(dto.getAdminServerPort() > 0 ? dto.getAdminServerPort() : 8080);
@@ -237,8 +240,8 @@ public class SettingsPage extends Composite {
         dto.setHttpAuthRequired(httpAuthRequired.getValue());
         dto.setSocksAuthRequired(socksAuthRequired.getValue());
         dto.setSocksUdpEnabled(socksUdpEnabled.getValue());
-        dto.setHttpBindHost(httpBindHost.getText().trim());
-        dto.setSocksBindHost(socksBindHost.getText().trim());
+        dto.setHttpBindHost(BindHostList.selected(httpBindHost));
+        dto.setSocksBindHost(BindHostList.selected(socksBindHost));
         Integer hp = httpPort.getIntValue();
         Integer sp = socksPort.getIntValue();
         Integer ap = adminServerPort.getIntValue();
@@ -250,9 +253,5 @@ public class SettingsPage extends Composite {
 
     private static String onOff(boolean running) {
         return running ? "running" : "stopped";
-    }
-
-    private static String nullToEmpty(String value) {
-        return value == null ? "" : value;
     }
 }

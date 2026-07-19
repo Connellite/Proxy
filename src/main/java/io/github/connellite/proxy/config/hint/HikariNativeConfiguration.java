@@ -1,4 +1,4 @@
-package io.github.connellite.proxy.config;
+package io.github.connellite.proxy.config.hint;
 
 #if SPRING_BOOT_3
 import com.zaxxer.hikari.HikariConfig;

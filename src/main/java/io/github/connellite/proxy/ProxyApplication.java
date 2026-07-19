@@ -1,6 +1,6 @@
 package io.github.connellite.proxy;
 
-import io.github.connellite.proxy.config.AdminServerPortStore;
+import io.github.connellite.proxy.util.AdminServerPortStore;
 import org.springframework.boot.Banner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

@@ -1,6 +1,6 @@
 package io.github.connellite.proxy.ui;
 
-import io.github.connellite.proxy.config.AdminServerPortStore;
+import io.github.connellite.proxy.util.AdminServerPortStore;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -32,7 +32,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @Order(100)
 public class WindowsSystemTray implements ApplicationRunner {
 
-    private static final String ICON_RESOURCE = "/icons/tray-icon.png";
+    private static final String ICON_RESOURCE = "/static/icons/tray-icon.png";
 
     private final ConfigurableApplicationContext context;
     private final Environment environment;

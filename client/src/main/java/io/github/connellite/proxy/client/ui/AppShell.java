@@ -2,11 +2,11 @@ package io.github.connellite.proxy.client.ui;
 
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
+import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.ui.Anchor;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.FlowPanel;
-import com.google.gwt.user.client.ui.FormPanel;
 import com.google.gwt.user.client.ui.HTMLPanel;
 import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.SimplePanel;
@@ -82,15 +82,15 @@ public class AppShell extends Composite {
             }
         }));
 
-        FormPanel logout = new FormPanel();
+        FlowPanel logout = new FlowPanel();
         logout.setStyleName("logout");
-        logout.setMethod(FormPanel.METHOD_GET);
-        logout.setAction("/logout");
         Button logoutBtn = new Button("Logout");
         logoutBtn.addClickHandler(new ClickHandler() {
             @Override
             public void onClick(ClickEvent event) {
-                logout.submit();
+                // Top-level navigation: FormPanel would submit into a hidden iframe,
+                // and Spring's X-Frame-Options: DENY blocks the login redirect there.
+                Window.Location.assign("/logout");
             }
         });
         logout.add(logoutBtn);

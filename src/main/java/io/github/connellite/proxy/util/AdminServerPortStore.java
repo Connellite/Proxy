@@ -1,4 +1,4 @@
-package io.github.connellite.proxy.config;
+package io.github.connellite.proxy.util;
 
 import io.github.connellite.proxy.model.ConfigEntry;
 import lombok.experimental.UtilityClass;

@@ -289,9 +289,11 @@ td.cell-ellipsis {
 .form input[type="password"],
 .form input[type="number"],
 .form input[type="date"],
+.form select,
 .form .gwt-TextBox,
 .form .gwt-PasswordTextBox,
-.form .gwt-TextArea {
+.form .gwt-TextArea,
+.form .gwt-ListBox {
   display: block;
   width: 100%;
   margin-top: 0.35rem;
