@@ -44,11 +44,18 @@ public class SettingsService {
         settings.setHttpsEnabled(properties.getHttps().isEnabled());
         settings.setHttpsBindHost(properties.getHttps().getBindHost());
         settings.setHttpsPort(properties.getHttps().getPort());
+        settings.setHttpsServerName(blankToNull(properties.getTls().getServerName()));
+        settings.setHttpsCertificatePath(blankToNull(properties.getTls().getCertificatePath()));
+        settings.setHttpsPrivateKeyPath(blankToNull(properties.getTls().getPrivateKeyPath()));
         settings.setSocksEnabled(properties.getSocks5().isEnabled());
         settings.setSocksBindHost(properties.getSocks5().getBindHost());
         settings.setSocksPort(properties.getSocks5().getPort());
         settings.setHttpAuthRequired(properties.isHttpAuthRequired());
         settings.setSocksAuthRequired(properties.isSocksAuthRequired());
         return settings;
+    }
+
+    private static String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
     }
 }

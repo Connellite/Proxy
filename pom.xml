@@ -33,6 +33,7 @@
         <netty.version>4.1.118.Final</netty.version>
         <guava.version>33.6.0-jre</guava.version>
         <storage-units.version>2026.7.8</storage-units.version>
+        <bouncycastle.version>1.80</bouncycastle.version>
     </properties>
 
     <dependencies>
@@ -76,6 +77,11 @@
             <groupId>io.netty</groupId>
             <artifactId>netty-all</artifactId>
             <version>${netty.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcpkix-jdk18on</artifactId>
+            <version>${bouncycastle.version}</version>
         </dependency>
         <dependency>
             <groupId>com.google.guava</groupId>

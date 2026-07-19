@@ -3,15 +3,18 @@ package io.github.connellite.proxy.controller;
 import io.github.connellite.proxy.model.AppSettings;
 import io.github.connellite.proxy.model.ProxyUser;
 import io.github.connellite.proxy.proxy.ProxyServerManager;
+import io.github.connellite.proxy.proxy.ProxyTlsService;
 import io.github.connellite.proxy.security.AdminAccountService;
 import io.github.connellite.proxy.service.ProxyMetrics;
 import io.github.connellite.proxy.service.ProxyUserService;
 import io.github.connellite.proxy.service.SettingsService;
 import io.github.connellite.proxy.service.TrafficStatsService;
 import io.github.connellite.proxy.service.UserThroughput;
+import io.github.connellite.proxy.dto.EncryptionForm;
 import io.github.connellite.proxy.dto.PasswordChangeForm;
 import io.github.connellite.proxy.dto.ProxyUserForm;
 import io.github.connellite.proxy.dto.SettingsForm;
+import io.github.connellite.proxy.dto.TlsStatus;
 #if SPRING_BOOT_3
 import jakarta.validation.Valid;
 #else
@@ -48,6 +51,7 @@ public class AdminController {
     private final ProxyMetrics proxyMetrics;
     private final TrafficStatsService trafficStatsService;
     private final AdminAccountService adminAccountService;
+    private final ProxyTlsService tlsService;
     private final ZoneId appZoneId;
 
     @GetMapping("/login")
@@ -179,13 +183,7 @@ public class AdminController {
 
     @GetMapping("/settings")
     public String settings(Model model) {
-        model.addAttribute("form", toForm(settingsService.get()));
-        model.addAttribute("httpRunning", proxyServerManager.isHttpRunning());
-        model.addAttribute("httpsRunning", proxyServerManager.isHttpsRunning());
-        model.addAttribute("socksRunning", proxyServerManager.isSocksRunning());
-        model.addAttribute("lastError", proxyServerManager.getLastError());
-        model.addAttribute("passwordForm", new PasswordChangeForm());
-        return "settings";
+        return renderSettings(model, toSettingsForm(settingsService.get()), new PasswordChangeForm(), null);
     }
 
     @PostMapping("/settings")
@@ -194,22 +192,50 @@ public class AdminController {
                                Model model,
                                RedirectAttributes redirectAttributes) {
         if (bindingResult.hasErrors()) {
-            model.addAttribute("passwordForm", new PasswordChangeForm());
-            model.addAttribute("httpRunning", proxyServerManager.isHttpRunning());
-            model.addAttribute("httpsRunning", proxyServerManager.isHttpsRunning());
-            model.addAttribute("socksRunning", proxyServerManager.isSocksRunning());
-            return "settings";
+            return renderSettings(model, form, new PasswordChangeForm(), null);
         }
         AppSettings settings = settingsService.get();
-        applyForm(settings, form);
+        applySettingsForm(settings, form);
         settingsService.save(settings);
         proxyServerManager.restart();
         if (proxyServerManager.getLastError() != null) {
-            redirectAttributes.addFlashAttribute("error", "Saved, but restart failed: " + proxyServerManager.getLastError());
+            redirectAttributes.addFlashAttribute("error",
+                    "Saved, but restart failed: " + proxyServerManager.getLastError());
         } else {
             redirectAttributes.addFlashAttribute("success", "Settings saved and proxy listeners restarted");
         }
         return "redirect:/settings";
+    }
+
+    @GetMapping("/settings/encryption")
+    public String encryption(Model model) {
+        return renderEncryption(model, toEncryptionForm(settingsService.get()), null);
+    }
+
+    @PostMapping("/settings/encryption")
+    public String saveEncryption(@Valid @ModelAttribute("form") EncryptionForm form,
+                                 BindingResult bindingResult,
+                                 Model model,
+                                 RedirectAttributes redirectAttributes) {
+        if (bindingResult.hasErrors()) {
+            return renderEncryption(model, form, null);
+        }
+        try {
+            AppSettings settings = settingsService.get();
+            applyEncryptionForm(settings, form);
+            tlsService.validateSettingsOrThrow(settings);
+            settingsService.save(settings);
+            proxyServerManager.restart();
+            if (proxyServerManager.getLastError() != null) {
+                redirectAttributes.addFlashAttribute("error",
+                        "Saved, but restart failed: " + proxyServerManager.getLastError());
+            } else {
+                redirectAttributes.addFlashAttribute("success", "Encryption settings saved and listeners restarted");
+            }
+            return "redirect:/settings/encryption";
+        } catch (IllegalArgumentException ex) {
+            return renderEncryption(model, form, ex.getMessage());
+        }
     }
 
     @PostMapping("/settings/restart")
@@ -230,19 +256,19 @@ public class AdminController {
                                  Model model,
                                  RedirectAttributes redirectAttributes) {
         if (bindingResult.hasErrors()) {
-            return settingsWithError(model, passwordForm, null);
+            return renderSettings(model, toSettingsForm(settingsService.get()), passwordForm, null);
         }
         try {
             adminAccountService.changePassword(principal.getUsername(), passwordForm);
             redirectAttributes.addFlashAttribute("success", "Admin password changed");
             return "redirect:/settings";
         } catch (IllegalArgumentException ex) {
-            return settingsWithError(model, passwordForm, ex.getMessage());
+            return renderSettings(model, toSettingsForm(settingsService.get()), passwordForm, ex.getMessage());
         }
     }
 
-    private String settingsWithError(Model model, PasswordChangeForm passwordForm, String error) {
-        model.addAttribute("form", toForm(settingsService.get()));
+    private String renderSettings(Model model, SettingsForm form, PasswordChangeForm passwordForm, String error) {
+        model.addAttribute("form", form);
         model.addAttribute("passwordForm", passwordForm);
         model.addAttribute("httpRunning", proxyServerManager.isHttpRunning());
         model.addAttribute("httpsRunning", proxyServerManager.isHttpsRunning());
@@ -254,14 +280,35 @@ public class AdminController {
         return "settings";
     }
 
-    private static SettingsForm toForm(AppSettings settings) {
+    private String renderEncryption(Model model, EncryptionForm form, String error) {
+        AppSettings settings = settingsService.get();
+        TlsStatus tlsStatus;
+        try {
+            AppSettings preview = copySettings(settings);
+            applyEncryptionForm(preview, form);
+            tlsStatus = tlsService.status(preview);
+        } catch (IllegalArgumentException ex) {
+            tlsStatus = tlsService.status(settings);
+            if (error == null) {
+                error = ex.getMessage();
+            }
+        }
+
+        model.addAttribute("form", form);
+        model.addAttribute("httpsRunning", proxyServerManager.isHttpsRunning());
+        model.addAttribute("lastError", proxyServerManager.getLastError());
+        model.addAttribute("tlsStatus", tlsStatus);
+        if (error != null) {
+            model.addAttribute("error", error);
+        }
+        return "encryption";
+    }
+
+    private static SettingsForm toSettingsForm(AppSettings settings) {
         SettingsForm form = new SettingsForm();
         form.setHttpEnabled(settings.isHttpEnabled());
         form.setHttpBindHost(settings.getHttpBindHost());
         form.setHttpPort(settings.getHttpPort());
-        form.setHttpsEnabled(settings.isHttpsEnabled());
-        form.setHttpsBindHost(settings.getHttpsBindHost());
-        form.setHttpsPort(settings.getHttpsPort());
         form.setSocksEnabled(settings.isSocksEnabled());
         form.setSocksBindHost(settings.getSocksBindHost());
         form.setSocksPort(settings.getSocksPort());
@@ -270,17 +317,101 @@ public class AdminController {
         return form;
     }
 
-    private static void applyForm(AppSettings settings, SettingsForm form) {
+    private static EncryptionForm toEncryptionForm(AppSettings settings) {
+        EncryptionForm form = new EncryptionForm();
+        form.setHttpsEnabled(settings.isHttpsEnabled());
+        form.setHttpsBindHost(settings.getHttpsBindHost());
+        form.setHttpsPort(settings.getHttpsPort());
+        form.setServerName(settings.getHttpsServerName() != null ? settings.getHttpsServerName() : "");
+        form.setCertificateChain(settings.getHttpsCertificateChain());
+        form.setCertificatePath(settings.getHttpsCertificatePath());
+        form.setPrivateKey(null);
+        form.setPrivateKeyPath(settings.getHttpsPrivateKeyPath());
+        form.setPrivateKeySaved(settings.getHttpsPrivateKey() != null && !settings.getHttpsPrivateKey().isBlank());
+        return form;
+    }
+
+    private static void applySettingsForm(AppSettings settings, SettingsForm form) {
         settings.setHttpEnabled(form.isHttpEnabled());
         settings.setHttpBindHost(form.getHttpBindHost().trim());
         settings.setHttpPort(form.getHttpPort());
-        settings.setHttpsEnabled(form.isHttpsEnabled());
-        settings.setHttpsBindHost(form.getHttpsBindHost().trim());
-        settings.setHttpsPort(form.getHttpsPort());
         settings.setSocksEnabled(form.isSocksEnabled());
         settings.setSocksBindHost(form.getSocksBindHost().trim());
         settings.setSocksPort(form.getSocksPort());
         settings.setHttpAuthRequired(form.isHttpAuthRequired());
         settings.setSocksAuthRequired(form.isSocksAuthRequired());
+    }
+
+    private static void applyEncryptionForm(AppSettings settings, EncryptionForm form) {
+        settings.setHttpsEnabled(form.isHttpsEnabled());
+        settings.setHttpsBindHost(form.getHttpsBindHost().trim());
+        settings.setHttpsPort(form.getHttpsPort());
+        settings.setHttpsServerName(blankToNull(form.getServerName()));
+        applyCertificateFields(settings, form);
+        applyPrivateKeyFields(settings, form);
+    }
+
+    private static void applyCertificateFields(AppSettings settings, EncryptionForm form) {
+        String chain = blankToNull(form.getCertificateChain());
+        String path = blankToNull(form.getCertificatePath());
+        if (chain != null && path != null) {
+            throw new IllegalArgumentException("certificate data and file can't be set together");
+        }
+        if (path != null) {
+            settings.setHttpsCertificatePath(path);
+            settings.setHttpsCertificateChain(null);
+        } else {
+            settings.setHttpsCertificatePath(null);
+            settings.setHttpsCertificateChain(chain);
+        }
+    }
+
+    private static void applyPrivateKeyFields(AppSettings settings, EncryptionForm form) {
+        String key = form.getPrivateKey();
+        boolean keyProvided = key != null && !key.isBlank();
+        String path = blankToNull(form.getPrivateKeyPath());
+        if (keyProvided && path != null) {
+            throw new IllegalArgumentException("private key data and file can't be set together");
+        }
+        if (path != null) {
+            settings.setHttpsPrivateKeyPath(path);
+            settings.setHttpsPrivateKey(null);
+        } else if (keyProvided) {
+            settings.setHttpsPrivateKey(key.trim());
+            settings.setHttpsPrivateKeyPath(null);
+        } else if (form.isPrivateKeySaved()) {
+            settings.setHttpsPrivateKeyPath(null);
+        } else {
+            settings.setHttpsPrivateKey(null);
+            settings.setHttpsPrivateKeyPath(null);
+        }
+    }
+
+    private static AppSettings copySettings(AppSettings source) {
+        AppSettings copy = new AppSettings();
+        copy.setId(source.getId());
+        copy.setHttpEnabled(source.isHttpEnabled());
+        copy.setHttpBindHost(source.getHttpBindHost());
+        copy.setHttpPort(source.getHttpPort());
+        copy.setHttpsEnabled(source.isHttpsEnabled());
+        copy.setHttpsBindHost(source.getHttpsBindHost());
+        copy.setHttpsPort(source.getHttpsPort());
+        copy.setHttpsServerName(source.getHttpsServerName());
+        copy.setHttpsCertificateChain(source.getHttpsCertificateChain());
+        copy.setHttpsCertificatePath(source.getHttpsCertificatePath());
+        copy.setHttpsPrivateKey(source.getHttpsPrivateKey());
+        copy.setHttpsPrivateKeyPath(source.getHttpsPrivateKeyPath());
+        copy.setSocksEnabled(source.isSocksEnabled());
+        copy.setSocksBindHost(source.getSocksBindHost());
+        copy.setSocksPort(source.getSocksPort());
+        copy.setHttpAuthRequired(source.isHttpAuthRequired());
+        copy.setSocksAuthRequired(source.isSocksAuthRequired());
+        copy.setBytesUpTotal(source.getBytesUpTotal());
+        copy.setBytesDownTotal(source.getBytesDownTotal());
+        return copy;
+    }
+
+    private static String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
     }
 }

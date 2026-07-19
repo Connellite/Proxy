@@ -25,6 +25,7 @@ public class ProxyServerManager implements ApplicationRunner {
 
     private final SettingsService settingsService;
     private final ProxyMetrics metrics;
+    private final ProxyTlsService tlsService;
     private final SocksProxyServer socksProxyServer;
     private final HttpProxyServerInstance httpServer;
     private final HttpProxyServerInstance httpsServer;
@@ -36,9 +37,11 @@ public class ProxyServerManager implements ApplicationRunner {
                               ProxyMetrics metrics,
                               ProxyAuthService authService,
                               ProxyProperties properties,
+                              ProxyTlsService tlsService,
                               SocksProxyServer socksProxyServer) {
         this.settingsService = settingsService;
         this.metrics = metrics;
+        this.tlsService = tlsService;
         this.socksProxyServer = socksProxyServer;
         this.httpServer = new HttpProxyServerInstance(authService, metrics, properties, "HTTP proxy");
         this.httpsServer = new HttpProxyServerInstance(authService, metrics, properties, "HTTPS proxy");
@@ -63,7 +66,7 @@ public class ProxyServerManager implements ApplicationRunner {
                 log.info("HTTP proxy disabled");
             }
             if (settings.isHttpsEnabled()) {
-                SslContext ssl = ProxySsl.selfSignedServerContext("proxy.local");
+                SslContext ssl = tlsService.serverContext(settings);
                 httpsServer.start(settings.getHttpsBindHost(), settings.getHttpsPort(), ssl);
             } else {
                 log.info("HTTPS proxy disabled");

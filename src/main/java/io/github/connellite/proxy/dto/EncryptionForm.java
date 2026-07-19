@@ -16,29 +16,31 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class SettingsForm {
+public class EncryptionForm {
 
-    private boolean httpEnabled = true;
-
-    @NotBlank
-    @Size(max = 64)
-    private String httpBindHost = "0.0.0.0";
-
-    @Min(1)
-    @Max(65535)
-    private int httpPort = 3128;
-
-    private boolean socksEnabled = true;
+    private boolean httpsEnabled = false;
 
     @NotBlank
     @Size(max = 64)
-    private String socksBindHost = "0.0.0.0";
+    private String httpsBindHost = "0.0.0.0";
 
     @Min(1)
     @Max(65535)
-    private int socksPort = 1080;
+    private int httpsPort = 3129;
 
-    private boolean httpAuthRequired = false;
+    @Size(max = 255)
+    private String serverName = "";
 
-    private boolean socksAuthRequired = false;
+    private String certificateChain;
+
+    @Size(max = 1024)
+    private String certificatePath;
+
+    private String privateKey;
+
+    @Size(max = 1024)
+    private String privateKeyPath;
+
+    /** UI-only: existing private key is stored and not echoed back. */
+    private boolean privateKeySaved;
 }

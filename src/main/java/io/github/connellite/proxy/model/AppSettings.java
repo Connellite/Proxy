@@ -4,14 +4,15 @@ package io.github.connellite.proxy.model;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.Lob;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 #else
-
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
+import javax.persistence.Lob;
 import javax.persistence.PrePersist;
 import javax.persistence.PreUpdate;
 import javax.persistence.Table;
@@ -28,9 +29,6 @@ import java.util.UUID;
 @Table(name = "app_settings")
 public class AppSettings {
 
-    /**
-     * Fixed singleton row id.
-     */
     public static final UUID SINGLETON_ID = new UUID(0, 0);
 
     @Id
@@ -53,6 +51,28 @@ public class AppSettings {
 
     @Column(name = "https_port", nullable = false)
     private int httpsPort = 3129;
+
+    /** Hostname/IP clients use for the HTTPS proxy. */
+    @Column(name = "https_server_name", length = 255)
+    private String httpsServerName;
+
+    /** PEM certificate chain (inline), mutually exclusive with {@link #httpsCertificatePath}. */
+    @Lob
+    @Column(name = "https_certificate_chain")
+    private String httpsCertificateChain;
+
+    /** Path to PEM certificate chain file. */
+    @Column(name = "https_certificate_path", length = 1024)
+    private String httpsCertificatePath;
+
+    /** PEM private key (inline), mutually exclusive with {@link #httpsPrivateKeyPath}. */
+    @Lob
+    @Column(name = "https_private_key")
+    private String httpsPrivateKey;
+
+    /** Path to PEM private key file. */
+    @Column(name = "https_private_key_path", length = 1024)
+    private String httpsPrivateKeyPath;
 
     @Column(name = "socks_enabled", nullable = false)
     private boolean socksEnabled = true;

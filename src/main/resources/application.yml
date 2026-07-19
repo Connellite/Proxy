@@ -37,6 +37,11 @@ proxy:
     enabled: false
     bind-host: 0.0.0.0
     port: 3129
+  tls:
+    # Optional bootstrap defaults; configure certificates in the Encryption UI.
+    server-name:
+    certificate-path:
+    private-key-path:
   socks5:
     enabled: true
     bind-host: 0.0.0.0

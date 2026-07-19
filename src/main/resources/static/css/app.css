@@ -72,7 +72,15 @@ button:hover, .button:hover { filter: brightness(0.98); }
 h1 { margin: 0 0 1rem; font-size: 1.7rem; }
 h2 { margin: 0 0 1rem; font-size: 1.15rem; }
 .muted, .hint { color: var(--muted); }
-.hint { font-size: 0.9rem; margin: -0.25rem 0 1rem; }
+.field-hint, .hint { font-size: 0.9rem; margin: -0.25rem 0 1rem; }
+.panel-note {
+  margin: 0.5rem 0 1rem;
+  padding: 0.85rem 1rem;
+  background: #f7f3ea;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.panel-note .hint { margin: 0 0 0.75rem; }
 
 .flash {
   padding: 0.75rem 1rem;
@@ -82,6 +90,29 @@ h2 { margin: 0 0 1rem; font-size: 1.15rem; }
 }
 .flash.ok { background: #e8f6ee; border-color: #b7e0c5; color: var(--ok); }
 .flash.err { background: #fdecec; border-color: #f0c0c0; color: var(--danger); }
+.flash.warn { background: #fff7e6; border-color: #f0d9a8; color: var(--warn); }
+
+.tls-status {
+  margin: 0.75rem 0 1rem;
+  padding: 0.85rem 1rem;
+  background: #f7f3ea;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.tls-status h3 { margin: 0 0 0.6rem; font-size: 1rem; }
+.tls-flags { list-style: none; padding: 0; margin: 0 0 0.75rem; display: grid; gap: 0.35rem; }
+.tls-flags .ok { color: var(--ok); }
+.tls-flags .bad { color: var(--danger); }
+.tls-flags .warn { color: var(--warn); }
+.form textarea {
+  width: 100%;
+  font-family: ui-monospace, "Cascadia Code", "Consolas", monospace;
+  font-size: 0.85rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  resize: vertical;
+}
 
 .grid.stats {
   display: grid;

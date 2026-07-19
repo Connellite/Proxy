@@ -17,6 +17,7 @@
         HTTP: <span th:text="${httpRunning} ? 'running' : 'stopped'">stopped</span>
         · HTTPS: <span th:text="${httpsRunning} ? 'running' : 'stopped'">stopped</span>
         · SOCKS4/5: <span th:text="${socksRunning} ? 'running' : 'stopped'">stopped</span>
+        · <a th:href="@{/settings/encryption}">Encryption settings</a>
     </p>
 
     <form class="panel form" th:action="@{/settings}" th:object="${form}" method="post">
@@ -32,15 +33,6 @@
             </label>
         </div>
         <label class="checkbox"><input type="checkbox" th:field="*{httpAuthRequired}"/> Require username/password for HTTP / HTTPS proxy</label>
-        <label class="checkbox"><input type="checkbox" th:field="*{httpsEnabled}"/> Enable HTTPS proxy (TLS to proxy, ZeroOmega “HTTPS”)</label>
-        <div class="two-col">
-            <label>HTTPS bind host
-                <input type="text" th:field="*{httpsBindHost}" required/>
-            </label>
-            <label>HTTPS port
-                <input type="number" th:field="*{httpsPort}" min="1" max="65535" required/>
-            </label>
-        </div>
         <label class="checkbox"><input type="checkbox" th:field="*{socksEnabled}"/> Enable SOCKS4/5 proxy</label>
         <div class="two-col">
             <label>SOCKS bind host

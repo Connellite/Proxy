@@ -19,6 +19,7 @@ public class ProxyProperties {
     private int httpMaxContentLengthBytes = 8 * 1024 * 1024;
     /** IANA zone id for admin UI dates (e.g. UTC, America/New_York). */
     private String timezone = "";
+    private final Tls tls = new Tls();
     private final Bootstrap bootstrap = new Bootstrap();
     private final Listener http = new Listener(true, "0.0.0.0", 3128);
     private final Listener https = new Listener(false, "0.0.0.0", 3129);
@@ -39,5 +40,14 @@ public class ProxyProperties {
         private boolean enabled;
         private String bindHost;
         private int port;
+    }
+
+    /** TLS defaults: certificate/private-key paths (or paste PEM in the UI). */
+    @Getter
+    @Setter
+    public static class Tls {
+        private String serverName = "localhost";
+        private String certificatePath = "";
+        private String privateKeyPath = "";
     }
 }
