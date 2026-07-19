@@ -6,12 +6,15 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 #else
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Lob;
 import javax.persistence.Table;
+import org.hibernate.annotations.Type;
 #endif
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -49,6 +52,11 @@ public class ConfigEntry {
     private String key;
 
     @Lob
+#if SPRING_BOOT_3
+    @JdbcTypeCode(SqlTypes.LONGVARCHAR)
+#else
+    @Type(type = "org.hibernate.type.TextType")
+#endif
     @Column(name = "value")
     private String value;
 

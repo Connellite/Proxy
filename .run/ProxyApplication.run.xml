@@ -1,0 +1,10 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="ProxyApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot">
+    <module name="proxy" />
+    <option name="SPRING_BOOT_MAIN_CLASS" value="io.github.connellite.proxy.ProxyApplication" />
+    <option name="VM_PARAMETERS" value="--add-opens java.base/java.lang=ALL-UNNAMED" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

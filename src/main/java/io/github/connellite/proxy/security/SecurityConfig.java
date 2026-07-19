@@ -6,9 +6,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.web.SecurityFilterChain;
-#if SPRING_BOOT_3
-import org.springframework.security.config.Customizer;
-#endif
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 @Configuration
 @EnableWebSecurity
@@ -26,13 +24,14 @@ public class SecurityConfig {
                         .anyRequest().authenticated())
                 .formLogin(form -> form
                         .loginPage("/login")
-                        .defaultSuccessUrl("/", true)
+                        .defaultSuccessUrl("/admin.html", true)
                         .permitAll())
                 .logout(logout -> logout
+                        .logoutRequestMatcher(new AntPathRequestMatcher("/logout"))
                         .logoutSuccessUrl("/login?logout")
                         .permitAll())
                 .userDetailsService(adminUserDetailsService)
-                .csrf(Customizer.withDefaults());
+                .csrf(csrf -> csrf.ignoringRequestMatchers("/proxyAdmin/rpc/**"));
 #else
         http
                 .authorizeRequests()
@@ -41,12 +40,16 @@ public class SecurityConfig {
                 .and()
                 .formLogin()
                 .loginPage("/login")
-                .defaultSuccessUrl("/", true)
+                .defaultSuccessUrl("/admin.html", true)
                 .permitAll()
                 .and()
                 .logout()
+                .logoutRequestMatcher(new AntPathRequestMatcher("/logout"))
                 .logoutSuccessUrl("/login?logout")
                 .permitAll()
+                .and()
+                .csrf()
+                .ignoringAntMatchers("/proxyAdmin/rpc/**")
                 .and()
                 .userDetailsService(adminUserDetailsService);
 #endif
