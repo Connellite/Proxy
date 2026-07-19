@@ -7,6 +7,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.jdbc.DataSourceBuilder;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -36,12 +37,12 @@ public class AppConfig {
 
     @Bean
     public ZoneId appZoneId(ProxyProperties proxyProperties) {
-        String id = proxyProperties.getTimezone();
-        if (id == null || id.isBlank()) {
+        String id = StringUtils.trimToNull(proxyProperties.getTimezone());
+        if (id == null) {
             return ZoneId.systemDefault();
         }
         try {
-            return ZoneId.of(id.trim());
+            return ZoneId.of(id);
         } catch (DateTimeException ex) {
             throw new IllegalStateException("Invalid proxy.timezone: " + id, ex);
         }

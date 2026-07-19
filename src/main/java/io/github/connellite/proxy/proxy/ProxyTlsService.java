@@ -5,6 +5,7 @@ import io.github.connellite.proxy.model.AppSettings;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.openssl.PEMKeyPair;
@@ -100,10 +101,10 @@ public class ProxyTlsService {
     }
 
     public void validateSettingsOrThrow(AppSettings settings) {
-        if (hasText(settings.getHttpsCertificateChain()) && hasText(settings.getHttpsCertificatePath())) {
+        if (StringUtils.isNotBlank(settings.getHttpsCertificateChain()) && StringUtils.isNotBlank(settings.getHttpsCertificatePath())) {
             throw new IllegalArgumentException("certificate data and file can't be set together");
         }
-        if (hasText(settings.getHttpsPrivateKey()) && hasText(settings.getHttpsPrivateKeyPath())) {
+        if (StringUtils.isNotBlank(settings.getHttpsPrivateKey()) && StringUtils.isNotBlank(settings.getHttpsPrivateKeyPath())) {
             throw new IllegalArgumentException("private key data and file can't be set together");
         }
         if (settings.isHttpsEnabled() || hasCustomMaterial(settings)) {
@@ -122,7 +123,7 @@ public class ProxyTlsService {
 
     private TlsStatus validate(AppSettings settings, TlsMaterial material) {
         TlsStatus status = new TlsStatus();
-        String serverName = blankToNull(settings != null ? settings.getHttpsServerName() : null);
+        String serverName = StringUtils.trimToNull(settings != null ? settings.getHttpsServerName() : null);
         String warning = null;
 
         if (material.certificateChain.length > 0) {
@@ -185,8 +186,8 @@ public class ProxyTlsService {
     }
 
     private static byte[] loadCertificateChain(AppSettings settings) throws Exception {
-        if (hasText(settings.getHttpsCertificatePath())) {
-            if (hasText(settings.getHttpsCertificateChain())) {
+        if (StringUtils.isNotBlank(settings.getHttpsCertificatePath())) {
+            if (StringUtils.isNotBlank(settings.getHttpsCertificateChain())) {
                 throw new IllegalArgumentException("certificate data and file can't be set together");
             }
             Path path = Path.of(settings.getHttpsCertificatePath()).toAbsolutePath().normalize();
@@ -195,15 +196,15 @@ public class ProxyTlsService {
             }
             return Files.readAllBytes(path);
         }
-        if (hasText(settings.getHttpsCertificateChain())) {
+        if (StringUtils.isNotBlank(settings.getHttpsCertificateChain())) {
             return settings.getHttpsCertificateChain().getBytes(StandardCharsets.UTF_8);
         }
         return new byte[0];
     }
 
     private static byte[] loadPrivateKey(AppSettings settings) throws Exception {
-        if (hasText(settings.getHttpsPrivateKeyPath())) {
-            if (hasText(settings.getHttpsPrivateKey())) {
+        if (StringUtils.isNotBlank(settings.getHttpsPrivateKeyPath())) {
+            if (StringUtils.isNotBlank(settings.getHttpsPrivateKey())) {
                 throw new IllegalArgumentException("private key data and file can't be set together");
             }
             Path path = Path.of(settings.getHttpsPrivateKeyPath()).toAbsolutePath().normalize();
@@ -212,7 +213,7 @@ public class ProxyTlsService {
             }
             return Files.readAllBytes(path);
         }
-        if (hasText(settings.getHttpsPrivateKey())) {
+        if (StringUtils.isNotBlank(settings.getHttpsPrivateKey())) {
             return settings.getHttpsPrivateKey().getBytes(StandardCharsets.UTF_8);
         }
         return new byte[0];
@@ -381,30 +382,19 @@ public class ProxyTlsService {
 
     private static boolean hasCertificateMaterial(AppSettings settings) {
         return settings != null
-                && (hasText(settings.getHttpsCertificateChain()) || hasText(settings.getHttpsCertificatePath()));
+                && (StringUtils.isNotBlank(settings.getHttpsCertificateChain()) || StringUtils.isNotBlank(settings.getHttpsCertificatePath()));
     }
 
     private static boolean hasPrivateKeyMaterial(AppSettings settings) {
         return settings != null
-                && (hasText(settings.getHttpsPrivateKey()) || hasText(settings.getHttpsPrivateKeyPath()));
+                && (StringUtils.isNotBlank(settings.getHttpsPrivateKey()) || StringUtils.isNotBlank(settings.getHttpsPrivateKeyPath()));
     }
 
     private static boolean hasInlinePrivateKey(AppSettings settings) {
-        return settings != null && hasText(settings.getHttpsPrivateKey());
+        return settings != null && StringUtils.isNotBlank(settings.getHttpsPrivateKey());
     }
 
-    private static boolean hasText(String value) {
-        return value != null && !value.isBlank();
-    }
-
-    private static String blankToNull(String value) {
-        return value == null || value.isBlank() ? null : value.trim();
-    }
-
-    private static final class TlsMaterial {
-        private final byte[] certificateChain;
-        private final byte[] privateKey;
-
+    private record TlsMaterial(byte[] certificateChain, byte[] privateKey) {
         private TlsMaterial(byte[] certificateChain, byte[] privateKey) {
             this.certificateChain = certificateChain != null ? certificateChain : new byte[0];
             this.privateKey = privateKey != null ? privateKey : new byte[0];

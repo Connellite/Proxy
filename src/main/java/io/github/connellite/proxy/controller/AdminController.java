@@ -21,6 +21,7 @@ import jakarta.validation.Valid;
 import javax.validation.Valid;
 #endif
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
@@ -328,7 +329,7 @@ public class AdminController {
         form.setCertificatePath(settings.getHttpsCertificatePath());
         form.setPrivateKey(null);
         form.setPrivateKeyPath(settings.getHttpsPrivateKeyPath());
-        form.setPrivateKeySaved(settings.getHttpsPrivateKey() != null && !settings.getHttpsPrivateKey().isBlank());
+        form.setPrivateKeySaved(StringUtils.isNotBlank(settings.getHttpsPrivateKey()));
         return form;
     }
 
@@ -348,14 +349,14 @@ public class AdminController {
         settings.setHttpsEnabled(form.isHttpsEnabled());
         settings.setHttpsBindHost(form.getHttpsBindHost().trim());
         settings.setHttpsPort(form.getHttpsPort());
-        settings.setHttpsServerName(blankToNull(form.getServerName()));
+        settings.setHttpsServerName(StringUtils.trimToNull(form.getServerName()));
         applyCertificateFields(settings, form);
         applyPrivateKeyFields(settings, form);
     }
 
     private static void applyCertificateFields(AppSettings settings, EncryptionForm form) {
-        String chain = blankToNull(form.getCertificateChain());
-        String path = blankToNull(form.getCertificatePath());
+        String chain = StringUtils.trimToNull(form.getCertificateChain());
+        String path = StringUtils.trimToNull(form.getCertificatePath());
         if (chain != null && path != null) {
             throw new IllegalArgumentException("certificate data and file can't be set together");
         }
@@ -370,8 +371,8 @@ public class AdminController {
 
     private static void applyPrivateKeyFields(AppSettings settings, EncryptionForm form) {
         String key = form.getPrivateKey();
-        boolean keyProvided = key != null && !key.isBlank();
-        String path = blankToNull(form.getPrivateKeyPath());
+        boolean keyProvided = StringUtils.isNotBlank(key);
+        String path = StringUtils.trimToNull(form.getPrivateKeyPath());
         if (keyProvided && path != null) {
             throw new IllegalArgumentException("private key data and file can't be set together");
         }
@@ -412,9 +413,5 @@ public class AdminController {
         copy.setBytesUpTotal(source.getBytesUpTotal());
         copy.setBytesDownTotal(source.getBytesDownTotal());
         return copy;
-    }
-
-    private static String blankToNull(String value) {
-        return value == null || value.isBlank() ? null : value.trim();
     }
 }

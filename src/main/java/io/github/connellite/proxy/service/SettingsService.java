@@ -4,6 +4,7 @@ import io.github.connellite.proxy.config.ProxyProperties;
 import io.github.connellite.proxy.model.AppSettings;
 import io.github.connellite.proxy.repository.AppSettingsRepository;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,9 +45,9 @@ public class SettingsService {
         settings.setHttpsEnabled(properties.getHttps().isEnabled());
         settings.setHttpsBindHost(properties.getHttps().getBindHost());
         settings.setHttpsPort(properties.getHttps().getPort());
-        settings.setHttpsServerName(blankToNull(properties.getTls().getServerName()));
-        settings.setHttpsCertificatePath(blankToNull(properties.getTls().getCertificatePath()));
-        settings.setHttpsPrivateKeyPath(blankToNull(properties.getTls().getPrivateKeyPath()));
+        settings.setHttpsServerName(StringUtils.trimToNull(properties.getTls().getServerName()));
+        settings.setHttpsCertificatePath(StringUtils.trimToNull(properties.getTls().getCertificatePath()));
+        settings.setHttpsPrivateKeyPath(StringUtils.trimToNull(properties.getTls().getPrivateKeyPath()));
         settings.setSocksEnabled(properties.getSocks5().isEnabled());
         settings.setSocksBindHost(properties.getSocks5().getBindHost());
         settings.setSocksPort(properties.getSocks5().getPort());
@@ -54,9 +55,5 @@ public class SettingsService {
         settings.setSocksAuthRequired(properties.isSocksAuthRequired());
         settings.setSocksUdpEnabled(properties.isSocksUdpEnabled());
         return settings;
-    }
-
-    private static String blankToNull(String value) {
-        return value == null || value.isBlank() ? null : value.trim();
     }
 }

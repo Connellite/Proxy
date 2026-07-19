@@ -32,6 +32,7 @@ import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.LastHttpContent;
 import io.netty.util.AttributeKey;
 import io.netty.util.CharsetUtil;
+import org.apache.commons.lang3.StringUtils;
 import io.netty.util.ReferenceCountUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -164,7 +165,7 @@ final class HttpProxyClientHandler extends SimpleChannelInboundHandler<FullHttpR
         HostAndPort target = HostAndPort.fromString(authority)
                 .requireBracketsForIPv6()
                 .withDefaultPort(443);
-        if (target.getHost().isBlank()) {
+        if (StringUtils.isBlank(target.getHost())) {
             throw new IllegalArgumentException("CONNECT target host is required");
         }
         return new ConnectTarget(target.getHost(), target.getPort());

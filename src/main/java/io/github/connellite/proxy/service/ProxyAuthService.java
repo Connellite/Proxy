@@ -5,6 +5,7 @@ import io.github.connellite.proxy.model.AppSettings;
 import io.github.connellite.proxy.model.ProxyUser;
 import io.github.connellite.proxy.repository.ProxyUserRepository;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,7 +39,7 @@ public class ProxyAuthService {
 
     @Transactional(readOnly = true)
     public Optional<AuthenticatedSession> authenticate(String username, String password) {
-        if (username == null || username.isBlank() || password == null) {
+        if (StringUtils.isBlank(username) || password == null) {
             return Optional.empty();
         }
         Optional<ProxyUser> found = userRepository.findByUsernameIgnoreCase(username.trim());

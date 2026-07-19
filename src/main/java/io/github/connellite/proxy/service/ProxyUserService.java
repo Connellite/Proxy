@@ -4,6 +4,7 @@ import io.github.connellite.proxy.model.ProxyUser;
 import io.github.connellite.proxy.repository.ProxyUserRepository;
 import io.github.connellite.proxy.dto.ProxyUserForm;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,7 +41,7 @@ public class ProxyUserService {
         if (repository.existsByUsernameIgnoreCase(username)) {
             throw new IllegalArgumentException("Username already exists");
         }
-        if (form.getPassword() == null || form.getPassword().isBlank()) {
+        if (StringUtils.isBlank(form.getPassword())) {
             throw new IllegalArgumentException("Password is required");
         }
         ProxyUser user = new ProxyUser();
@@ -88,13 +89,13 @@ public class ProxyUserService {
         user.setEnabled(form.isEnabled());
         user.setMaxConnections(Math.max(0, form.getMaxConnections()));
         user.setExpiresAt(parseExpireDate(form.getExpiresAt()));
-        if (creating || (form.getPassword() != null && !form.getPassword().isBlank())) {
+        if (creating || StringUtils.isNotBlank(form.getPassword())) {
             user.setPasswordHash(passwordEncoder.encode(form.getPassword()));
         }
     }
 
     private Instant parseExpireDate(String value) {
-        if (value == null || value.isBlank()) {
+        if (StringUtils.isBlank(value)) {
             return null;
         }
         // Calendar date from the date picker → end of that day in configured timezone.
