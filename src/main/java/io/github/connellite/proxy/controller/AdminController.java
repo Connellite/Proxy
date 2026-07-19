@@ -102,7 +102,7 @@ public class AdminController {
     }
 
     @GetMapping("/users/{id}/edit")
-    public String editUser(@PathVariable Long id, Model model) {
+    public String editUser(@PathVariable("id") Long id, Model model) {
         ProxyUser user = userService.getRequired(id);
         ProxyUserForm form = new ProxyUserForm();
         form.setId(user.getId());
@@ -138,7 +138,7 @@ public class AdminController {
     }
 
     @PostMapping("/users/{id}")
-    public String updateUser(@PathVariable Long id,
+    public String updateUser(@PathVariable("id") Long id,
                              @Valid @ModelAttribute("form") ProxyUserForm form,
                              BindingResult bindingResult,
                              Model model,
@@ -159,8 +159,8 @@ public class AdminController {
     }
 
     @PostMapping("/users/{id}/toggle")
-    public String toggleUser(@PathVariable Long id,
-                             @RequestParam boolean enabled,
+    public String toggleUser(@PathVariable("id") Long id,
+                             @RequestParam("enabled") boolean enabled,
                              RedirectAttributes redirectAttributes) {
         userService.setEnabled(id, enabled);
         redirectAttributes.addFlashAttribute("success", enabled ? "User enabled" : "User disabled");
@@ -168,14 +168,14 @@ public class AdminController {
     }
 
     @PostMapping("/users/{id}/reset-traffic")
-    public String resetTraffic(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+    public String resetTraffic(@PathVariable("id") Long id, RedirectAttributes redirectAttributes) {
         userService.resetTraffic(id);
         redirectAttributes.addFlashAttribute("success", "Traffic counters reset");
         return "redirect:/users";
     }
 
     @PostMapping("/users/{id}/delete")
-    public String deleteUser(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+    public String deleteUser(@PathVariable("id") Long id, RedirectAttributes redirectAttributes) {
         userService.delete(id);
         redirectAttributes.addFlashAttribute("success", "User deleted");
         return "redirect:/users";

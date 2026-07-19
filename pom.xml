@@ -34,6 +34,9 @@
         <guava.version>33.6.0-jre</guava.version>
         <storage-units.version>2026.7.8</storage-units.version>
         <bouncycastle.version>1.80</bouncycastle.version>
+        <native-build-tools.version>0.10.6</native-build-tools.version>
+        <!-- provided for WAR; compile for standalone / native -->
+        <tomcat.scope>provided</tomcat.scope>
     </properties>
 
     <dependencies>
@@ -41,7 +44,7 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-tomcat</artifactId>
             <version>${spring.boot.compat.version}</version>
-            <scope>provided</scope>
+            <scope>${tomcat.scope}</scope>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -269,6 +272,134 @@
                         <groupId>org.springframework.boot</groupId>
                         <artifactId>spring-boot-maven-plugin</artifactId>
                         <version>${spring.boot.compat.version}</version>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <!--
+          Additional GraalVM / Spring Boot Native build (Spring Boot 3 only).
+          Does not replace spring-2 / spring-3 JVM artifacts.
+
+          Prerequisites: GraalVM (or Liberica NIK) with native-image, plus VS Build Tools on Windows.
+
+          Native executable:
+            mvn -Pnative native:compile
+            target/proxy-1.0.0-native
+
+          AOT-processed Boot JAR (no GraalVM compiler required):
+            mvn -Pnative -DskipTests package
+
+          Native container image (Docker required):
+            mvn -Pnative spring-boot:build-image
+        -->
+        <profile>
+            <id>native</id>
+            <properties>
+                <manifold.spring.symbol>SPRING_BOOT_3</manifold.spring.symbol>
+                <spring.boot.compat.version>3.5.13</spring.boot.compat.version>
+                <sqlite.dialect>org.hibernate.community.dialect.SQLiteDialect</sqlite.dialect>
+                <netty.version>4.1.121.Final</netty.version>
+                <tomcat.scope>compile</tomcat.scope>
+            </properties>
+            <dependencyManagement>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.springframework.boot</groupId>
+                        <artifactId>spring-boot-dependencies</artifactId>
+                        <version>${spring.boot.compat.version}</version>
+                        <type>pom</type>
+                        <scope>import</scope>
+                    </dependency>
+                </dependencies>
+            </dependencyManagement>
+            <dependencies>
+                <dependency>
+                    <groupId>org.thymeleaf.extras</groupId>
+                    <artifactId>thymeleaf-extras-springsecurity6</artifactId>
+                </dependency>
+                <dependency>
+                    <groupId>org.hibernate.orm</groupId>
+                    <artifactId>hibernate-community-dialects</artifactId>
+                </dependency>
+            </dependencies>
+            <build>
+                <finalName>${project.artifactId}-${project.version}-native</finalName>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-jar-plugin</artifactId>
+                        <version>3.4.2</version>
+                        <configuration>
+                            <archive>
+                                <manifestEntries>
+                                    <Spring-Boot-Native-Processed>true</Spring-Boot-Native-Processed>
+                                </manifestEntries>
+                            </archive>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-war-plugin</artifactId>
+                        <configuration>
+                            <skip>true</skip>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.springframework.boot</groupId>
+                        <artifactId>spring-boot-maven-plugin</artifactId>
+                        <version>${spring.boot.compat.version}</version>
+                        <executions>
+                            <execution>
+                                <id>process-aot</id>
+                                <goals>
+                                    <goal>process-aot</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <mainClass>io.github.connellite.proxy.ProxyApplication</mainClass>
+                            <image>
+                                <builder>paketobuildpacks/builder-jammy-tiny:latest</builder>
+                                <env>
+                                    <BP_NATIVE_IMAGE>true</BP_NATIVE_IMAGE>
+                                </env>
+                            </image>
+                            <excludes>
+                                <exclude>
+                                    <groupId>org.projectlombok</groupId>
+                                    <artifactId>lombok</artifactId>
+                                </exclude>
+                            </excludes>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.graalvm.buildtools</groupId>
+                        <artifactId>native-maven-plugin</artifactId>
+                        <version>${native-build-tools.version}</version>
+                        <extensions>true</extensions>
+                        <configuration>
+                            <classesDirectory>${project.build.outputDirectory}</classesDirectory>
+                            <requiredVersion>22.3</requiredVersion>
+                            <imageName>${project.artifactId}-${project.version}-native</imageName>
+                            <metadataRepository>
+                                <enabled>true</enabled>
+                            </metadataRepository>
+                            <buildArgs>
+                                <buildArg>--enable-url-protocols=http,https</buildArg>
+                                <!-- SQLite JDBC uses System.load; required on JDK 24+ (JEP 472) -->
+                                <buildArg>--enable-native-access=ALL-UNNAMED</buildArg>
+                                <buildArg>-H:+ReportExceptionStackTraces</buildArg>
+                            </buildArgs>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>add-reachability-metadata</id>
+                                <goals>
+                                    <goal>add-reachability-metadata</goal>
+                                </goals>
+                            </execution>
+                        </executions>
                     </plugin>
                 </plugins>
             </build>
