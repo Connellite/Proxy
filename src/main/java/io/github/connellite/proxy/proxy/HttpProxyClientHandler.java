@@ -1,5 +1,6 @@
 package io.github.connellite.proxy.proxy;
 
+import com.google.common.net.HostAndPort;
 import io.github.connellite.proxy.config.ProxyProperties;
 import io.github.connellite.proxy.service.AuthenticatedSession;
 import io.github.connellite.proxy.service.ProxyAuthService;
@@ -103,17 +104,15 @@ final class HttpProxyClientHandler extends SimpleChannelInboundHandler<FullHttpR
     }
 
     private void handleConnect(ChannelHandlerContext ctx, FullHttpRequest request, AuthenticatedSession session) {
-        String hostPort = request.uri();
-        String host;
-        int port;
-        int colon = hostPort.lastIndexOf(':');
-        if (colon > 0) {
-            host = hostPort.substring(0, colon);
-            port = Integer.parseInt(hostPort.substring(colon + 1));
-        } else {
-            host = hostPort;
-            port = 443;
+        ConnectTarget target;
+        try {
+            target = parseConnectTarget(request.uri());
+        } catch (IllegalArgumentException ex) {
+            sendError(ctx, HttpResponseStatus.BAD_REQUEST, "Invalid CONNECT target");
+            return;
         }
+        String host = target.host();
+        int port = target.port();
 
         Channel inbound = ctx.channel();
         Long userId = session == null ? null : session.getUserId();
@@ -159,6 +158,16 @@ final class HttpProxyClientHandler extends SimpleChannelInboundHandler<FullHttpR
                 sendError(ctx, HttpResponseStatus.BAD_GATEWAY, "Unable to connect to target");
             }
         });
+    }
+
+    static ConnectTarget parseConnectTarget(String authority) {
+        HostAndPort target = HostAndPort.fromString(authority)
+                .requireBracketsForIPv6()
+                .withDefaultPort(443);
+        if (target.getHost().isBlank()) {
+            throw new IllegalArgumentException("CONNECT target host is required");
+        }
+        return new ConnectTarget(target.getHost(), target.getPort());
     }
 
     private void handleHttp(ChannelHandlerContext ctx, FullHttpRequest request, AuthenticatedSession session) {
@@ -278,5 +287,8 @@ final class HttpProxyClientHandler extends SimpleChannelInboundHandler<FullHttpR
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
         log.debug("HTTP proxy client error: {}", cause.toString());
         ctx.close();
+    }
+
+    record ConnectTarget(String host, int port) {
     }
 }

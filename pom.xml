@@ -31,6 +31,8 @@
         <spring.boot.compat.version>2.7.18</spring.boot.compat.version>
         <sqlite.dialect>org.sqlite.hibernate.dialect.SQLiteDialect</sqlite.dialect>
         <netty.version>4.1.118.Final</netty.version>
+        <guava.version>33.6.0-jre</guava.version>
+        <storage-units.version>2026.7.8</storage-units.version>
     </properties>
 
     <dependencies>
@@ -74,6 +76,16 @@
             <groupId>io.netty</groupId>
             <artifactId>netty-all</artifactId>
             <version>${netty.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>${guava.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>wtf.metio.storage-units</groupId>
+            <artifactId>storage-units-model</artifactId>
+            <version>${storage-units.version}</version>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
