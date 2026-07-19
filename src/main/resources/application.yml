@@ -44,6 +44,7 @@ proxy:
   auth-required: false
   connect-timeout-ms: 15000
   idle-timeout-seconds: 300
+  http-max-content-length-bytes: 8388608
   # IANA timezone for UI dates / expire-on (examples: UTC, America/New_York)
   # timezone: UTC
 

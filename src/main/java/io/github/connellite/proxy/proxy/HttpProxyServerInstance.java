@@ -61,7 +61,7 @@ final class HttpProxyServerInstance implements AutoCloseable {
                         ch.pipeline().addLast(new IdleStateHandler(0, 0, properties.getIdleTimeoutSeconds(), TimeUnit.SECONDS));
                         ch.pipeline().addLast(new IdleCloseHandler());
                         ch.pipeline().addLast(new HttpServerCodec());
-                        ch.pipeline().addLast(new HttpObjectAggregator(8 * 1024 * 1024));
+                        ch.pipeline().addLast(new HttpObjectAggregator(properties.getHttpMaxContentLengthBytes()));
                         ch.pipeline().addLast(new HttpProxyClientHandler(authService, metrics, properties));
                     }
                 });
