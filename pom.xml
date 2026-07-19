@@ -149,6 +149,28 @@
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <id>clear-stale-gwt-assets</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <!-- Old permutations left behind break GWT-RPC (DTO signature mismatch). -->
+                                <delete dir="${project.build.directory}/gwt-client" quiet="true"/>
+                                <delete dir="${project.build.outputDirectory}/static/proxyAdmin" quiet="true"/>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>
                 <version>3.8.1</version>
                 <executions>
@@ -192,6 +214,7 @@
                         </goals>
                         <configuration>
                             <outputDirectory>${project.build.outputDirectory}/static/proxyAdmin</outputDirectory>
+                            <overwrite>true</overwrite>
                             <resources>
                                 <resource>
                                     <directory>${project.build.directory}/gwt-client/proxyAdmin</directory>
@@ -469,6 +492,8 @@
                                 <!-- GWT-RPC setAccessible on Throwable / ArrayList / HashMap fields -->
                                 <buildArg>--add-opens=java.base/java.lang=ALL-UNNAMED</buildArg>
                                 <buildArg>--add-opens=java.base/java.util=ALL-UNNAMED</buildArg>
+                                <!-- Windows SystemTray / Desktop (AWT) -->
+                                <buildArg>--initialize-at-run-time=java.awt,sun.awt,sun.java2d,sun.font,sun.swing</buildArg>
                                 <buildArg>-H:+ReportExceptionStackTraces</buildArg>
                             </buildArgs>
                         </configuration>

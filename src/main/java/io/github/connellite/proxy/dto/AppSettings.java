@@ -50,6 +50,9 @@ public class AppSettings {
     /** When true, SOCKS5 accepts UDP ASSOCIATE in addition to TCP CONNECT. */
     private boolean socksUdpEnabled = false;
 
+    /** Spring Boot admin UI / Tomcat port ({@code server.port}). Requires app restart. */
+    private int adminServerPort = 8080;
+
     private long bytesUpTotal = 0;
 
     private long bytesDownTotal = 0;

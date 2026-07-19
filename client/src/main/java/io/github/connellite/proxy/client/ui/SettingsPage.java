@@ -32,6 +32,8 @@ public class SettingsPage extends Composite {
     private final TextBox socksBindHost = new TextBox();
     private final PlainIntegerBox httpPort = new PlainIntegerBox();
     private final PlainIntegerBox socksPort = new PlainIntegerBox();
+    private final PlainIntegerBox adminServerPort = new PlainIntegerBox();
+    private final Label adminPortHint = new Label();
     private final HTML status = new HTML();
 
     private final PasswordTextBox currentPassword = new PasswordTextBox();
@@ -44,6 +46,8 @@ public class SettingsPage extends Composite {
         httpPort.setMax(65535);
         socksPort.setMin(1);
         socksPort.setMax(65535);
+        adminServerPort.setMin(1);
+        adminServerPort.setMax(65535);
         newPassword.getElement().setAttribute("minlength", "4");
         confirmPassword.getElement().setAttribute("minlength", "4");
 
@@ -107,6 +111,23 @@ public class SettingsPage extends Composite {
         listeners.add(Forms.formActions(save));
         root.add(listeners);
 
+        FlowPanel adminPanel = new FlowPanel();
+        adminPanel.setStyleName("panel form");
+        adminPanel.add(new HTML("<h2>Admin UI</h2>"));
+        adminPanel.add(Forms.field("Admin web port (server.port)", adminServerPort));
+        adminPortHint.setStyleName("field-hint");
+        adminPanel.add(adminPortHint);
+        Button saveAdmin = new Button("Save admin port");
+        saveAdmin.setStyleName("primary");
+        saveAdmin.addClickHandler(new ClickHandler() {
+            @Override
+            public void onClick(ClickEvent event) {
+                saveSettings();
+            }
+        });
+        adminPanel.add(Forms.formActions(saveAdmin));
+        root.add(adminPanel);
+
         FlowPanel passwordPanel = new FlowPanel();
         passwordPanel.setStyleName("panel form");
         passwordPanel.add(new HTML("<h2>Admin password</h2>"));
@@ -146,6 +167,8 @@ public class SettingsPage extends Composite {
                 socksBindHost.setText(nullToEmpty(dto.getSocksBindHost()));
                 httpPort.setIntValue(dto.getHttpPort());
                 socksPort.setIntValue(dto.getSocksPort());
+                adminServerPort.setIntValue(dto.getAdminServerPort() > 0 ? dto.getAdminServerPort() : 8080);
+                adminPortHint.setText("Takes effect after restart (tray Exit → relaunch).");
                 status.setHTML("HTTP: " + onOff(dto.isHttpRunning())
                         + " · HTTPS: " + onOff(dto.isHttpsRunning())
                         + " · SOCKS4/5: " + onOff(dto.isSocksRunning()));
@@ -218,8 +241,10 @@ public class SettingsPage extends Composite {
         dto.setSocksBindHost(socksBindHost.getText().trim());
         Integer hp = httpPort.getIntValue();
         Integer sp = socksPort.getIntValue();
+        Integer ap = adminServerPort.getIntValue();
         dto.setHttpPort(hp == null ? 0 : hp);
         dto.setSocksPort(sp == null ? 0 : sp);
+        dto.setAdminServerPort(ap == null ? 8080 : ap);
         return dto;
     }
 

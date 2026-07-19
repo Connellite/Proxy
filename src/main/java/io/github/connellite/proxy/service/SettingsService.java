@@ -1,5 +1,6 @@
 package io.github.connellite.proxy.service;
 
+import io.github.connellite.proxy.config.AdminServerPortStore;
 import io.github.connellite.proxy.config.ProxyProperties;
 import io.github.connellite.proxy.dto.AppSettings;
 import io.github.connellite.proxy.model.ConfigEntry;
@@ -42,6 +43,9 @@ public class SettingsService {
         if (existing.containsKey(ConfigEntry.BYTES_DOWN_TOTAL)) {
             settings.setBytesDownTotal(parseLong(existing.get(ConfigEntry.BYTES_DOWN_TOTAL), settings.getBytesDownTotal()));
         }
+        if (!AdminServerPortStore.isValidPort(settings.getAdminServerPort())) {
+            throw new IllegalArgumentException("Admin port must be between 1 and 65535");
+        }
         repository.saveAll(toEntries(settings));
         return settings;
     }
@@ -73,6 +77,7 @@ public class SettingsService {
         settings.setHttpAuthRequired(properties.isHttpAuthRequired());
         settings.setSocksAuthRequired(properties.isSocksAuthRequired());
         settings.setSocksUdpEnabled(properties.isSocksUdpEnabled());
+        settings.setAdminServerPort(AdminServerPortStore.DEFAULT_PORT);
         return settings;
     }
 
@@ -96,6 +101,7 @@ public class SettingsService {
         settings.setHttpAuthRequired(parseBoolean(map.get(ConfigEntry.HTTP_AUTH_REQUIRED), settings.isHttpAuthRequired()));
         settings.setSocksAuthRequired(parseBoolean(map.get(ConfigEntry.SOCKS_AUTH_REQUIRED), settings.isSocksAuthRequired()));
         settings.setSocksUdpEnabled(parseBoolean(map.get(ConfigEntry.SOCKS_UDP_ENABLED), settings.isSocksUdpEnabled()));
+        settings.setAdminServerPort(parseInt(map.get(ConfigEntry.ADMIN_SERVER_PORT), settings.getAdminServerPort()));
         settings.setBytesUpTotal(parseLong(map.get(ConfigEntry.BYTES_UP_TOTAL), 0L));
         settings.setBytesDownTotal(parseLong(map.get(ConfigEntry.BYTES_DOWN_TOTAL), 0L));
         return settings;
@@ -120,6 +126,7 @@ public class SettingsService {
         entries.add(new ConfigEntry(ConfigEntry.HTTP_AUTH_REQUIRED, Boolean.toString(settings.isHttpAuthRequired())));
         entries.add(new ConfigEntry(ConfigEntry.SOCKS_AUTH_REQUIRED, Boolean.toString(settings.isSocksAuthRequired())));
         entries.add(new ConfigEntry(ConfigEntry.SOCKS_UDP_ENABLED, Boolean.toString(settings.isSocksUdpEnabled())));
+        entries.add(new ConfigEntry(ConfigEntry.ADMIN_SERVER_PORT, Integer.toString(settings.getAdminServerPort())));
         entries.add(new ConfigEntry(ConfigEntry.BYTES_UP_TOTAL, Long.toString(settings.getBytesUpTotal())));
         entries.add(new ConfigEntry(ConfigEntry.BYTES_DOWN_TOTAL, Long.toString(settings.getBytesDownTotal())));
         return entries;

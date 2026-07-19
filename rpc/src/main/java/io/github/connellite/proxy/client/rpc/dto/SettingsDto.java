@@ -20,6 +20,7 @@ public class SettingsDto implements IsSerializable {
     private String socksBindHost;
     private int httpPort;
     private int socksPort;
+    private int adminServerPort;
     private boolean httpRunning;
     private boolean httpsRunning;
     private boolean socksRunning;

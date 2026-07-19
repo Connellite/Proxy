@@ -155,6 +155,8 @@ public class GwtRpcNativeConfiguration {
 
             hints.resources().registerPattern("static/proxyAdmin/*");
             hints.resources().registerPattern("static/proxyAdmin/**");
+            hints.resources().registerPattern("icons/*");
+            hints.resources().registerPattern("icons/**");
         }
 
         private static void registerTypeName(RuntimeHints hints, String className) {

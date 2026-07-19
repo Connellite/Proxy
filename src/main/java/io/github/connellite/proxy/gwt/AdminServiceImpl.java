@@ -395,6 +395,7 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
         dto.setHttpAuthRequired(settings.isHttpAuthRequired());
         dto.setSocksAuthRequired(settings.isSocksAuthRequired());
         dto.setSocksUdpEnabled(settings.isSocksUdpEnabled());
+        dto.setAdminServerPort(settings.getAdminServerPort());
         dto.setHttpRunning(proxyServerManager.isHttpRunning());
         dto.setHttpsRunning(proxyServerManager.isHttpsRunning());
         dto.setSocksRunning(proxyServerManager.isSocksRunning());
@@ -428,6 +429,7 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
         settings.setHttpAuthRequired(form.isHttpAuthRequired());
         settings.setSocksAuthRequired(form.isSocksAuthRequired());
         settings.setSocksUdpEnabled(form.isSocksUdpEnabled());
+        settings.setAdminServerPort(form.getAdminServerPort());
     }
 
     private static void applyEncryption(AppSettings settings, EncryptionDto form) {
@@ -555,6 +557,7 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
         copy.setHttpAuthRequired(source.isHttpAuthRequired());
         copy.setSocksAuthRequired(source.isSocksAuthRequired());
         copy.setSocksUdpEnabled(source.isSocksUdpEnabled());
+        copy.setAdminServerPort(source.getAdminServerPort());
         copy.setBytesUpTotal(source.getBytesUpTotal());
         copy.setBytesDownTotal(source.getBytesDownTotal());
         return copy;

@@ -44,6 +44,7 @@ public class ConfigEntry {
     public static final String HTTP_AUTH_REQUIRED = "http_auth_required";
     public static final String SOCKS_AUTH_REQUIRED = "socks_auth_required";
     public static final String SOCKS_UDP_ENABLED = "socks_udp_enabled";
+    public static final String ADMIN_SERVER_PORT = "admin_server_port";
     public static final String BYTES_UP_TOTAL = "bytes_up_total";
     public static final String BYTES_DOWN_TOTAL = "bytes_down_total";
 
