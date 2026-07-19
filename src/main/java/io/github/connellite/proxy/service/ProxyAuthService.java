@@ -10,6 +10,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
@@ -19,7 +21,7 @@ public class ProxyAuthService {
     private final ProxyUserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final SettingsService settingsService;
-    private final ConcurrentHashMap<Long, AtomicInteger> activeConnections = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<Long, UserConnectionState> connectionStates = new ConcurrentHashMap<>();
 
     public boolean isAuthRequired() {
         return settingsService.get().isAuthRequired();
@@ -41,67 +43,110 @@ public class ProxyAuthService {
         if (!passwordEncoder.matches(password, user.getPasswordHash())) {
             return Optional.empty();
         }
-        if (user.getMaxConnections() > 0) {
-            int current = activeConnections.getOrDefault(user.getId(), new AtomicInteger()).get();
-            if (current >= user.getMaxConnections()) {
-                return Optional.empty();
-            }
-        }
         return Optional.of(new AuthenticatedSession(user));
     }
 
-    public boolean tryAcquireConnection(AuthenticatedSession session) {
+    public Optional<ConnectionPermit> acquireConnection(AuthenticatedSession session) {
         if (session == null) {
-            return true;
+            return Optional.of(ConnectionPermit.NOOP);
         }
         ProxyUser user = userRepository.findById(session.getUserId()).orElse(null);
         if (user == null || !user.isUsable()) {
-            return false;
+            return Optional.empty();
         }
-        if (user.getMaxConnections() <= 0) {
-            activeConnections.computeIfAbsent(session.getUserId(), id -> new AtomicInteger()).incrementAndGet();
-            return true;
-        }
-        AtomicInteger counter = activeConnections.computeIfAbsent(session.getUserId(), id -> new AtomicInteger());
-        while (true) {
-            int current = counter.get();
-            if (current >= user.getMaxConnections()) {
-                return false;
-            }
-            if (counter.compareAndSet(current, current + 1)) {
-                return true;
-            }
-        }
+        UserConnectionState state = connectionStates.computeIfAbsent(session.getUserId(), id -> new UserConnectionState());
+        return state.tryAcquire(user.getMaxConnections());
     }
 
-    public void releaseConnection(AuthenticatedSession session) {
-        if (session == null) {
-            return;
-        }
-        AtomicInteger counter = activeConnections.get(session.getUserId());
-        if (counter == null) {
-            return;
-        }
-        int left = counter.decrementAndGet();
-        if (left <= 0) {
-            activeConnections.remove(session.getUserId(), counter);
+    public void releaseConnection(ConnectionPermit permit) {
+        if (permit != null) {
+            permit.release();
         }
     }
 
     public int activeConnectionsFor(Long userId) {
-        AtomicInteger counter = activeConnections.get(userId);
-        return counter == null ? 0 : Math.max(0, counter.get());
+        UserConnectionState state = connectionStates.get(userId);
+        return state == null ? 0 : state.activeConnections();
     }
 
     public int totalActiveConnections() {
-        return activeConnections.values().stream().mapToInt(AtomicInteger::get).sum();
+        return connectionStates.values().stream().mapToInt(UserConnectionState::activeConnections).sum();
     }
 
     public void clearActiveConnections() {
-        activeConnections.clear();
+        connectionStates.clear();
     }
 
     public AppSettings currentSettings() {
         return settingsService.get();
+    }
+
+    public static final class ConnectionPermit {
+
+        private static final ConnectionPermit NOOP = new ConnectionPermit(null, false);
+
+        private final UserConnectionState state;
+        private final boolean limited;
+        private final AtomicBoolean released = new AtomicBoolean();
+
+        private ConnectionPermit(UserConnectionState state, boolean limited) {
+            this.state = state;
+            this.limited = limited;
+        }
+
+        private void release() {
+            if (state != null && released.compareAndSet(false, true)) {
+                state.release(limited);
+            }
+        }
+    }
+
+    private static final class UserConnectionState {
+
+        private final AtomicInteger activeConnections = new AtomicInteger();
+        private Semaphore permits;
+        private int maxConnections;
+
+        synchronized Optional<ConnectionPermit> tryAcquire(int latestMaxConnections) {
+            if (latestMaxConnections <= 0) {
+                activeConnections.incrementAndGet();
+                return Optional.of(new ConnectionPermit(this, false));
+            }
+
+            refreshPermits(latestMaxConnections);
+            if (!permits.tryAcquire()) {
+                return Optional.empty();
+            }
+            activeConnections.incrementAndGet();
+            return Optional.of(new ConnectionPermit(this, true));
+        }
+
+        private void refreshPermits(int latestMaxConnections) {
+            int active = activeConnections();
+            if (active == 0 && (permits == null
+                    || maxConnections != latestMaxConnections
+                    || permits.availablePermits() != latestMaxConnections)) {
+                permits = new Semaphore(latestMaxConnections);
+                maxConnections = latestMaxConnections;
+            } else if (permits == null) {
+                permits = new Semaphore(Math.max(0, latestMaxConnections - active));
+                maxConnections = latestMaxConnections;
+            }
+        }
+
+        void release(boolean limited) {
+            activeConnections.updateAndGet(value -> Math.max(0, value - 1));
+            if (limited) {
+                synchronized (this) {
+                    if (permits != null) {
+                        permits.release();
+                    }
+                }
+            }
+        }
+
+        int activeConnections() {
+            return Math.max(0, activeConnections.get());
+        }
     }
 }

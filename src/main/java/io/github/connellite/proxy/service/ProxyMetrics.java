@@ -16,6 +16,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class ProxyMetrics {
 
     private static final AttributeKey<AtomicBoolean> TRACKED = AttributeKey.valueOf("proxyMetricsTracked");
+    private static final AttributeKey<ProxyAuthService.ConnectionPermit> CONNECTION_PERMIT =
+            AttributeKey.valueOf("proxyConnectionPermit");
 
     private final ProxyAuthService authService;
     private final TrafficStatsService trafficStatsService;
@@ -27,8 +29,14 @@ public class ProxyMetrics {
         if (flag != null) {
             return true;
         }
-        if (session != null && !authService.tryAcquireConnection(session)) {
-            return false;
+        ProxyAuthService.ConnectionPermit permit = null;
+        if (session != null) {
+            var acquired = authService.acquireConnection(session);
+            if (acquired.isEmpty()) {
+                return false;
+            }
+            permit = acquired.get();
+            channel.attr(CONNECTION_PERMIT).set(permit);
         }
         AtomicBoolean tracked = new AtomicBoolean(true);
         channel.attr(TRACKED).set(tracked);
@@ -36,7 +44,7 @@ public class ProxyMetrics {
         channel.closeFuture().addListener(future -> {
             if (tracked.compareAndSet(true, false)) {
                 activeConnections.updateAndGet(v -> Math.max(0, v - 1));
-                authService.releaseConnection(session);
+                authService.releaseConnection(channel.attr(CONNECTION_PERMIT).getAndSet(null));
             }
         });
         return true;
