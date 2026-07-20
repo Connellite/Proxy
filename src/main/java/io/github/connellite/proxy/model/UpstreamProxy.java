@@ -26,6 +26,7 @@ import javax.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.commons.lang3.StringUtils;
+import org.hibernate.annotations.ColumnDefault;
 
 import java.time.Instant;
 
@@ -44,6 +45,7 @@ public class UpstreamProxy {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 16)
+    @ColumnDefault("'HTTP'")
     private UpstreamProxyType type = UpstreamProxyType.HTTP;
 
     @Column(nullable = false, length = 255)
@@ -59,12 +61,15 @@ public class UpstreamProxy {
     private String password;
 
     @Column(nullable = false)
+    @ColumnDefault("false")
     private boolean selected = false;
 
     @Column(name = "created_at", nullable = false)
+    @ColumnDefault("CURRENT_TIMESTAMP")
     private Instant createdAt;
 
     @Column(name = "updated_at", nullable = false)
+    @ColumnDefault("CURRENT_TIMESTAMP")
     private Instant updatedAt;
 
     @PrePersist

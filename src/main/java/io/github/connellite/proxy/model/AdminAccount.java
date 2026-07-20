@@ -17,6 +17,7 @@ import javax.persistence.Table;
 #endif
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.ColumnDefault;
 
 import java.time.Instant;
 
@@ -33,9 +34,11 @@ public class AdminAccount {
     private String passwordHash;
 
     @Column(name = "created_at", nullable = false)
+    @ColumnDefault("CURRENT_TIMESTAMP")
     private Instant createdAt;
 
     @Column(name = "updated_at", nullable = false)
+    @ColumnDefault("CURRENT_TIMESTAMP")
     private Instant updatedAt;
 
     @PrePersist

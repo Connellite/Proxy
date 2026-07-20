@@ -23,6 +23,7 @@ import javax.persistence.UniqueConstraint;
 #endif
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.ColumnDefault;
 
 import java.time.Instant;
 
@@ -43,10 +44,12 @@ public class ProxyUser {
     private String passwordHash;
 
     @Column(nullable = false)
+    @ColumnDefault("true")
     private boolean enabled = true;
 
     /** 0 = unlimited */
     @Column(name = "max_connections", nullable = false)
+    @ColumnDefault("0")
     private int maxConnections = 0;
 
     /**
@@ -54,6 +57,7 @@ public class ProxyUser {
      * Values {@code < 0} mean unlimited (stored as {@code -1}).
      */
     @Column(name = "traffic_limit_bytes", nullable = false)
+    @ColumnDefault("-1")
     private long trafficLimitBytes = -1;
 
     /**
@@ -61,6 +65,7 @@ public class ProxyUser {
      * Values {@code < 0} mean unlimited (stored as {@code -1}).
      */
     @Column(name = "speed_limit_up_bps", nullable = false)
+    @ColumnDefault("-1")
     private long speedLimitUpBps = -1;
 
     /**
@@ -68,21 +73,26 @@ public class ProxyUser {
      * Values {@code < 0} mean unlimited (stored as {@code -1}).
      */
     @Column(name = "speed_limit_down_bps", nullable = false)
+    @ColumnDefault("-1")
     private long speedLimitDownBps = -1;
 
     @Column(name = "expires_at")
     private Instant expiresAt;
 
     @Column(name = "bytes_up", nullable = false)
+    @ColumnDefault("0")
     private long bytesUp = 0;
 
     @Column(name = "bytes_down", nullable = false)
+    @ColumnDefault("0")
     private long bytesDown = 0;
 
     @Column(name = "created_at", nullable = false)
+    @ColumnDefault("CURRENT_TIMESTAMP")
     private Instant createdAt;
 
     @Column(name = "updated_at", nullable = false)
+    @ColumnDefault("CURRENT_TIMESTAMP")
     private Instant updatedAt;
 
     @Column(name = "last_used_at")
