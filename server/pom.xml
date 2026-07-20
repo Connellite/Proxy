@@ -105,6 +105,7 @@
             </resource>
         </resources>
         <plugins>
+            <!-- Boot JAR serves GWT from classpath static/ (not a WAR overlay like a classic WAR+client dependency). -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>

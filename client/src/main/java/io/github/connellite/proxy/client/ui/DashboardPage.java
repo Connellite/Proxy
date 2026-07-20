@@ -37,14 +37,6 @@ public class DashboardPage extends Composite {
         errorLabel.setStyleName("flash err");
         errorLabel.setVisible(false);
 
-        FlowPanel activeHelp = new FlowPanel();
-        activeHelp.setStyleName("panel");
-        activeHelp.add(new HTML("<h2>Active connections</h2>"
-                + "<p class=\"muted\">Count of <strong>open inbound TCP sockets</strong> from clients "
-                + "(browser/ZeroOmega) that were accepted after auth (or with auth off). "
-                + "One keep-alive / CONNECT tunnel = 1. Drops to 0 when the client closes or idle timeout hits. "
-                + "See <code>docs/PROTOCOLS.md</code>.</p>"));
-
         FlowPanel zeroPanel = new FlowPanel();
         zeroPanel.setStyleName("panel");
         zeroPanel.add(new HTML("<h2>ZeroOmega</h2>"));
@@ -53,7 +45,6 @@ public class DashboardPage extends Composite {
         root.add(header);
         root.add(stats);
         root.add(errorLabel);
-        root.add(activeHelp);
         root.add(zeroPanel);
         initWidget(root);
         load();

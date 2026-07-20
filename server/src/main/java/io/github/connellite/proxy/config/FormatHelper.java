@@ -12,8 +12,7 @@ public class FormatHelper {
 
     private static final String BYTES_PATTERN = "0.0";
 
-    private static final DateTimeFormatter DATE_TIME_PATTERN =
-            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+    private static final DateTimeFormatter DATE_TIME_PATTERN = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
     private final DateTimeFormatter dateTime;
 
@@ -29,7 +28,9 @@ public class FormatHelper {
         return StorageUnits.decimalValueOf(bytes).asBestMatchingDecimalUnit().toString(BYTES_PATTERN);
     }
 
-    /** Throughput, e.g. {@code 1.2 MB/s}. */
+    /**
+     * Throughput, e.g. {@code 1.2 MB/s}.
+     */
     public String rate(long bytesPerSec) {
         if (bytesPerSec <= 0) {
             return "0.0 B/s";

@@ -12,9 +12,11 @@ import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.SimplePanel;
 import io.github.connellite.proxy.client.rpc.AdminServiceAsync;
 import io.github.connellite.proxy.client.util.AutoRefresh;
+import lombok.Getter;
 
 public class AppShell extends Composite {
 
+    @Getter
     private final AdminServiceAsync rpc;
     private final SimplePanel content = new SimplePanel();
     private final Label flash = new Label();
@@ -110,10 +112,6 @@ public class AppShell extends Composite {
         root.add(container);
         initWidget(root);
         setWidth("100%");
-    }
-
-    public AdminServiceAsync getRpc() {
-        return rpc;
     }
 
     public void showFlash(String message, boolean ok) {

@@ -2,7 +2,6 @@
 
 HTTP / HTTPS / SOCKS4 / SOCKS5 proxy with SQLite accounts and admin web UI.
 
-Package: `io.github.connellite.proxy`.
 
 ## Modules
 
@@ -39,7 +38,6 @@ java -jar server/target/proxy-1.0.0.jar
 
 ## Protocols / ZeroOmega
 
-Full detail: [docs/PROTOCOLS.md](docs/PROTOCOLS.md)
 
 | Profile | Protocol | Port | Notes |
 |---------|----------|------|--------|
