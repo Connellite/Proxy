@@ -2,6 +2,7 @@ package io.github.connellite.proxy.service;
 
 import io.github.connellite.proxy.dto.UserThroughput;
 import io.github.connellite.proxy.model.ConfigEntry;
+import io.github.connellite.proxy.model.ProxyUser;
 import io.github.connellite.proxy.repository.ConfigRepository;
 import io.github.connellite.proxy.repository.ProxyUserRepository;
 import com.google.common.primitives.Longs;
@@ -41,6 +42,8 @@ public class TrafficStatsService {
     private final TrafficDelta pendingGlobal = new TrafficDelta();
     /** Bytes observed since this JVM process started (not reset on flush). */
     private final TrafficDelta sessionTotal = new TrafficDelta();
+    /** Live total bytes (DB baseline + recorded) for quota checks without waiting for flush. */
+    private final ConcurrentHashMap<Long, AtomicLong> liveTotals = new ConcurrentHashMap<>();
     /** Micrometer-backed live throughput meters per user. */
     private final ConcurrentHashMap<Long, ThroughputMeters> throughputMeters = new ConcurrentHashMap<>();
 
@@ -54,9 +57,57 @@ public class TrafficStatsService {
         sessionTotal.add(bytesUp, bytesDown);
         pendingGlobal.add(bytesUp, bytesDown);
         if (userId != null) {
+            long delta = Math.max(0L, bytesUp) + Math.max(0L, bytesDown);
+            ensureLiveTotal(userId).addAndGet(delta);
             pendingUsers.computeIfAbsent(userId, id -> new TrafficDelta()).add(bytesUp, bytesDown);
             throughputMeters.computeIfAbsent(userId, id -> new ThroughputMeters(meterRegistry, id)).record(bytesUp, bytesDown);
         }
+    }
+
+    /** Seed / refresh the live counter from the persisted user row. */
+    public void warmLiveTotal(ProxyUser user) {
+        if (user == null || user.getId() == null) {
+            return;
+        }
+        long base = user.getBytesUp() + user.getBytesDown();
+        liveTotals.compute(user.getId(), (id, existing) -> {
+            if (existing == null) {
+                return new AtomicLong(base);
+            }
+            // Never move the live counter backwards relative to DB while traffic is pending.
+            existing.accumulateAndGet(base, Math::max);
+            return existing;
+        });
+    }
+
+    public boolean isOverTrafficLimit(Long userId, long trafficLimitBytes) {
+        if (userId == null || trafficLimitBytes < 0) {
+            return false;
+        }
+        return ensureLiveTotal(userId).get() >= trafficLimitBytes;
+    }
+
+    public long liveTotalBytes(Long userId) {
+        if (userId == null) {
+            return 0L;
+        }
+        AtomicLong live = liveTotals.get(userId);
+        return live == null ? 0L : Math.max(0L, live.get());
+    }
+
+    public void clearLiveTotal(Long userId) {
+        if (userId != null) {
+            liveTotals.remove(userId);
+        }
+    }
+
+    private AtomicLong ensureLiveTotal(Long userId) {
+        return liveTotals.computeIfAbsent(userId, id -> {
+            long base = userRepository.findById(id)
+                    .map(user -> user.getBytesUp() + user.getBytesDown())
+                    .orElse(0L);
+            return new AtomicLong(base);
+        });
     }
 
     public UserThroughput throughputFor(Long userId) {

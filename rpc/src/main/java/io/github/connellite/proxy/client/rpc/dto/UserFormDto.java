@@ -17,5 +17,8 @@ public class UserFormDto implements IsSerializable {
     private String expiresAt;
     private boolean enabled;
     private int maxConnections;
+    private long trafficLimitBytes = -1;
+    private long speedLimitUpBps = -1;
+    private long speedLimitDownBps = -1;
     private boolean creating;
 }

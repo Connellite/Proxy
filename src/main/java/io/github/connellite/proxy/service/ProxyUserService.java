@@ -22,6 +22,7 @@ public class ProxyUserService {
     private final ProxyUserRepository repository;
     private final PasswordEncoder passwordEncoder;
     private final ProxyAuthService authService;
+    private final TrafficStatsService trafficStatsService;
     private final ZoneId appZoneId;
 
     @Transactional(readOnly = true)
@@ -78,6 +79,7 @@ public class ProxyUserService {
         user.setBytesUp(0);
         user.setBytesDown(0);
         repository.save(user);
+        trafficStatsService.clearLiveTotal(id);
     }
 
     public int activeConnections(Long userId) {
@@ -88,10 +90,18 @@ public class ProxyUserService {
         user.setUsername(form.getUsername().trim());
         user.setEnabled(form.isEnabled());
         user.setMaxConnections(Math.max(0, form.getMaxConnections()));
+        user.setTrafficLimitBytes(normalizeLimit(form.getTrafficLimitBytes()));
+        user.setSpeedLimitUpBps(normalizeLimit(form.getSpeedLimitUpBps()));
+        user.setSpeedLimitDownBps(normalizeLimit(form.getSpeedLimitDownBps()));
         user.setExpiresAt(parseExpireDate(form.getExpiresAt()));
         if (creating || StringUtils.isNotBlank(form.getPassword())) {
             user.setPasswordHash(passwordEncoder.encode(form.getPassword()));
         }
+    }
+
+    /** Collapse any negative to -1 (unlimited). */
+    private static long normalizeLimit(long value) {
+        return value < 0 ? -1L : value;
     }
 
     private Instant parseExpireDate(String value) {

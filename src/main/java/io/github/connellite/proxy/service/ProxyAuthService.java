@@ -23,6 +23,7 @@ public class ProxyAuthService {
     private final ProxyUserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final SettingsService settingsService;
+    private final TrafficStatsService trafficStatsService;
     private final ConcurrentHashMap<Long, UserConnectionState> connectionStates = new ConcurrentHashMap<>();
 
     public boolean isHttpAuthRequired() {
@@ -47,7 +48,8 @@ public class ProxyAuthService {
             return Optional.empty();
         }
         ProxyUser user = found.get();
-        if (!user.isUsable()) {
+        trafficStatsService.warmLiveTotal(user);
+        if (!user.isUsable() || trafficStatsService.isOverTrafficLimit(user.getId(), user.getTrafficLimitBytes())) {
             return Optional.empty();
         }
         if (!passwordEncoder.matches(password, user.getPasswordHash())) {
@@ -61,7 +63,11 @@ public class ProxyAuthService {
             return Optional.of(ConnectionPermit.NOOP);
         }
         ProxyUser user = userRepository.findById(session.userId()).orElse(null);
-        if (user == null || !user.isUsable()) {
+        if (user == null) {
+            return Optional.empty();
+        }
+        trafficStatsService.warmLiveTotal(user);
+        if (!user.isUsable() || trafficStatsService.isOverTrafficLimit(user.getId(), user.getTrafficLimitBytes())) {
             return Optional.empty();
         }
         UserConnectionState state = connectionStates.computeIfAbsent(session.userId(), id -> new UserConnectionState());

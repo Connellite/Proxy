@@ -16,6 +16,9 @@ public class UserRowDto implements IsSerializable {
     private boolean usable;
     private boolean expired;
     private int maxConnections;
+    private long trafficLimitBytes = -1;
+    private long speedLimitUpBps = -1;
+    private long speedLimitDownBps = -1;
     private String expiresAt;
     private long bytesUp;
     private long bytesDown;
@@ -23,4 +26,5 @@ public class UserRowDto implements IsSerializable {
     private long upBps;
     private long downBps;
     private String lastUsedAt;
+    private boolean trafficLimitExceeded;
 }

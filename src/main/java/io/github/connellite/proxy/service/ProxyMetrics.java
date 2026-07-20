@@ -79,4 +79,11 @@ public class ProxyMetrics {
     public void recordTraffic(Long userId, long up, long down) {
         trafficStatsService.record(userId, up, down);
     }
+
+    public boolean allowMoreTraffic(AuthenticatedSession session) {
+        if (session == null) {
+            return true;
+        }
+        return !trafficStatsService.isOverTrafficLimit(session.userId(), session.trafficLimitBytes());
+    }
 }

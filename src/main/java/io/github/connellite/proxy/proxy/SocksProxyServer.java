@@ -174,6 +174,7 @@ public final class SocksProxyServer implements AutoCloseable {
                 return;
             }
             ctx.channel().attr(SESSION_KEY).set(session.get());
+            UserTrafficShaping.install(ctx.channel(), session.get());
             if (ctx.pipeline().get(Socks5PasswordAuthRequestDecoder.class) != null) {
                 ctx.pipeline().remove(Socks5PasswordAuthRequestDecoder.class);
             }
@@ -264,11 +265,14 @@ public final class SocksProxyServer implements AutoCloseable {
                            AuthenticatedSession session, boolean socks4) {
             Channel inbound = ctx.channel();
             Long userId = session == null ? null : session.userId();
+            AuthenticatedSession activeSession = session;
+            UserTrafficShaping.install(inbound, session);
             outboundConnector.openTunnel(inbound, host, port, new OutboundConnector.TunnelCallback() {
                 @Override
                 public void onSuccess(Channel outbound) {
                     outbound.pipeline().addLast(new RelayHandler(inbound,
-                            bytes -> metrics.recordTraffic(userId, 0, bytes)));
+                            bytes -> metrics.recordTraffic(userId, 0, bytes),
+                            () -> metrics.allowMoreTraffic(activeSession)));
                     Object success = socks4
                             ? new DefaultSocks4CommandResponse(Socks4CommandStatus.SUCCESS)
                             : new DefaultSocks5CommandResponse(
@@ -281,7 +285,8 @@ public final class SocksProxyServer implements AutoCloseable {
                         }
                         stripSocksHandlers(inbound.pipeline());
                         inbound.pipeline().addLast(new RelayHandler(outbound,
-                                bytes -> metrics.recordTraffic(userId, bytes, 0)));
+                                bytes -> metrics.recordTraffic(userId, bytes, 0),
+                                () -> metrics.allowMoreTraffic(activeSession)));
                         inbound.config().setAutoRead(true);
                         outbound.config().setAutoRead(true);
                     });

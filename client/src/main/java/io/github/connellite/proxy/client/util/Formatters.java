@@ -31,6 +31,16 @@ public final class Formatters {
         return formatBytes(bps) + "/s";
     }
 
+    /** Values {@code < 0} render as the infinity symbol. */
+    public static String formatLimit(long value) {
+        return value < 0 ? "∞" : formatBytes(value);
+    }
+
+    /** Values {@code < 0} render as the infinity symbol. */
+    public static String formatRateLimit(long bps) {
+        return bps < 0 ? "∞" : formatRate(bps);
+    }
+
     public static String dash(String value) {
         return value == null || value.isEmpty() ? "—" : value;
     }

@@ -60,7 +60,10 @@ class ProxyAuthServiceTest {
     private static ProxyAuthService authServiceFor(ProxyUser user) {
         ProxyUserRepository repository = mock(ProxyUserRepository.class);
         when(repository.findById(user.getId())).thenAnswer(invocation -> Optional.of(user));
-        return new ProxyAuthService(repository, null, null);
+        TrafficStatsService trafficStats = mock(TrafficStatsService.class);
+        when(trafficStats.isOverTrafficLimit(org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.anyLong())).thenReturn(false);
+        return new ProxyAuthService(repository, null, null, trafficStats);
     }
 
     private static ProxyUser userWithMaxConnections(Long id, int maxConnections) {

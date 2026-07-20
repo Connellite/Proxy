@@ -62,6 +62,7 @@ final class HttpProxyClientHandler extends SimpleChannelInboundHandler<FullHttpR
                     return;
                 }
                 ctx.channel().attr(SESSION_KEY).set(session);
+                UserTrafficShaping.install(ctx.channel(), session);
             } else {
                 session = authenticated.orElse(null);
                 if (!metrics.track(ctx.channel(), session)) {
@@ -70,6 +71,7 @@ final class HttpProxyClientHandler extends SimpleChannelInboundHandler<FullHttpR
                 }
                 if (session != null) {
                     ctx.channel().attr(SESSION_KEY).set(session);
+                    UserTrafficShaping.install(ctx.channel(), session);
                 }
             }
         }
@@ -111,11 +113,14 @@ final class HttpProxyClientHandler extends SimpleChannelInboundHandler<FullHttpR
 
         Channel inbound = ctx.channel();
         Long userId = session == null ? null : session.userId();
+        AuthenticatedSession activeSession = session;
 
         outboundConnector.openTunnel(inbound, host, port, new OutboundConnector.TunnelCallback() {
             @Override
             public void onSuccess(Channel outbound) {
-                outbound.pipeline().addLast(new RelayHandler(inbound, bytes -> metrics.recordTraffic(userId, 0, bytes)));
+                outbound.pipeline().addLast(new RelayHandler(inbound,
+                        bytes -> metrics.recordTraffic(userId, 0, bytes),
+                        () -> metrics.allowMoreTraffic(activeSession)));
                 DefaultFullHttpResponse response = new DefaultFullHttpResponse(
                         HttpVersion.HTTP_1_1,
                         new HttpResponseStatus(200, "Connection Established"),
@@ -133,7 +138,9 @@ final class HttpProxyClientHandler extends SimpleChannelInboundHandler<FullHttpR
                     if (inbound.pipeline().get(io.netty.handler.codec.http.HttpServerCodec.class) != null) {
                         inbound.pipeline().remove(io.netty.handler.codec.http.HttpServerCodec.class);
                     }
-                    inbound.pipeline().addLast(new RelayHandler(outbound, bytes -> metrics.recordTraffic(userId, bytes, 0)));
+                    inbound.pipeline().addLast(new RelayHandler(outbound,
+                            bytes -> metrics.recordTraffic(userId, bytes, 0),
+                            () -> metrics.allowMoreTraffic(activeSession)));
                     inbound.config().setAutoRead(true);
                     outbound.config().setAutoRead(true);
                 });
@@ -184,6 +191,7 @@ final class HttpProxyClientHandler extends SimpleChannelInboundHandler<FullHttpR
 
         Channel inbound = ctx.channel();
         Long userId = session == null ? null : session.userId();
+        AuthenticatedSession activeSession = session;
 
         outboundConnector.openTunnel(inbound, host, port, new OutboundConnector.TunnelCallback() {
             @Override
@@ -197,6 +205,12 @@ final class HttpProxyClientHandler extends SimpleChannelInboundHandler<FullHttpR
                             metrics.recordTraffic(userId, 0, buf.readableBytes());
                         } else if (msg instanceof io.netty.handler.codec.http.HttpContent content) {
                             metrics.recordTraffic(userId, 0, content.content().readableBytes());
+                        }
+                        if (!metrics.allowMoreTraffic(activeSession)) {
+                            ReferenceCountUtil.release(msg);
+                            c.close();
+                            RelayHandler.closeOnFlush(inbound);
+                            return;
                         }
                         if (inbound.isActive()) {
                             inbound.writeAndFlush(msg).addListener((ChannelFutureListener) f -> {
@@ -223,6 +237,12 @@ final class HttpProxyClientHandler extends SimpleChannelInboundHandler<FullHttpR
                     }
                 });
                 metrics.recordTraffic(userId, outboundRequest.content().readableBytes(), 0);
+                if (!metrics.allowMoreTraffic(activeSession)) {
+                    outboundRequest.release();
+                    outbound.close();
+                    RelayHandler.closeOnFlush(inbound);
+                    return;
+                }
                 outbound.writeAndFlush(outboundRequest).addListener((ChannelFutureListener) written -> {
                     if (!written.isSuccess()) {
                         outbound.close();

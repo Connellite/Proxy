@@ -7,15 +7,25 @@ import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.util.ReferenceCountUtil;
-import lombok.RequiredArgsConstructor;
 
+import java.util.function.BooleanSupplier;
 import java.util.function.LongConsumer;
 
-@RequiredArgsConstructor
 class RelayHandler extends ChannelInboundHandlerAdapter {
 
     private final Channel relayChannel;
     private final LongConsumer onBytes;
+    private final BooleanSupplier stillAllowed;
+
+    RelayHandler(Channel relayChannel, LongConsumer onBytes) {
+        this(relayChannel, onBytes, null);
+    }
+
+    RelayHandler(Channel relayChannel, LongConsumer onBytes, BooleanSupplier stillAllowed) {
+        this.relayChannel = relayChannel;
+        this.onBytes = onBytes;
+        this.stillAllowed = stillAllowed;
+    }
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) {
@@ -30,6 +40,12 @@ class RelayHandler extends ChannelInboundHandlerAdapter {
                 if (readable > 0) {
                     onBytes.accept(readable);
                 }
+            }
+            if (stillAllowed != null && !stillAllowed.getAsBoolean()) {
+                ReferenceCountUtil.release(msg);
+                closeOnFlush(relayChannel);
+                closeOnFlush(ctx.channel());
+                return;
             }
             relayChannel.writeAndFlush(msg).addListener((ChannelFutureListener) future -> {
                 if (future.isSuccess()) {

@@ -21,6 +21,7 @@ final class Socks5UdpRelayHandler extends SimpleChannelInboundHandler<DatagramPa
 
     private final Channel tcpControl;
     private final ProxyMetrics metrics;
+    private final AuthenticatedSession session;
     private final Long userId;
 
     private volatile InetSocketAddress clientEndpoint;
@@ -28,6 +29,7 @@ final class Socks5UdpRelayHandler extends SimpleChannelInboundHandler<DatagramPa
     Socks5UdpRelayHandler(Channel tcpControl, AuthenticatedSession session, ProxyMetrics metrics) {
         this.tcpControl = Objects.requireNonNull(tcpControl, "tcpControl");
         this.metrics = Objects.requireNonNull(metrics, "metrics");
+        this.session = session;
         this.userId = session == null ? null : session.userId();
     }
 
@@ -59,6 +61,11 @@ final class Socks5UdpRelayHandler extends SimpleChannelInboundHandler<DatagramPa
             if (payloadBytes > 0) {
                 metrics.recordTraffic(userId, payloadBytes, 0);
             }
+            if (!metrics.allowMoreTraffic(session)) {
+                ctx.close();
+                RelayHandler.closeOnFlush(tcpControl);
+                return;
+            }
             ctx.writeAndFlush(new DatagramPacket(decoded.data().retain(), decoded.destination()));
         } catch (Exception ex) {
             log.debug("Dropping invalid SOCKS5 UDP datagram from {}: {}", sender, ex.toString());
@@ -77,6 +84,11 @@ final class Socks5UdpRelayHandler extends SimpleChannelInboundHandler<DatagramPa
             int payloadBytes = payload.readableBytes();
             if (payloadBytes > 0) {
                 metrics.recordTraffic(userId, 0, payloadBytes);
+            }
+            if (!metrics.allowMoreTraffic(session)) {
+                ctx.close();
+                RelayHandler.closeOnFlush(tcpControl);
+                return;
             }
             framed = Socks5UdpMessages.encode(payload, sender, payload);
             ctx.writeAndFlush(new DatagramPacket(framed.retain(), client));

@@ -14,6 +14,7 @@ import io.github.connellite.proxy.client.rpc.dto.UserFormDto;
 import io.github.connellite.proxy.client.util.DateInput;
 import io.github.connellite.proxy.client.util.Forms;
 import io.github.connellite.proxy.client.util.PlainIntegerBox;
+import io.github.connellite.proxy.client.util.PlainLongBox;
 import io.github.connellite.proxy.client.util.Rpc;
 
 public class UserFormPage extends Composite {
@@ -27,6 +28,9 @@ public class UserFormPage extends Composite {
     private final PasswordTextBox password = new PasswordTextBox();
     private final CheckBox enabled = Forms.checkbox("Enabled");
     private final PlainIntegerBox maxConnections = new PlainIntegerBox();
+    private final PlainLongBox trafficLimitBytes = new PlainLongBox();
+    private final PlainLongBox speedLimitUpBps = new PlainLongBox();
+    private final PlainLongBox speedLimitDownBps = new PlainLongBox();
     private final DateInput expiresAt = new DateInput();
 
     public UserFormPage(AppShell shell, Long id) {
@@ -37,6 +41,9 @@ public class UserFormPage extends Composite {
         password.getElement().setAttribute("maxlength", "128");
         maxConnections.setMin(0);
         maxConnections.setMax(10000);
+        trafficLimitBytes.setMin(-1);
+        speedLimitUpBps.setMin(-1);
+        speedLimitDownBps.setMin(-1);
 
         FlowPanel root = new FlowPanel();
         root.add(title);
@@ -47,6 +54,13 @@ public class UserFormPage extends Composite {
         panel.add(Forms.field(id == null ? "Password" : "Password (leave blank to keep)", password));
         panel.add(enabled);
         panel.add(Forms.field("Max connections (0 = unlimited)", maxConnections));
+        panel.add(Forms.field("Traffic limit, bytes (−1 = ∞)", trafficLimitBytes,
+                "Total ↑+↓. When reached, proxy access is denied until counters are reset."));
+        panel.add(Forms.twoCol(
+                Forms.field("Upload speed limit, B/s (−1 = ∞)", speedLimitUpBps,
+                        "Client → proxy."),
+                Forms.field("Download speed limit, B/s (−1 = ∞)", speedLimitDownBps,
+                        "Proxy → client.")));
         panel.add(Forms.field("Expires on (optional)", expiresAt));
 
         Button save = new Button(id == null ? "Create" : "Save");
@@ -88,6 +102,9 @@ public class UserFormPage extends Composite {
                 expiresAt.setDateValue(nullToEmpty(form.getExpiresAt()));
                 enabled.setValue(form.isEnabled());
                 maxConnections.setIntValue(form.getMaxConnections());
+                trafficLimitBytes.setLongValue(form.getTrafficLimitBytes());
+                speedLimitUpBps.setLongValue(form.getSpeedLimitUpBps());
+                speedLimitDownBps.setLongValue(form.getSpeedLimitDownBps());
                 username.setEnabled(creating);
             }
         });
@@ -104,6 +121,9 @@ public class UserFormPage extends Composite {
         form.setEnabled(enabled.getValue());
         Integer max = maxConnections.getIntValue();
         form.setMaxConnections(max == null ? 0 : max);
+        form.setTrafficLimitBytes(readLimit(trafficLimitBytes));
+        form.setSpeedLimitUpBps(readLimit(speedLimitUpBps));
+        form.setSpeedLimitDownBps(readLimit(speedLimitDownBps));
 
         AsyncCallback<Void> callback = new AsyncCallback<Void>() {
             @Override
@@ -123,6 +143,11 @@ public class UserFormPage extends Composite {
         } else {
             shell.getRpc().updateUser(form, callback);
         }
+    }
+
+    private static long readLimit(PlainLongBox box) {
+        Long value = box.getLongValue();
+        return value == null || value < 0 ? -1L : value;
     }
 
     private static String nullToEmpty(String value) {

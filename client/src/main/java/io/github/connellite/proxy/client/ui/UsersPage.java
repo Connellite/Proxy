@@ -135,17 +135,27 @@ public class UsersPage extends Composite {
                 boolean live = user.getUpBps() > 0 || user.getDownBps() > 0;
                 table.setHTML(row, 3,
                         "<div class=\"metric-line\">↑ <span class=\"num\">"
-                                + Formatters.formatRate(user.getUpBps()) + "</span></div>"
+                                + Formatters.formatRate(user.getUpBps())
+                                + "</span> <span class=\"muted-cell\">/ "
+                                + Formatters.formatRateLimit(user.getSpeedLimitUpBps())
+                                + "</span></div>"
                                 + "<div class=\"metric-line\">↓ <span class=\"num\">"
-                                + Formatters.formatRate(user.getDownBps()) + "</span></div>");
+                                + Formatters.formatRate(user.getDownBps())
+                                + "</span> <span class=\"muted-cell\">/ "
+                                + Formatters.formatRateLimit(user.getSpeedLimitDownBps())
+                                + "</span></div>");
                 table.getCellFormatter().setStyleName(row, 3, live ? "speed live" : "speed");
                 table.setText(row, 4, Formatters.never(user.getExpiresAt()));
                 table.getCellFormatter().addStyleName(row, 4, "num");
+                long used = user.getBytesUp() + user.getBytesDown();
                 table.setHTML(row, 5,
                         "<div class=\"metric-line traffic\">↑ <span class=\"num\">"
                                 + Formatters.formatBytes(user.getBytesUp()) + "</span></div>"
                                 + "<div class=\"metric-line\">↓ <span class=\"num\">"
-                                + Formatters.formatBytes(user.getBytesDown()) + "</span></div>");
+                                + Formatters.formatBytes(user.getBytesDown()) + "</span></div>"
+                                + "<div class=\"metric-line muted-cell\">Σ "
+                                + Formatters.formatBytes(used) + " / "
+                                + Formatters.formatLimit(user.getTrafficLimitBytes()) + "</div>");
                 table.setText(row, 6, Formatters.dash(user.getLastUsedAt()));
                 table.getCellFormatter().addStyleName(row, 6, "num");
                 table.setWidget(row, 7, actionsFor(user));
@@ -171,6 +181,9 @@ public class UsersPage extends Composite {
         }
         if (user.isExpired()) {
             return "<span class=\"badge warn\">expired</span>";
+        }
+        if (user.isTrafficLimitExceeded()) {
+            return "<span class=\"badge warn\">quota</span>";
         }
         return "<span class=\"badge muted\">inactive</span>";
     }

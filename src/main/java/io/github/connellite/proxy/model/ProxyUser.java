@@ -49,6 +49,27 @@ public class ProxyUser {
     @Column(name = "max_connections", nullable = false)
     private int maxConnections = 0;
 
+    /**
+     * Max total traffic ({@code bytesUp + bytesDown}) in bytes.
+     * Values {@code < 0} mean unlimited (stored as {@code -1}).
+     */
+    @Column(name = "traffic_limit_bytes", nullable = false)
+    private long trafficLimitBytes = -1;
+
+    /**
+     * Max upload speed in bytes/sec (client → proxy).
+     * Values {@code < 0} mean unlimited (stored as {@code -1}).
+     */
+    @Column(name = "speed_limit_up_bps", nullable = false)
+    private long speedLimitUpBps = -1;
+
+    /**
+     * Max download speed in bytes/sec (proxy → client).
+     * Values {@code < 0} mean unlimited (stored as {@code -1}).
+     */
+    @Column(name = "speed_limit_down_bps", nullable = false)
+    private long speedLimitDownBps = -1;
+
     @Column(name = "expires_at")
     private Instant expiresAt;
 
@@ -83,7 +104,11 @@ public class ProxyUser {
         return expiresAt != null && Instant.now().isAfter(expiresAt);
     }
 
+    public boolean isTrafficLimitExceeded() {
+        return trafficLimitBytes >= 0 && (bytesUp + bytesDown) >= trafficLimitBytes;
+    }
+
     public boolean isUsable() {
-        return enabled && !isExpired();
+        return enabled && !isExpired() && !isTrafficLimitExceeded();
     }
 }

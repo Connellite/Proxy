@@ -162,9 +162,14 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
             row.setId(user.getId());
             row.setUsername(user.getUsername());
             row.setEnabled(user.isEnabled());
-            row.setUsable(user.isUsable());
             row.setExpired(user.isExpired());
             row.setMaxConnections(user.getMaxConnections());
+            row.setTrafficLimitBytes(user.getTrafficLimitBytes());
+            row.setSpeedLimitUpBps(user.getSpeedLimitUpBps());
+            row.setSpeedLimitDownBps(user.getSpeedLimitDownBps());
+            boolean overQuota = trafficStatsService.isOverTrafficLimit(user.getId(), user.getTrafficLimitBytes());
+            row.setTrafficLimitExceeded(overQuota);
+            row.setUsable(user.isUsable() && !overQuota);
             row.setExpiresAt(formatInstant(user.getExpiresAt()));
             row.setBytesUp(user.getBytesUp());
             row.setBytesDown(user.getBytesDown());
@@ -183,6 +188,10 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
         if (id == null) {
             form.setCreating(true);
             form.setEnabled(true);
+            form.setMaxConnections(0);
+            form.setTrafficLimitBytes(-1);
+            form.setSpeedLimitUpBps(-1);
+            form.setSpeedLimitDownBps(-1);
             return form;
         }
         ProxyUser user = userService.getRequired(id);
@@ -191,6 +200,9 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
         form.setUsername(user.getUsername());
         form.setEnabled(user.isEnabled());
         form.setMaxConnections(user.getMaxConnections());
+        form.setTrafficLimitBytes(user.getTrafficLimitBytes());
+        form.setSpeedLimitUpBps(user.getSpeedLimitUpBps());
+        form.setSpeedLimitDownBps(user.getSpeedLimitDownBps());
         if (user.getExpiresAt() != null) {
             form.setExpiresAt(DATE_FMT.format(user.getExpiresAt().atZone(appZoneId).toLocalDate()));
         }
@@ -517,6 +529,9 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
         target.setPassword(form.getPassword());
         target.setEnabled(form.isEnabled());
         target.setMaxConnections(form.getMaxConnections());
+        target.setTrafficLimitBytes(form.getTrafficLimitBytes());
+        target.setSpeedLimitUpBps(form.getSpeedLimitUpBps());
+        target.setSpeedLimitDownBps(form.getSpeedLimitDownBps());
         target.setExpiresAt(form.getExpiresAt());
         return target;
     }
