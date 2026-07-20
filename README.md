@@ -4,15 +4,25 @@ HTTP / HTTPS / SOCKS4 / SOCKS5 proxy with SQLite accounts and admin web UI.
 
 Package: `io.github.connellite.proxy`.
 
+## Modules
+
+| Module | Artifact | Role |
+|--------|----------|------|
+| `rpc` | `proxy-rpc` | Shared GWT-RPC DTOs / API |
+| `client` | `proxy-client` | GWT admin UI |
+| `server` | `proxy` | Spring Boot proxy + admin |
+
+Build from the repository root (reactor). Profiles live on the parent POM.
+
 ## Build profiles
 
-Manifold `#if SPRING_BOOT_2/3`, default **spring-2**. Each JVM `package` produces **JAR** + **WAR**.
+Manifold `#if SPRING_BOOT_2/3`, default **spring-2**. Each JVM `package` produces **JAR** + **WAR** under `server/target/`.
 Native is an **additional** GraalVM build on Spring Boot 3 (does not replace the JVM artifacts).
 
 ```bash
-mvn -Pspring-2 clean package     # proxy-1.0.0.jar / .war
-mvn -Pspring-3 clean package     # proxy-1.0.0-spring-3.jar / .war
-mvn -Pnative native:compile      # proxy-1.0.0-native (needs GraalVM native-image)
+mvn -Pspring-2 clean package     # server/target/proxy-1.0.0.jar / .war
+mvn -Pspring-3 clean package     # server/target/proxy-1.0.0-spring-3.jar / .war
+mvn -Pnative native:compile      # server/target/proxy-1.0.0-native (needs GraalVM native-image)
 mvn -Pnative spring-boot:build-image   # native OCI image via buildpacks (needs Docker)
 ```
 
@@ -21,7 +31,7 @@ Native prerequisites: GraalVM / Liberica NIK with `native-image`. On Windows use
 ## Run (embedded)
 
 ```bash
-java -jar target/proxy-1.0.0.jar
+java -jar server/target/proxy-1.0.0.jar
 ```
 
 - Admin UI: http://localhost:8080/ (`admin` / `admin`)
