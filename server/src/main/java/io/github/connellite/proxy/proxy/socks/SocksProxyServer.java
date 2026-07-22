@@ -1,7 +1,11 @@
-package io.github.connellite.proxy.proxy;
+package io.github.connellite.proxy.proxy.socks;
 
 import io.github.connellite.proxy.config.ProxyProperties;
 import io.github.connellite.proxy.dto.AuthenticatedSession;
+import io.github.connellite.proxy.proxy.IdleCloseHandler;
+import io.github.connellite.proxy.proxy.OutboundConnector;
+import io.github.connellite.proxy.proxy.RelayHandler;
+import io.github.connellite.proxy.proxy.UserTrafficShaping;
 import io.github.connellite.proxy.service.ProxyAuthService;
 import io.github.connellite.proxy.service.ProxyMetrics;
 import io.netty.bootstrap.Bootstrap;
@@ -265,14 +269,13 @@ public final class SocksProxyServer implements AutoCloseable {
                            AuthenticatedSession session, boolean socks4) {
             Channel inbound = ctx.channel();
             Long userId = session == null ? null : session.userId();
-            AuthenticatedSession activeSession = session;
             UserTrafficShaping.install(inbound, session);
             outboundConnector.openTunnel(inbound, host, port, new OutboundConnector.TunnelCallback() {
                 @Override
                 public void onSuccess(Channel outbound) {
                     outbound.pipeline().addLast(new RelayHandler(inbound,
                             bytes -> metrics.recordTraffic(userId, 0, bytes),
-                            () -> metrics.allowMoreTraffic(activeSession)));
+                            () -> metrics.allowMoreTraffic(session)));
                     Object success = socks4
                             ? new DefaultSocks4CommandResponse(Socks4CommandStatus.SUCCESS)
                             : new DefaultSocks5CommandResponse(
@@ -286,7 +289,7 @@ public final class SocksProxyServer implements AutoCloseable {
                         stripSocksHandlers(inbound.pipeline());
                         inbound.pipeline().addLast(new RelayHandler(outbound,
                                 bytes -> metrics.recordTraffic(userId, bytes, 0),
-                                () -> metrics.allowMoreTraffic(activeSession)));
+                                () -> metrics.allowMoreTraffic(session)));
                         inbound.config().setAutoRead(true);
                         outbound.config().setAutoRead(true);
                     });

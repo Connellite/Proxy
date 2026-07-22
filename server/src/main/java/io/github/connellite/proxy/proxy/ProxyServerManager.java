@@ -2,6 +2,9 @@ package io.github.connellite.proxy.proxy;
 
 import io.github.connellite.proxy.config.ProxyProperties;
 import io.github.connellite.proxy.dto.AppSettings;
+import io.github.connellite.proxy.proxy.http.HttpProxyServerInstance;
+import io.github.connellite.proxy.proxy.http.ProxyTlsService;
+import io.github.connellite.proxy.proxy.socks.SocksProxyServer;
 import io.github.connellite.proxy.service.ProxyAuthService;
 import io.github.connellite.proxy.service.ProxyMetrics;
 import io.github.connellite.proxy.service.SettingsService;

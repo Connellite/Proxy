@@ -11,17 +11,17 @@ import io.netty.util.ReferenceCountUtil;
 import java.util.function.BooleanSupplier;
 import java.util.function.LongConsumer;
 
-class RelayHandler extends ChannelInboundHandlerAdapter {
+public final class RelayHandler extends ChannelInboundHandlerAdapter {
 
     private final Channel relayChannel;
     private final LongConsumer onBytes;
     private final BooleanSupplier stillAllowed;
 
-    RelayHandler(Channel relayChannel, LongConsumer onBytes) {
+    public RelayHandler(Channel relayChannel, LongConsumer onBytes) {
         this(relayChannel, onBytes, null);
     }
 
-    RelayHandler(Channel relayChannel, LongConsumer onBytes, BooleanSupplier stillAllowed) {
+    public RelayHandler(Channel relayChannel, LongConsumer onBytes, BooleanSupplier stillAllowed) {
         this.relayChannel = relayChannel;
         this.onBytes = onBytes;
         this.stillAllowed = stillAllowed;
@@ -69,7 +69,7 @@ class RelayHandler extends ChannelInboundHandlerAdapter {
         closeOnFlush(ctx.channel());
     }
 
-    static void closeOnFlush(Channel ch) {
+    public static void closeOnFlush(Channel ch) {
         if (ch != null && ch.isActive()) {
             ch.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
         }

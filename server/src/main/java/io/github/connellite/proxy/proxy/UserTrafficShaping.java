@@ -9,7 +9,7 @@ import io.netty.handler.traffic.ChannelTrafficShapingHandler;
  * Installs Netty per-channel traffic shaping for authenticated users with speed caps.
  * Netty treats {@code 0} as unlimited; our model uses {@code < 0}.
  */
-final class UserTrafficShaping {
+public final class UserTrafficShaping {
 
     private static final String HANDLER_NAME = "userTrafficShaping";
     private static final long CHECK_INTERVAL_MS = 1_000L;
@@ -17,7 +17,7 @@ final class UserTrafficShaping {
     private UserTrafficShaping() {
     }
 
-    static void install(Channel inbound, AuthenticatedSession session) {
+    public static void install(Channel inbound, AuthenticatedSession session) {
         if (inbound == null || session == null || !session.hasSpeedLimit()) {
             return;
         }

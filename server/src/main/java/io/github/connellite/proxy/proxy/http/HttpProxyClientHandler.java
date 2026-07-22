@@ -1,7 +1,10 @@
-package io.github.connellite.proxy.proxy;
+package io.github.connellite.proxy.proxy.http;
 
 import com.google.common.net.HostAndPort;
 import io.github.connellite.proxy.dto.AuthenticatedSession;
+import io.github.connellite.proxy.proxy.OutboundConnector;
+import io.github.connellite.proxy.proxy.RelayHandler;
+import io.github.connellite.proxy.proxy.UserTrafficShaping;
 import io.github.connellite.proxy.service.ProxyAuthService;
 import io.github.connellite.proxy.service.ProxyMetrics;
 import io.netty.buffer.ByteBuf;
@@ -14,6 +17,7 @@ import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.DefaultHttpHeaders;
 import io.netty.handler.codec.http.FullHttpRequest;
+import io.netty.handler.codec.http.HttpContent;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpMethod;
@@ -21,6 +25,7 @@ import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpRequestEncoder;
 import io.netty.handler.codec.http.HttpResponseDecoder;
 import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.handler.codec.http.HttpServerCodec;
 import io.netty.handler.codec.http.HttpUtil;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.LastHttpContent;
@@ -38,7 +43,7 @@ import java.util.Optional;
 
 @Slf4j
 @RequiredArgsConstructor
-final class HttpProxyClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
+public final class HttpProxyClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
 
     static final AttributeKey<AuthenticatedSession> SESSION_KEY = AttributeKey.valueOf("proxySession");
 
@@ -113,14 +118,13 @@ final class HttpProxyClientHandler extends SimpleChannelInboundHandler<FullHttpR
 
         Channel inbound = ctx.channel();
         Long userId = session == null ? null : session.userId();
-        AuthenticatedSession activeSession = session;
 
         outboundConnector.openTunnel(inbound, host, port, new OutboundConnector.TunnelCallback() {
             @Override
             public void onSuccess(Channel outbound) {
                 outbound.pipeline().addLast(new RelayHandler(inbound,
                         bytes -> metrics.recordTraffic(userId, 0, bytes),
-                        () -> metrics.allowMoreTraffic(activeSession)));
+                        () -> metrics.allowMoreTraffic(session)));
                 DefaultFullHttpResponse response = new DefaultFullHttpResponse(
                         HttpVersion.HTTP_1_1,
                         new HttpResponseStatus(200, "Connection Established"),
@@ -135,12 +139,12 @@ final class HttpProxyClientHandler extends SimpleChannelInboundHandler<FullHttpR
                     }
                     inbound.pipeline().remove(HttpObjectAggregator.class);
                     inbound.pipeline().remove(HttpProxyClientHandler.class);
-                    if (inbound.pipeline().get(io.netty.handler.codec.http.HttpServerCodec.class) != null) {
-                        inbound.pipeline().remove(io.netty.handler.codec.http.HttpServerCodec.class);
+                    if (inbound.pipeline().get(HttpServerCodec.class) != null) {
+                        inbound.pipeline().remove(HttpServerCodec.class);
                     }
                     inbound.pipeline().addLast(new RelayHandler(outbound,
                             bytes -> metrics.recordTraffic(userId, bytes, 0),
-                            () -> metrics.allowMoreTraffic(activeSession)));
+                            () -> metrics.allowMoreTraffic(session)));
                     inbound.config().setAutoRead(true);
                     outbound.config().setAutoRead(true);
                 });
@@ -191,7 +195,6 @@ final class HttpProxyClientHandler extends SimpleChannelInboundHandler<FullHttpR
 
         Channel inbound = ctx.channel();
         Long userId = session == null ? null : session.userId();
-        AuthenticatedSession activeSession = session;
 
         outboundConnector.openTunnel(inbound, host, port, new OutboundConnector.TunnelCallback() {
             @Override
@@ -203,10 +206,10 @@ final class HttpProxyClientHandler extends SimpleChannelInboundHandler<FullHttpR
                     public void channelRead(ChannelHandlerContext c, Object msg) {
                         if (msg instanceof ByteBuf buf) {
                             metrics.recordTraffic(userId, 0, buf.readableBytes());
-                        } else if (msg instanceof io.netty.handler.codec.http.HttpContent content) {
+                        } else if (msg instanceof HttpContent content) {
                             metrics.recordTraffic(userId, 0, content.content().readableBytes());
                         }
-                        if (!metrics.allowMoreTraffic(activeSession)) {
+                        if (!metrics.allowMoreTraffic(session)) {
                             ReferenceCountUtil.release(msg);
                             c.close();
                             RelayHandler.closeOnFlush(inbound);
@@ -237,7 +240,7 @@ final class HttpProxyClientHandler extends SimpleChannelInboundHandler<FullHttpR
                     }
                 });
                 metrics.recordTraffic(userId, outboundRequest.content().readableBytes(), 0);
-                if (!metrics.allowMoreTraffic(activeSession)) {
+                if (!metrics.allowMoreTraffic(session)) {
                     outboundRequest.release();
                     outbound.close();
                     RelayHandler.closeOnFlush(inbound);

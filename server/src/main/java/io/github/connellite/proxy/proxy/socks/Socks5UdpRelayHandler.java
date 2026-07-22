@@ -1,6 +1,7 @@
-package io.github.connellite.proxy.proxy;
+package io.github.connellite.proxy.proxy.socks;
 
 import io.github.connellite.proxy.dto.AuthenticatedSession;
+import io.github.connellite.proxy.proxy.RelayHandler;
 import io.github.connellite.proxy.service.ProxyMetrics;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;

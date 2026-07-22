@@ -1,4 +1,4 @@
-package io.github.connellite.proxy.proxy;
+package io.github.connellite.proxy.proxy.http;
 
 import org.junit.jupiter.api.Test;
 

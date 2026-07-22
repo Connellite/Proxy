@@ -1,6 +1,8 @@
-package io.github.connellite.proxy.proxy;
+package io.github.connellite.proxy.proxy.http;
 
 import io.github.connellite.proxy.config.ProxyProperties;
+import io.github.connellite.proxy.proxy.IdleCloseHandler;
+import io.github.connellite.proxy.proxy.OutboundConnector;
 import io.github.connellite.proxy.service.ProxyAuthService;
 import io.github.connellite.proxy.service.ProxyMetrics;
 import io.netty.bootstrap.ServerBootstrap;
@@ -21,7 +23,7 @@ import java.net.InetSocketAddress;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
-final class HttpProxyServerInstance implements AutoCloseable {
+public final class HttpProxyServerInstance implements AutoCloseable {
 
     private final ProxyAuthService authService;
     private final ProxyMetrics metrics;
@@ -33,7 +35,7 @@ final class HttpProxyServerInstance implements AutoCloseable {
     private EventLoopGroup workerGroup;
     private Channel serverChannel;
 
-    HttpProxyServerInstance(ProxyAuthService authService,
+    public HttpProxyServerInstance(ProxyAuthService authService,
                             ProxyMetrics metrics,
                             ProxyProperties properties,
                             OutboundConnector outboundConnector,
@@ -45,7 +47,7 @@ final class HttpProxyServerInstance implements AutoCloseable {
         this.label = label;
     }
 
-    synchronized void start(String bindHost, int port, SslContext sslContext) throws InterruptedException {
+    public synchronized void start(String bindHost, int port, SslContext sslContext) throws InterruptedException {
         stop();
         bossGroup = new NioEventLoopGroup(1);
         workerGroup = new NioEventLoopGroup();
@@ -72,7 +74,7 @@ final class HttpProxyServerInstance implements AutoCloseable {
         log.info("{} listening on {}:{}", label, bindHost, port);
     }
 
-    synchronized boolean isRunning() {
+    public synchronized boolean isRunning() {
         return serverChannel != null && serverChannel.isActive();
     }
 
@@ -81,7 +83,7 @@ final class HttpProxyServerInstance implements AutoCloseable {
         stop();
     }
 
-    synchronized void stop() {
+    public synchronized void stop() {
         if (serverChannel != null) {
             try {
                 serverChannel.close().syncUninterruptibly();

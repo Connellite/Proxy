@@ -1,4 +1,4 @@
-package io.github.connellite.proxy.proxy;
+package io.github.connellite.proxy.proxy.socks;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;

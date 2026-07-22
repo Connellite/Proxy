@@ -1,4 +1,4 @@
-package io.github.connellite.proxy.proxy;
+package io.github.connellite.proxy.proxy.http;
 
 import io.github.connellite.proxy.dto.TlsStatus;
 import io.github.connellite.proxy.dto.AppSettings;

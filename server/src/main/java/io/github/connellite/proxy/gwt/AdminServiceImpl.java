@@ -38,7 +38,7 @@ import io.github.connellite.proxy.model.ProxyUser;
 import io.github.connellite.proxy.model.UpstreamProxy;
 import io.github.connellite.proxy.model.UpstreamProxyType;
 import io.github.connellite.proxy.proxy.ProxyServerManager;
-import io.github.connellite.proxy.proxy.ProxyTlsService;
+import io.github.connellite.proxy.proxy.http.ProxyTlsService;
 import io.github.connellite.proxy.security.AdminAccountService;
 import io.github.connellite.proxy.service.ProxyMetrics;
 import io.github.connellite.proxy.service.ProxyUserService;
