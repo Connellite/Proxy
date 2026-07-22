@@ -13,7 +13,7 @@
     <artifactId>proxy</artifactId>
     <packaging>jar</packaging>
     <name>proxy</name>
-    <description>HTTP and SOCKS5 authenticated proxy with SQLite and admin UI</description>
+    <description>HTTP, SOCKS5 and SSH tunnel proxy with SQLite and admin UI</description>
 
     <dependencies>
         <dependency>
@@ -48,6 +48,10 @@
         <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty-all</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.sshd</groupId>
+            <artifactId>sshd-core</artifactId>
         </dependency>
         <dependency>
             <groupId>org.bouncycastle</groupId>
@@ -341,6 +345,7 @@
                                 <buildArg>--add-opens=java.base/java.lang=ALL-UNNAMED</buildArg>
                                 <buildArg>--add-opens=java.base/java.util=ALL-UNNAMED</buildArg>
                                 <buildArg>--initialize-at-run-time=java.awt,sun.awt,sun.java2d,sun.font,sun.swing</buildArg>
+                                <buildArg>--initialize-at-build-time=org.apache.sshd.common.file.root.RootedFileSystemProvider</buildArg>
                                 <buildArg>-H:+ReportExceptionStackTraces</buildArg>
                             </buildArgs>
                         </configuration>

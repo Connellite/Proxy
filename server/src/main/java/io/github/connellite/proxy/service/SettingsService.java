@@ -77,6 +77,9 @@ public class SettingsService {
         settings.setHttpAuthRequired(properties.isHttpAuthRequired());
         settings.setSocksAuthRequired(properties.isSocksAuthRequired());
         settings.setSocksUdpEnabled(properties.isSocksUdpEnabled());
+        settings.setSshEnabled(properties.getSsh().isEnabled());
+        settings.setSshBindHost(properties.getSsh().getBindHost());
+        settings.setSshPort(properties.getSsh().getPort());
         settings.setAdminServerPort(AdminServerPortStore.DEFAULT_PORT);
         return settings;
     }
@@ -101,6 +104,9 @@ public class SettingsService {
         settings.setHttpAuthRequired(parseBoolean(map.get(ConfigEntry.HTTP_AUTH_REQUIRED), settings.isHttpAuthRequired()));
         settings.setSocksAuthRequired(parseBoolean(map.get(ConfigEntry.SOCKS_AUTH_REQUIRED), settings.isSocksAuthRequired()));
         settings.setSocksUdpEnabled(parseBoolean(map.get(ConfigEntry.SOCKS_UDP_ENABLED), settings.isSocksUdpEnabled()));
+        settings.setSshEnabled(parseBoolean(map.get(ConfigEntry.SSH_ENABLED), settings.isSshEnabled()));
+        settings.setSshBindHost(parseString(map.get(ConfigEntry.SSH_BIND_HOST), settings.getSshBindHost()));
+        settings.setSshPort(parseInt(map.get(ConfigEntry.SSH_PORT), settings.getSshPort()));
         settings.setAdminServerPort(parseInt(map.get(ConfigEntry.ADMIN_SERVER_PORT), settings.getAdminServerPort()));
         settings.setBytesUpTotal(parseLong(map.get(ConfigEntry.BYTES_UP_TOTAL), 0L));
         settings.setBytesDownTotal(parseLong(map.get(ConfigEntry.BYTES_DOWN_TOTAL), 0L));
@@ -126,6 +132,9 @@ public class SettingsService {
         entries.add(new ConfigEntry(ConfigEntry.HTTP_AUTH_REQUIRED, Boolean.toString(settings.isHttpAuthRequired())));
         entries.add(new ConfigEntry(ConfigEntry.SOCKS_AUTH_REQUIRED, Boolean.toString(settings.isSocksAuthRequired())));
         entries.add(new ConfigEntry(ConfigEntry.SOCKS_UDP_ENABLED, Boolean.toString(settings.isSocksUdpEnabled())));
+        entries.add(new ConfigEntry(ConfigEntry.SSH_ENABLED, Boolean.toString(settings.isSshEnabled())));
+        entries.add(new ConfigEntry(ConfigEntry.SSH_BIND_HOST, settings.getSshBindHost()));
+        entries.add(new ConfigEntry(ConfigEntry.SSH_PORT, Integer.toString(settings.getSshPort())));
         entries.add(new ConfigEntry(ConfigEntry.ADMIN_SERVER_PORT, Integer.toString(settings.getAdminServerPort())));
         entries.add(new ConfigEntry(ConfigEntry.BYTES_UP_TOTAL, Long.toString(settings.getBytesUpTotal())));
         entries.add(new ConfigEntry(ConfigEntry.BYTES_DOWN_TOTAL, Long.toString(settings.getBytesDownTotal())));

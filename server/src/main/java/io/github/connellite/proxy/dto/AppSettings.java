@@ -50,6 +50,13 @@ public class AppSettings {
     /** When true, SOCKS5 accepts UDP ASSOCIATE in addition to TCP CONNECT. */
     private boolean socksUdpEnabled = false;
 
+    /** SSH tunnel / port-forward listener (Apache Mina SSHD). Always password-auth via ProxyUser. */
+    private boolean sshEnabled = false;
+
+    private String sshBindHost = "0.0.0.0";
+
+    private int sshPort = 2222;
+
     /** Spring Boot admin UI / Tomcat port ({@code server.port}). Requires app restart. */
     private int adminServerPort = 8080;
 

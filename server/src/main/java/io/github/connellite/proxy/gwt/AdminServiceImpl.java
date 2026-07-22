@@ -128,12 +128,15 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
         dto.setHttpRunning(proxyServerManager.isHttpRunning());
         dto.setHttpsRunning(proxyServerManager.isHttpsRunning());
         dto.setSocksRunning(proxyServerManager.isSocksRunning());
+        dto.setSshRunning(proxyServerManager.isSshRunning());
         dto.setHttpBind(bindLabel(dto.isHttpRunning(), settings.getHttpBindHost(), settings.getHttpPort()));
         dto.setHttpsBind(bindLabel(dto.isHttpsRunning(), settings.getHttpsBindHost(), settings.getHttpsPort()));
         dto.setSocksBind(bindLabel(dto.isSocksRunning(), settings.getSocksBindHost(), settings.getSocksPort()));
+        dto.setSshBind(bindLabel(dto.isSshRunning(), settings.getSshBindHost(), settings.getSshPort()));
         dto.setHttpPort(settings.getHttpPort());
         dto.setHttpsPort(settings.getHttpsPort());
         dto.setSocksPort(settings.getSocksPort());
+        dto.setSshPort(settings.getSshPort());
         dto.setActiveConnections(proxyMetrics.getActiveConnections());
         dto.setUserCount(users.size());
         dto.setEnabledUsers((int) users.stream().filter(ProxyUser::isUsable).count());
@@ -407,6 +410,9 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
         dto.setSocksEnabled(settings.isSocksEnabled());
         dto.setSocksBindHost(settings.getSocksBindHost());
         dto.setSocksPort(settings.getSocksPort());
+        dto.setSshEnabled(settings.isSshEnabled());
+        dto.setSshBindHost(settings.getSshBindHost());
+        dto.setSshPort(settings.getSshPort());
         dto.setHttpAuthRequired(settings.isHttpAuthRequired());
         dto.setSocksAuthRequired(settings.isSocksAuthRequired());
         dto.setSocksUdpEnabled(settings.isSocksUdpEnabled());
@@ -414,8 +420,10 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
         dto.setHttpRunning(proxyServerManager.isHttpRunning());
         dto.setHttpsRunning(proxyServerManager.isHttpsRunning());
         dto.setSocksRunning(proxyServerManager.isSocksRunning());
+        dto.setSshRunning(proxyServerManager.isSshRunning());
         dto.setLastError(proxyServerManager.getLastError());
-        dto.setBindHostOptions(new ArrayList<>(LocalBindAddresses.optionsIncluding(settings.getHttpBindHost(), settings.getSocksBindHost())));
+        dto.setBindHostOptions(new ArrayList<>(LocalBindAddresses.optionsIncluding(
+                settings.getHttpBindHost(), settings.getSocksBindHost(), settings.getSshBindHost())));
         return dto;
     }
 
@@ -443,6 +451,9 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
         settings.setSocksEnabled(form.isSocksEnabled());
         settings.setSocksBindHost(StringUtils.trimToEmpty(form.getSocksBindHost()));
         settings.setSocksPort(form.getSocksPort());
+        settings.setSshEnabled(form.isSshEnabled());
+        settings.setSshBindHost(StringUtils.trimToEmpty(form.getSshBindHost()));
+        settings.setSshPort(form.getSshPort());
         settings.setHttpAuthRequired(form.isHttpAuthRequired());
         settings.setSocksAuthRequired(form.isSocksAuthRequired());
         settings.setSocksUdpEnabled(form.isSocksUdpEnabled());
@@ -512,7 +523,7 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
             target.setType(UpstreamProxyType.valueOf(
                     StringUtils.isBlank(form.getType()) ? "HTTP" : form.getType().trim().toUpperCase()));
         } catch (IllegalArgumentException ex) {
-            throw new IllegalArgumentException("Type must be HTTP or SOCKS5");
+            throw new IllegalArgumentException("Type must be HTTP, SOCKS5 or SSH");
         }
         target.setHost(form.getHost());
         target.setPort(form.getPort());
@@ -574,6 +585,9 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
         copy.setSocksEnabled(source.isSocksEnabled());
         copy.setSocksBindHost(source.getSocksBindHost());
         copy.setSocksPort(source.getSocksPort());
+        copy.setSshEnabled(source.isSshEnabled());
+        copy.setSshBindHost(source.getSshBindHost());
+        copy.setSshPort(source.getSshPort());
         copy.setHttpAuthRequired(source.isHttpAuthRequired());
         copy.setSocksAuthRequired(source.isSocksAuthRequired());
         copy.setSocksUdpEnabled(source.isSocksUdpEnabled());

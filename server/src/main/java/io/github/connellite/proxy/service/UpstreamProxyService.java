@@ -4,6 +4,7 @@ import io.github.connellite.proxy.dto.UpstreamProxyForm;
 import io.github.connellite.proxy.dto.UpstreamSnapshot;
 import io.github.connellite.proxy.model.UpstreamProxy;
 import io.github.connellite.proxy.model.UpstreamProxyType;
+import io.github.connellite.proxy.proxy.ssh.SshUpstreamClient;
 import io.github.connellite.proxy.repository.UpstreamProxyRepository;
 #if SPRING_BOOT_3
 import jakarta.annotation.PostConstruct;
@@ -23,6 +24,7 @@ import java.util.Optional;
 public class UpstreamProxyService {
 
     private final UpstreamProxyRepository repository;
+    private final SshUpstreamClient sshUpstreamClient;
 
     /** Live selection for outbound connectors; updated on every mutating admin action. */
     private volatile UpstreamSnapshot selectedSnapshot;
@@ -67,6 +69,7 @@ public class UpstreamProxyService {
         UpstreamProxy proxy = getRequired(id);
         applyForm(proxy, form, false);
         UpstreamProxy saved = repository.save(proxy);
+        sshUpstreamClient.invalidate(saved.getId());
         if (saved.isSelected()) {
             selectedSnapshot = toSnapshot(saved);
         }
@@ -77,6 +80,7 @@ public class UpstreamProxyService {
     public void delete(Long id) {
         boolean wasSelected = repository.findById(id).map(UpstreamProxy::isSelected).orElse(false);
         repository.deleteById(id);
+        sshUpstreamClient.invalidate(id);
         if (wasSelected) {
             selectedSnapshot = null;
         }
@@ -95,6 +99,7 @@ public class UpstreamProxyService {
         if (chosen == null) {
             throw new IllegalArgumentException("Upstream proxy not found: " + id);
         }
+        sshUpstreamClient.invalidateAll();
         selectedSnapshot = toSnapshot(chosen);
     }
 
@@ -103,6 +108,7 @@ public class UpstreamProxyService {
         for (UpstreamProxy proxy : repository.findAll()) {
             proxy.setSelected(false);
         }
+        sshUpstreamClient.invalidateAll();
         selectedSnapshot = null;
     }
 
@@ -126,11 +132,15 @@ public class UpstreamProxyService {
             throw new IllegalArgumentException("Port must be between 1 and 65535");
         }
         UpstreamProxyType type = form.getType() == null ? UpstreamProxyType.HTTP : form.getType();
+        String username = StringUtils.trimToNull(form.getUsername());
+        if (type == UpstreamProxyType.SSH && username == null) {
+            throw new IllegalArgumentException("Username is required for SSH upstream");
+        }
         proxy.setName(name);
         proxy.setType(type);
         proxy.setHost(host);
         proxy.setPort(form.getPort());
-        proxy.setUsername(StringUtils.trimToNull(form.getUsername()));
+        proxy.setUsername(username);
         if (creating || form.isUpdatePassword()) {
             proxy.setPassword(StringUtils.trimToNull(form.getPassword()));
         }

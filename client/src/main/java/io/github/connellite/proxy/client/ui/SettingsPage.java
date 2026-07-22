@@ -25,14 +25,17 @@ public class SettingsPage extends Composite {
 
     private final CheckBox httpEnabled = Forms.checkbox("Enable HTTP proxy");
     private final CheckBox socksEnabled = Forms.checkbox("Enable SOCKS4/5 proxy");
+    private final CheckBox sshEnabled = Forms.checkbox("Enable SSH tunnel proxy (port forward / PuTTY)");
     private final CheckBox httpAuthRequired = Forms.checkbox("Require username/password for HTTP / HTTPS proxy");
     private final CheckBox socksAuthRequired = Forms.checkbox(
             "Require username/password for SOCKS5 (SOCKS4 disabled while on)");
     private final CheckBox socksUdpEnabled = Forms.checkbox("Full SOCKS5 with UDP (TCP CONNECT + UDP ASSOCIATE)");
     private final ListBox httpBindHost = BindHostList.create();
     private final ListBox socksBindHost = BindHostList.create();
+    private final ListBox sshBindHost = BindHostList.create();
     private final PlainIntegerBox httpPort = new PlainIntegerBox();
     private final PlainIntegerBox socksPort = new PlainIntegerBox();
+    private final PlainIntegerBox sshPort = new PlainIntegerBox();
     private final PlainIntegerBox adminServerPort = new PlainIntegerBox();
     private final Label adminPortHint = new Label();
     private final HTML status = new HTML();
@@ -47,6 +50,8 @@ public class SettingsPage extends Composite {
         httpPort.setMax(65535);
         socksPort.setMin(1);
         socksPort.setMax(65535);
+        sshPort.setMin(1);
+        sshPort.setMax(65535);
         adminServerPort.setMin(1);
         adminServerPort.setMax(65535);
         newPassword.getElement().setAttribute("minlength", "4");
@@ -102,6 +107,16 @@ public class SettingsPage extends Composite {
                 + "UDP ASSOCIATE is needed for some apps (DNS-over-SOCKS, games, VoIP).");
         udpHint.setStyleName("muted");
         listeners.add(udpHint);
+        listeners.add(sshEnabled);
+        listeners.add(Forms.twoCol(
+                Forms.field("SSH bind address", sshBindHost,
+                        "0.0.0.0 = all interfaces; 127.0.0.1 = this PC only."),
+                Forms.field("SSH port", sshPort)));
+        Label sshHint = new Label("Password auth uses the same proxy users. Shell/exec are disabled "
+                + "(GitHub-style notice in PuTTY). Use local/remote port forwarding for tunnels. "
+                + "Host key is stored under the data directory.");
+        sshHint.setStyleName("muted");
+        listeners.add(sshHint);
 
         Button save = new Button("Save & restart");
         save.setStyleName("primary");
@@ -163,18 +178,22 @@ public class SettingsPage extends Composite {
             public void onSuccess(SettingsDto dto) {
                 httpEnabled.setValue(dto.isHttpEnabled());
                 socksEnabled.setValue(dto.isSocksEnabled());
+                sshEnabled.setValue(dto.isSshEnabled());
                 httpAuthRequired.setValue(dto.isHttpAuthRequired());
                 socksAuthRequired.setValue(dto.isSocksAuthRequired());
                 socksUdpEnabled.setValue(dto.isSocksUdpEnabled());
                 BindHostList.fill(httpBindHost, dto.getBindHostOptions(), dto.getHttpBindHost());
                 BindHostList.fill(socksBindHost, dto.getBindHostOptions(), dto.getSocksBindHost());
+                BindHostList.fill(sshBindHost, dto.getBindHostOptions(), dto.getSshBindHost());
                 httpPort.setIntValue(dto.getHttpPort());
                 socksPort.setIntValue(dto.getSocksPort());
+                sshPort.setIntValue(dto.getSshPort());
                 adminServerPort.setIntValue(dto.getAdminServerPort() > 0 ? dto.getAdminServerPort() : 8080);
                 adminPortHint.setText("Takes effect after restart (tray Exit → relaunch).");
                 status.setHTML("HTTP: " + onOff(dto.isHttpRunning())
                         + " · HTTPS: " + onOff(dto.isHttpsRunning())
-                        + " · SOCKS4/5: " + onOff(dto.isSocksRunning()));
+                        + " · SOCKS4/5: " + onOff(dto.isSocksRunning())
+                        + " · SSH: " + onOff(dto.isSshRunning()));
                 if (dto.getLastError() != null && !dto.getLastError().isEmpty()) {
                     shell.showFlash(dto.getLastError(), false);
                 }
@@ -237,16 +256,20 @@ public class SettingsPage extends Composite {
         SettingsDto dto = new SettingsDto();
         dto.setHttpEnabled(httpEnabled.getValue());
         dto.setSocksEnabled(socksEnabled.getValue());
+        dto.setSshEnabled(sshEnabled.getValue());
         dto.setHttpAuthRequired(httpAuthRequired.getValue());
         dto.setSocksAuthRequired(socksAuthRequired.getValue());
         dto.setSocksUdpEnabled(socksUdpEnabled.getValue());
         dto.setHttpBindHost(BindHostList.selected(httpBindHost));
         dto.setSocksBindHost(BindHostList.selected(socksBindHost));
+        dto.setSshBindHost(BindHostList.selected(sshBindHost));
         Integer hp = httpPort.getIntValue();
         Integer sp = socksPort.getIntValue();
+        Integer sshp = sshPort.getIntValue();
         Integer ap = adminServerPort.getIntValue();
         dto.setHttpPort(hp == null ? 0 : hp);
         dto.setSocksPort(sp == null ? 0 : sp);
+        dto.setSshPort(sshp == null ? 0 : sshp);
         dto.setAdminServerPort(ap == null ? 8080 : ap);
         return dto;
     }

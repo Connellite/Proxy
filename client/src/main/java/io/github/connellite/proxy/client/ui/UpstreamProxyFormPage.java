@@ -1,5 +1,7 @@
 package io.github.connellite.proxy.client.ui;
 
+import com.google.gwt.event.dom.client.ChangeEvent;
+import com.google.gwt.event.dom.client.ChangeHandler;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.user.client.rpc.AsyncCallback;
@@ -31,6 +33,7 @@ public class UpstreamProxyFormPage extends Composite {
     private final TextBox username = new TextBox();
     private final PasswordTextBox password = new PasswordTextBox();
     private final Label passwordHint = new Label();
+    private final Label sshHint = new Label();
 
     public UpstreamProxyFormPage(AppShell shell, Long id) {
         this.shell = shell;
@@ -38,12 +41,19 @@ public class UpstreamProxyFormPage extends Composite {
 
         type.addItem("HTTP", "HTTP");
         type.addItem("SOCKS5", "SOCKS5");
+        type.addItem("SSH", "SSH");
         name.getElement().setAttribute("maxlength", "128");
         host.getElement().setAttribute("maxlength", "255");
         username.getElement().setAttribute("maxlength", "128");
         password.getElement().setAttribute("maxlength", "256");
         port.setMin(1);
         port.setMax(65535);
+        type.addChangeHandler(new ChangeHandler() {
+            @Override
+            public void onChange(ChangeEvent event) {
+                onTypeChanged(true);
+            }
+        });
 
         FlowPanel root = new FlowPanel();
         root.add(title);
@@ -54,10 +64,14 @@ public class UpstreamProxyFormPage extends Composite {
         panel.add(Forms.field("Type", type));
         panel.add(Forms.field("Host", host));
         panel.add(Forms.field("Port", port));
-        panel.add(Forms.field("Username (optional)", username));
-        panel.add(Forms.field("Password (optional)", password));
+        panel.add(Forms.field("Username", username));
+        panel.add(Forms.field("Password", password));
         passwordHint.setStyleName("field-hint");
         panel.add(passwordHint);
+        sshHint.setStyleName("muted");
+        sshHint.setText("SSH upstream uses password auth and TCP port forwarding "
+                + "(same as connecting with ssh -L). Username is required.");
+        panel.add(sshHint);
 
         Button save = new Button(id == null ? "Create" : "Save");
         save.setStyleName("primary");
@@ -83,7 +97,7 @@ public class UpstreamProxyFormPage extends Composite {
     }
 
     private void load() {
-        shell.getRpc().getUpstreamProxyForm(editId, new AsyncCallback<>() {
+        shell.getRpc().getUpstreamProxyForm(editId, new AsyncCallback<UpstreamProxyFormDto>() {
             @Override
             public void onFailure(Throwable caught) {
                 Rpc.showFailure(caught);
@@ -97,12 +111,11 @@ public class UpstreamProxyFormPage extends Composite {
                 name.setText(nullToEmpty(form.getName()));
                 selectType(form.getType());
                 host.setText(nullToEmpty(form.getHost()));
-                port.setIntValue(form.getPort() > 0 ? form.getPort() : 8080);
+                int defaultPort = "SSH".equalsIgnoreCase(form.getType()) ? 22 : 8080;
+                port.setIntValue(form.getPort() > 0 ? form.getPort() : defaultPort);
                 username.setText(nullToEmpty(form.getUsername()));
                 password.setText("");
-                passwordHint.setText(passwordSaved
-                        ? "Password is saved. Leave blank to keep the current value."
-                        : "Leave username empty for no authentication.");
+                onTypeChanged(false);
             }
         });
     }
@@ -136,6 +149,32 @@ public class UpstreamProxyFormPage extends Composite {
             shell.getRpc().createUpstreamProxy(form, callback);
         } else {
             shell.getRpc().updateUpstreamProxy(form, callback);
+        }
+    }
+
+    private void onTypeChanged(boolean suggestDefaultPort) {
+        boolean ssh = "SSH".equalsIgnoreCase(type.getSelectedValue());
+        sshHint.setVisible(ssh);
+        if (ssh) {
+            passwordHint.setText(passwordSaved
+                    ? "Password is saved. Leave blank to keep the current value."
+                    : "Username is required for SSH. Password is sent to the upstream SSH server.");
+            if (suggestDefaultPort) {
+                Integer current = port.getIntValue();
+                if (current == null || current == 8080 || current == 1080 || current == 3128) {
+                    port.setIntValue(22);
+                }
+            }
+        } else {
+            passwordHint.setText(passwordSaved
+                    ? "Password is saved. Leave blank to keep the current value."
+                    : "Leave username empty for no authentication.");
+            if (suggestDefaultPort) {
+                Integer current = port.getIntValue();
+                if (current == null || current == 22) {
+                    port.setIntValue("SOCKS5".equalsIgnoreCase(type.getSelectedValue()) ? 1080 : 8080);
+                }
+            }
         }
     }
 

@@ -6,6 +6,7 @@ import io.netty.util.AttributeKey;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -49,6 +50,46 @@ public class ProxyMetrics {
             }
         });
         return true;
+    }
+
+    /**
+     * Track an authenticated session that is not a Netty channel (e.g. SSH).
+     * Caller must {@link TrackedSession#close()} when the session ends.
+     */
+    public Optional<TrackedSession> trackSession(AuthenticatedSession session) {
+        ProxyAuthService.ConnectionPermit permit = null;
+        if (session != null) {
+            var acquired = authService.acquireConnection(session);
+            if (acquired.isEmpty()) {
+                return Optional.empty();
+            }
+            permit = acquired.get();
+        }
+        activeConnections.incrementAndGet();
+        return Optional.of(new TrackedSession(session, permit));
+    }
+
+    public final class TrackedSession implements AutoCloseable {
+        private final AuthenticatedSession session;
+        private final ProxyAuthService.ConnectionPermit permit;
+        private final AtomicBoolean closed = new AtomicBoolean();
+
+        private TrackedSession(AuthenticatedSession session, ProxyAuthService.ConnectionPermit permit) {
+            this.session = session;
+            this.permit = permit;
+        }
+
+        public AuthenticatedSession session() {
+            return session;
+        }
+
+        @Override
+        public void close() {
+            if (closed.compareAndSet(false, true)) {
+                activeConnections.updateAndGet(v -> Math.max(0, v - 1));
+                authService.releaseConnection(permit);
+            }
+        }
     }
 
     public void resetActiveConnections() {

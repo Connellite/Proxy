@@ -14,12 +14,15 @@ public class DashboardDto implements IsSerializable {
     private boolean httpRunning;
     private boolean httpsRunning;
     private boolean socksRunning;
+    private boolean sshRunning;
     private String httpBind;
     private String httpsBind;
     private String socksBind;
+    private String sshBind;
     private int httpPort;
     private int httpsPort;
     private int socksPort;
+    private int sshPort;
     private int activeConnections;
     private int userCount;
     private int enabledUsers;
