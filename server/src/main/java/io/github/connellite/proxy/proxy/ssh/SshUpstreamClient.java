@@ -18,6 +18,7 @@ import javax.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.sshd.client.SshClient;
+import org.apache.sshd.client.config.hosts.HostConfigEntryResolver;
 import org.apache.sshd.client.keyverifier.AcceptAllServerKeyVerifier;
 import org.apache.sshd.client.session.ClientSession;
 import org.apache.sshd.common.util.net.SshdSocketAddress;
@@ -35,9 +36,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * Outbound tunnels through an upstream SSH server (local port forward / direct-tcpip).
- * Netty then connects to the bound loopback port so existing {@link OutboundConnector}
- * relay handlers keep working unchanged.
+ * Outbound tunnels through an upstream SSH server (local port forward → Netty).
+ * <p>
+ * Uses SSHD {@code startLocalPortForwarding} (same model as {@code ssh -L}). A known
+ * DefaultForwarder race can log WARN/NPE while the tunnel still works; that logger is
+ * quieted in {@code application.yml}.
  */
 @Slf4j
 @Component
@@ -46,6 +49,7 @@ public class SshUpstreamClient {
     private final ProxyProperties properties;
     private final ExecutorService executor;
     private final ConcurrentHashMap<Long, SessionEntry> sessions = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<Long, Object> sessionLocks = new ConcurrentHashMap<>();
     private final Object clientLock = new Object();
     private volatile SshClient client;
 
@@ -58,19 +62,25 @@ public class SshUpstreamClient {
         });
     }
 
+    @SuppressWarnings("resource")
     public void openTunnel(Channel inbound,
                            UpstreamSnapshot upstream,
                            String targetHost,
                            int targetPort,
                            OutboundConnector.TunnelCallback callback) {
         executor.execute(() -> {
+            SshdSocketAddress bound = null;
+            ClientSession session = null;
             try {
-                ClientSession session = sessionFor(upstream);
+                session = sessionFor(upstream);
                 SshdSocketAddress local = new SshdSocketAddress("127.0.0.1", 0);
                 SshdSocketAddress remote = new SshdSocketAddress(targetHost, targetPort);
-                SshdSocketAddress bound = session.startLocalPortForwarding(local, remote);
-                inbound.eventLoop().execute(() -> connectLoopback(inbound, session, bound, callback));
+                bound = session.startLocalPortForwarding(local, remote);
+                SshdSocketAddress listening = bound;
+                ClientSession sshSession = session;
+                inbound.eventLoop().execute(() -> connectLoopback(inbound, sshSession, listening, callback));
             } catch (Exception ex) {
+                stopForward(session, bound, new AtomicBoolean());
                 inbound.eventLoop().execute(() -> callback.onFailure(wrap(ex)));
             }
         });
@@ -115,6 +125,8 @@ public class SshUpstreamClient {
             SshClient created = SshClient.setUpDefaultClient();
             created.setServerKeyVerifier(AcceptAllServerKeyVerifier.INSTANCE);
             created.setForwardingFilter(AcceptAllForwardingFilter.INSTANCE);
+            // Host/user/password come from Upstream settings — ignore ~/.ssh/config.
+            created.setHostConfigEntryResolver(HostConfigEntryResolver.EMPTY);
             Duration idle = Duration.ofSeconds(Math.max(1, properties.getIdleTimeoutSeconds()));
             CoreModuleProperties.IDLE_TIMEOUT.set(created, idle);
             created.start();
@@ -153,16 +165,19 @@ public class SshUpstreamClient {
     }
 
     private ClientSession sessionFor(UpstreamSnapshot upstream) throws IOException {
-        SessionEntry existing = sessions.get(upstream.id());
-        if (existing != null && existing.matches(upstream) && existing.isUsable()) {
-            return existing.session;
+        Object lock = sessionLocks.computeIfAbsent(upstream.id(), id -> new Object());
+        synchronized (lock) {
+            SessionEntry existing = sessions.get(upstream.id());
+            if (existing != null && existing.matches(upstream) && existing.isUsable()) {
+                return existing.session;
+            }
+            SessionEntry created = connectSession(upstream);
+            SessionEntry previous = sessions.put(upstream.id(), created);
+            if (previous != null && previous != created) {
+                closeQuietly(previous);
+            }
+            return created.session;
         }
-        SessionEntry created = connectSession(upstream);
-        SessionEntry previous = sessions.put(upstream.id(), created);
-        if (previous != null && previous != created) {
-            closeQuietly(previous);
-        }
-        return created.session;
     }
 
     private SessionEntry connectSession(UpstreamSnapshot upstream) throws IOException {
@@ -189,11 +204,11 @@ public class SshUpstreamClient {
     }
 
     private static void stopForward(ClientSession session, SshdSocketAddress bound, AtomicBoolean stopped) {
-        if (!stopped.compareAndSet(false, true)) {
+        if (session == null || bound == null || !stopped.compareAndSet(false, true)) {
             return;
         }
         try {
-            if (session != null && session.isOpen()) {
+            if (session.isOpen()) {
                 session.stopLocalPortForwarding(bound);
             }
         } catch (Exception ex) {
@@ -202,9 +217,11 @@ public class SshUpstreamClient {
     }
 
     private static void closeQuietly(SessionEntry entry) {
-        if (entry != null) {
-            closeQuietly(entry.session);
+        if (entry == null) {
+            return;
         }
+        log.info("SSH upstream session closed to {}:{} as {}", entry.host, entry.port, entry.username);
+        closeQuietly(entry.session);
     }
 
     private static void closeQuietly(ClientSession session) {

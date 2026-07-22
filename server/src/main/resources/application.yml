@@ -63,3 +63,5 @@ logging:
   level:
     root: INFO
     io.github.connellite.proxy: INFO
+    # SSHD local-forward race can WARN/NPE while the tunnel still works (SSHD-849/961).
+    org.apache.sshd.common.forward.DefaultForwarder: ERROR
