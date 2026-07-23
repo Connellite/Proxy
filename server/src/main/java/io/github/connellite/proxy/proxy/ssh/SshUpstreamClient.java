@@ -123,6 +123,7 @@ public class SshUpstreamClient {
                 return current;
             }
             SshClient created = SshClient.setUpDefaultClient();
+            created.setIoServiceFactoryFactory(ShutdownSafeNio2Executor.serviceFactoryFactory());
             created.setServerKeyVerifier(AcceptAllServerKeyVerifier.INSTANCE);
             created.setForwardingFilter(AcceptAllForwardingFilter.INSTANCE);
             // Host/user/password come from Upstream settings — ignore ~/.ssh/config.

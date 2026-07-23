@@ -68,6 +68,8 @@ public final class SshProxyServer implements AutoCloseable {
         Files.createDirectories(hostKey.getParent());
 
         SshServer sshd = SshServer.setUpDefaultServer();
+        // Windows NIO2 race on stop(): AcceptTask.failed after group executor shutdown (mina-sshd#409).
+        sshd.setIoServiceFactoryFactory(ShutdownSafeNio2Executor.serviceFactoryFactory());
         sshd.setHost(bindHost);
         sshd.setPort(port);
         sshd.setKeyPairProvider(new SimpleGeneratorHostKeyProvider(hostKey));
