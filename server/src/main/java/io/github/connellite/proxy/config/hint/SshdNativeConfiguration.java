@@ -16,11 +16,24 @@ import org.apache.sshd.common.util.security.eddsa.EdDSASecurityProviderRegistrar
 import org.apache.sshd.server.SshServer;
 import org.apache.sshd.server.keyprovider.SimpleGeneratorHostKeyProvider;
 import org.apache.sshd.server.session.ServerConnectionServiceFactory;
+import org.springframework.aot.hint.ExecutableMode;
 import org.springframework.aot.hint.MemberCategory;
 import org.springframework.aot.hint.RuntimeHints;
 import org.springframework.aot.hint.RuntimeHintsRegistrar;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.ImportRuntimeHints;
+
+import java.security.AlgorithmParameters;
+import java.security.KeyFactory;
+import java.security.KeyPairGenerator;
+import java.security.MessageDigest;
+import java.security.Provider;
+import java.security.Signature;
+import java.security.cert.CertificateFactory;
+
+import javax.crypto.Cipher;
+import javax.crypto.KeyAgreement;
+import javax.crypto.Mac;
 
 /**
  * Apache Mina SSHD uses JDK proxies for event listeners and reflective SPI/registrars.
@@ -39,6 +52,19 @@ public class SshdNativeConfiguration {
                 MemberCategory.INVOKE_PUBLIC_METHODS,
                 MemberCategory.INVOKE_DECLARED_METHODS,
                 MemberCategory.DECLARED_FIELDS
+        };
+
+        /** JCA types whose {@code getInstance} SSHD resolves via {@code Class.getDeclaredMethod}. */
+        private static final Class<?>[] JCA_ENTITY_TYPES = {
+                AlgorithmParameters.class,
+                KeyFactory.class,
+                KeyPairGenerator.class,
+                MessageDigest.class,
+                Signature.class,
+                CertificateFactory.class,
+                Cipher.class,
+                KeyAgreement.class,
+                Mac.class
         };
 
         @Override
@@ -64,7 +90,24 @@ public class SshdNativeConfiguration {
                 hints.reflection().registerType(type, TYPE_CATEGORIES);
             }
 
+            for (Class<?> type : JCA_ENTITY_TYPES) {
+                registerJcaGetInstance(hints, type);
+            }
+
             hints.resources().registerPattern("org/apache/sshd/sshd-version.properties");
+        }
+
+        private static void registerJcaGetInstance(RuntimeHints hints, Class<?> type) {
+            try {
+                hints.reflection().registerMethod(
+                        type.getDeclaredMethod("getInstance", String.class), ExecutableMode.INVOKE);
+                hints.reflection().registerMethod(
+                        type.getDeclaredMethod("getInstance", String.class, String.class), ExecutableMode.INVOKE);
+                hints.reflection().registerMethod(
+                        type.getDeclaredMethod("getInstance", String.class, Provider.class), ExecutableMode.INVOKE);
+            } catch (NoSuchMethodException e) {
+                throw new IllegalStateException("JCA getInstance missing on " + type.getName(), e);
+            }
         }
     }
 }

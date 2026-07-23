@@ -369,16 +369,27 @@
                                 <buildArg>--add-opens=java.base/java.lang=ALL-UNNAMED</buildArg>
                                 <buildArg>--add-opens=java.base/java.util=ALL-UNNAMED</buildArg>
                                 <buildArg>--initialize-at-run-time=java.awt,sun.awt,sun.java2d,sun.font,sun.swing</buildArg>
-                                <buildArg>--initialize-at-build-time=org.apache.sshd.common.file.root.RootedFileSystemProvider</buildArg>
+                                <buildArg>-H:+UnlockExperimentalVMOptions</buildArg>
+                                <buildArg>-H:-AddAllFileSystemProviders</buildArg>
+                                <buildArg>--strict-image-heap</buildArg>
                                 <buildArg>-H:+ReportExceptionStackTraces</buildArg>
                             </buildArgs>
                         </configuration>
                         <executions>
+                            <!-- Pull GraalVM reachability metadata for dependencies. -->
                             <execution>
                                 <id>add-reachability-metadata</id>
                                 <goals>
                                     <goal>add-reachability-metadata</goal>
                                 </goals>
+                            </execution>
+                            <!-- Bind native image build to package so reactor rebuilds rpc first. -->
+                            <execution>
+                                <id>build-native</id>
+                                <goals>
+                                    <goal>compile</goal>
+                                </goals>
+                                <phase>package</phase>
                             </execution>
                         </executions>
                     </plugin>
