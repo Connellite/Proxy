@@ -44,4 +44,14 @@ public class SettingsForm {
 
     /** Full SOCKS5: TCP CONNECT + UDP ASSOCIATE. Off = TCP CONNECT only. */
     private boolean socksUdpEnabled = false;
+
+    private boolean sshEnabled = false;
+
+    @NotBlank
+    @Size(max = 64)
+    private String sshBindHost = "0.0.0.0";
+
+    @Min(1)
+    @Max(65535)
+    private int sshPort = 2222;
 }

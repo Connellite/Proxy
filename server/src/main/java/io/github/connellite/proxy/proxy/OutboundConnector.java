@@ -3,6 +3,7 @@ package io.github.connellite.proxy.proxy;
 import io.github.connellite.proxy.config.ProxyProperties;
 import io.github.connellite.proxy.dto.UpstreamSnapshot;
 import io.github.connellite.proxy.model.UpstreamProxyType;
+import io.github.connellite.proxy.proxy.ssh.SshUpstreamClient;
 import io.github.connellite.proxy.service.UpstreamProxyService;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
@@ -51,7 +52,7 @@ import java.util.Optional;
 
 /**
  * Opens an outbound TCP tunnel to {@code targetHost:targetPort}, either directly
- * or via the currently selected upstream HTTP/SOCKS5 proxy.
+ * or via the currently selected upstream HTTP / SOCKS5 / SSH proxy.
  */
 @Slf4j
 @Component
@@ -60,6 +61,7 @@ public class OutboundConnector {
 
     private final UpstreamProxyService upstreamProxyService;
     private final ProxyProperties properties;
+    private final SshUpstreamClient sshUpstreamClient;
 
     public void openTunnel(Channel inbound, String targetHost, int targetPort, TunnelCallback callback) {
         Optional<UpstreamSnapshot> selected = upstreamProxyService.currentSelected();
@@ -70,6 +72,8 @@ public class OutboundConnector {
         UpstreamSnapshot upstream = selected.get();
         if (upstream.type() == UpstreamProxyType.SOCKS5) {
             connectViaSocks5(inbound, upstream, targetHost, targetPort, callback);
+        } else if (upstream.type() == UpstreamProxyType.SSH) {
+            sshUpstreamClient.openTunnel(inbound, upstream, targetHost, targetPort, callback);
         } else {
             connectViaHttp(inbound, upstream, targetHost, targetPort, callback);
         }

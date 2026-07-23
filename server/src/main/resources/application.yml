@@ -46,6 +46,10 @@ proxy:
     enabled: true
     bind-host: 0.0.0.0
     port: 1080
+  ssh:
+    enabled: false
+    bind-host: 0.0.0.0
+    port: 2222
   http-auth-required: false
   socks-auth-required: false
   socks-udp-enabled: false
@@ -59,3 +63,5 @@ logging:
   level:
     root: INFO
     io.github.connellite.proxy: INFO
+    # SSHD local-forward race can WARN/NPE while the tunnel still works (SSHD-849/961).
+    org.apache.sshd.common.forward.DefaultForwarder: ERROR

@@ -21,8 +21,7 @@ Native is an **additional** GraalVM build on Spring Boot 3 (does not replace the
 ```bash
 mvn -Pspring-2 clean package     # server/target/proxy-1.0.0.jar / .war
 mvn -Pspring-3 clean package     # server/target/proxy-1.0.0-spring-3.jar / .war
-mvn -Pnative native:compile      # server/target/proxy-1.0.0-native (needs GraalVM native-image)
-mvn -Pnative spring-boot:build-image   # native OCI image via buildpacks (needs Docker)
+mvn -Pnative package             # server/target/proxy-1.0.0-native (needs GraalVM native-image)
 ```
 
 Native prerequisites: GraalVM / Liberica NIK with `native-image`. On Windows use **x64 Native Tools Command Prompt** (Visual Studio Build Tools).

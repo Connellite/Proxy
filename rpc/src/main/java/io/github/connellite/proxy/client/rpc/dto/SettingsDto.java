@@ -16,17 +16,21 @@ public class SettingsDto implements IsSerializable {
 
     private boolean httpEnabled;
     private boolean socksEnabled;
+    private boolean sshEnabled;
     private boolean httpAuthRequired;
     private boolean socksAuthRequired;
     private boolean socksUdpEnabled;
     private String httpBindHost;
     private String socksBindHost;
+    private String sshBindHost;
     private int httpPort;
     private int socksPort;
+    private int sshPort;
     private int adminServerPort;
     private boolean httpRunning;
     private boolean httpsRunning;
     private boolean socksRunning;
+    private boolean sshRunning;
     private String lastError;
     /** Local bind choices: 0.0.0.0, 127.0.0.1, and current machine IPv4 addresses. */
     private List<String> bindHostOptions = new ArrayList<>();

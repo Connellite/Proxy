@@ -72,6 +72,8 @@ public class DashboardPage extends Composite {
                 dto.isHttpsRunning() ? "up" : "down");
         addStat("SOCKS4/5 proxy", dto.isSocksRunning() ? dto.getSocksBind() : "stopped",
                 dto.isSocksRunning() ? "up" : "down");
+        addStat("SSH tunnel proxy", dto.isSshRunning() ? dto.getSshBind() : "stopped",
+                dto.isSshRunning() ? "up" : "down");
         addStat("Active client TCP channels", String.valueOf(dto.getActiveConnections()), null);
         addStat("Users", dto.getEnabledUsers() + " / " + dto.getUserCount(), null);
         addStat("Traffic up (since start)", Formatters.formatBytes(dto.getSessionBytesUp()), null);
@@ -91,7 +93,10 @@ public class DashboardPage extends Composite {
                         + "<p>HTTPS → protocol <code>HTTPS</code>, port <strong>" + dto.getHttpsPort()
                         + "</strong> (enable in Settings; self-signed cert).</p>"
                         + "<p>SOCKS5 / SOCKS4 → same host, port <strong>" + dto.getSocksPort() + "</strong>. "
-                        + "SOCKS4 only when SOCKS auth is <em>off</em>. Chrome often lacks SOCKS password auth.</p>");
+                        + "SOCKS4 only when SOCKS auth is <em>off</em>. Chrome often lacks SOCKS password auth.</p>"
+                        + "<p>SSH tunnels → host + port <strong>" + dto.getSshPort()
+                        + "</strong> (enable in Settings). Password = proxy user. "
+                        + "Use PuTTY/OpenSSH local/remote port forward; shell is disabled.</p>");
     }
 
     private void addStat(String label, String value, String valueStyle) {

@@ -13,7 +13,7 @@
     <artifactId>proxy</artifactId>
     <packaging>jar</packaging>
     <name>proxy</name>
-    <description>HTTP and SOCKS5 authenticated proxy with SQLite and admin UI</description>
+    <description>HTTP, SOCKS5 and SSH tunnel proxy with SQLite and admin UI</description>
 
     <dependencies>
         <dependency>
@@ -48,6 +48,10 @@
         <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty-all</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.sshd</groupId>
+            <artifactId>sshd-core</artifactId>
         </dependency>
         <dependency>
             <groupId>org.bouncycastle</groupId>
@@ -141,6 +145,31 @@
                     <useDefaultDelimiters>false</useDefaultDelimiters>
                 </configuration>
                 <executions>
+                    <!--
+                      Manifold IDEA plugin ignores -A… compiler args; it only reads build.properties
+                      in the source-file directory ancestry. Filter the active profile symbol here
+                      so IDE and javac share one definition.
+                    -->
+                    <execution>
+                        <id>filter-manifold-build-properties</id>
+                        <phase>initialize</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.basedir}</outputDirectory>
+                            <overwrite>true</overwrite>
+                            <resources>
+                                <resource>
+                                    <directory>${project.basedir}/src/build-config</directory>
+                                    <filtering>true</filtering>
+                                    <includes>
+                                        <include>build.properties</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
                     <execution>
                         <id>copy-gwt-static</id>
                         <phase>prepare-package</phase>
@@ -181,7 +210,6 @@
                     </annotationProcessorPaths>
                     <compilerArgs>
                         <arg>-Xplugin:Manifold</arg>
-                        <arg>-A${manifold.spring.symbol}</arg>
                     </compilerArgs>
                 </configuration>
             </plugin>
@@ -341,15 +369,27 @@
                                 <buildArg>--add-opens=java.base/java.lang=ALL-UNNAMED</buildArg>
                                 <buildArg>--add-opens=java.base/java.util=ALL-UNNAMED</buildArg>
                                 <buildArg>--initialize-at-run-time=java.awt,sun.awt,sun.java2d,sun.font,sun.swing</buildArg>
+                                <buildArg>-H:+UnlockExperimentalVMOptions</buildArg>
+                                <buildArg>-H:-AddAllFileSystemProviders</buildArg>
+                                <buildArg>--strict-image-heap</buildArg>
                                 <buildArg>-H:+ReportExceptionStackTraces</buildArg>
                             </buildArgs>
                         </configuration>
                         <executions>
+                            <!-- Pull GraalVM reachability metadata for dependencies. -->
                             <execution>
                                 <id>add-reachability-metadata</id>
                                 <goals>
                                     <goal>add-reachability-metadata</goal>
                                 </goals>
+                            </execution>
+                            <!-- Bind native image build to package so reactor rebuilds rpc first. -->
+                            <execution>
+                                <id>build-native</id>
+                                <goals>
+                                    <goal>compile</goal>
+                                </goals>
+                                <phase>package</phase>
                             </execution>
                         </executions>
                     </plugin>

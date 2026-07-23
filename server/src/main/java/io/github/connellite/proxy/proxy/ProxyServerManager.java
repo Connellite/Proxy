@@ -5,6 +5,7 @@ import io.github.connellite.proxy.dto.AppSettings;
 import io.github.connellite.proxy.proxy.http.HttpProxyServerInstance;
 import io.github.connellite.proxy.proxy.http.ProxyTlsService;
 import io.github.connellite.proxy.proxy.socks.SocksProxyServer;
+import io.github.connellite.proxy.proxy.ssh.SshProxyServer;
 import io.github.connellite.proxy.service.ProxyAuthService;
 import io.github.connellite.proxy.service.ProxyMetrics;
 import io.github.connellite.proxy.service.SettingsService;
@@ -30,6 +31,7 @@ public class ProxyServerManager implements ApplicationRunner {
     private final ProxyMetrics metrics;
     private final ProxyTlsService tlsService;
     private final SocksProxyServer socksProxyServer;
+    private final SshProxyServer sshProxyServer;
     private final HttpProxyServerInstance httpServer;
     private final HttpProxyServerInstance httpsServer;
 
@@ -42,11 +44,13 @@ public class ProxyServerManager implements ApplicationRunner {
                               ProxyProperties properties,
                               ProxyTlsService tlsService,
                               SocksProxyServer socksProxyServer,
+                              SshProxyServer sshProxyServer,
                               OutboundConnector outboundConnector) {
         this.settingsService = settingsService;
         this.metrics = metrics;
         this.tlsService = tlsService;
         this.socksProxyServer = socksProxyServer;
+        this.sshProxyServer = sshProxyServer;
         this.httpServer = new HttpProxyServerInstance(authService, metrics, properties, outboundConnector, "HTTP proxy");
         this.httpsServer = new HttpProxyServerInstance(authService, metrics, properties, outboundConnector, "HTTPS proxy");
     }
@@ -62,6 +66,7 @@ public class ProxyServerManager implements ApplicationRunner {
         httpServer.stop();
         httpsServer.stop();
         socksProxyServer.stop();
+        sshProxyServer.stop();
         metrics.resetActiveConnections();
         try {
             if (settings.isHttpEnabled()) {
@@ -80,12 +85,18 @@ public class ProxyServerManager implements ApplicationRunner {
             } else {
                 log.info("SOCKS4/5 proxy disabled");
             }
+            if (settings.isSshEnabled()) {
+                sshProxyServer.start(settings.getSshBindHost(), settings.getSshPort());
+            } else {
+                log.info("SSH tunnel proxy disabled");
+            }
         } catch (Exception ex) {
             lastError = ex.getMessage();
             log.error("Failed to start proxy listeners", ex);
             httpServer.stop();
             httpsServer.stop();
             socksProxyServer.stop();
+            sshProxyServer.stop();
             metrics.resetActiveConnections();
         }
     }
@@ -102,11 +113,16 @@ public class ProxyServerManager implements ApplicationRunner {
         return socksProxyServer.isRunning();
     }
 
+    public boolean isSshRunning() {
+        return sshProxyServer.isRunning();
+    }
+
     @PreDestroy
     public void shutdown() {
         httpServer.stop();
         httpsServer.stop();
         socksProxyServer.stop();
+        sshProxyServer.stop();
         metrics.resetActiveConnections();
     }
 }
