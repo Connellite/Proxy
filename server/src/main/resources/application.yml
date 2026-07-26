@@ -54,6 +54,8 @@ proxy:
   socks-auth-required: false
   socks-udp-enabled: false
   connect-timeout-ms: 15000
+  # Outbound IP TTL (0 = OS default). Prefer Settings UI; applies to proxy→direct/upstream sockets.
+  outbound-ttl: 0
   idle-timeout-seconds: 300
   http-max-content-length-bytes: 8388608
   # IANA timezone for UI dates / expire-on (examples: UTC, America/New_York)

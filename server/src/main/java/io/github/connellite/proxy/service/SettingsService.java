@@ -46,6 +46,9 @@ public class SettingsService {
         if (!AdminServerPortStore.isValidPort(settings.getAdminServerPort())) {
             throw new IllegalArgumentException("Admin port must be between 1 and 65535");
         }
+        if (settings.getOutboundTtl() < 0 || settings.getOutboundTtl() > 255) {
+            throw new IllegalArgumentException("Outbound TTL must be between 0 and 255 (0 = OS default)");
+        }
         repository.saveAll(toEntries(settings));
         return settings;
     }
@@ -81,6 +84,7 @@ public class SettingsService {
         settings.setSshBindHost(properties.getSsh().getBindHost());
         settings.setSshPort(properties.getSsh().getPort());
         settings.setAdminServerPort(AdminServerPortStore.DEFAULT_PORT);
+        settings.setOutboundTtl(properties.getOutboundTtl());
         return settings;
     }
 
@@ -108,6 +112,7 @@ public class SettingsService {
         settings.setSshBindHost(parseString(map.get(ConfigEntry.SSH_BIND_HOST), settings.getSshBindHost()));
         settings.setSshPort(parseInt(map.get(ConfigEntry.SSH_PORT), settings.getSshPort()));
         settings.setAdminServerPort(parseInt(map.get(ConfigEntry.ADMIN_SERVER_PORT), settings.getAdminServerPort()));
+        settings.setOutboundTtl(parseInt(map.get(ConfigEntry.OUTBOUND_TTL), settings.getOutboundTtl()));
         settings.setBytesUpTotal(parseLong(map.get(ConfigEntry.BYTES_UP_TOTAL), 0L));
         settings.setBytesDownTotal(parseLong(map.get(ConfigEntry.BYTES_DOWN_TOTAL), 0L));
         return settings;
@@ -136,6 +141,7 @@ public class SettingsService {
         entries.add(new ConfigEntry(ConfigEntry.SSH_BIND_HOST, settings.getSshBindHost()));
         entries.add(new ConfigEntry(ConfigEntry.SSH_PORT, Integer.toString(settings.getSshPort())));
         entries.add(new ConfigEntry(ConfigEntry.ADMIN_SERVER_PORT, Integer.toString(settings.getAdminServerPort())));
+        entries.add(new ConfigEntry(ConfigEntry.OUTBOUND_TTL, Integer.toString(settings.getOutboundTtl())));
         entries.add(new ConfigEntry(ConfigEntry.BYTES_UP_TOTAL, Long.toString(settings.getBytesUpTotal())));
         entries.add(new ConfigEntry(ConfigEntry.BYTES_DOWN_TOTAL, Long.toString(settings.getBytesDownTotal())));
         return entries;

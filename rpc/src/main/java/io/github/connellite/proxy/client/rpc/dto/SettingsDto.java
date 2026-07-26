@@ -27,6 +27,8 @@ public class SettingsDto implements IsSerializable {
     private int socksPort;
     private int sshPort;
     private int adminServerPort;
+    /** 0 = OS default; 1–255 = set IP TTL on proxy outbound sockets. */
+    private int outboundTtl;
     private boolean httpRunning;
     private boolean httpsRunning;
     private boolean socksRunning;

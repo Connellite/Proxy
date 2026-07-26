@@ -60,6 +60,12 @@ public class AppSettings {
     /** Spring Boot admin UI / Tomcat port ({@code server.port}). Requires app restart. */
     private int adminServerPort = 8080;
 
+    /**
+     * IP TTL / IPv6 hop limit on sockets this proxy opens toward the internet or an upstream.
+     * {@code 0} = OS default (no override).
+     */
+    private int outboundTtl = 0;
+
     private long bytesUpTotal = 0;
 
     private long bytesDownTotal = 0;

@@ -37,6 +37,7 @@ public class SettingsPage extends Composite {
     private final PlainIntegerBox socksPort = new PlainIntegerBox();
     private final PlainIntegerBox sshPort = new PlainIntegerBox();
     private final PlainIntegerBox adminServerPort = new PlainIntegerBox();
+    private final PlainIntegerBox outboundTtl = new PlainIntegerBox();
     private final Label adminPortHint = new Label();
     private final HTML status = new HTML();
 
@@ -54,6 +55,8 @@ public class SettingsPage extends Composite {
         sshPort.setMax(65535);
         adminServerPort.setMin(1);
         adminServerPort.setMax(65535);
+        outboundTtl.setMin(0);
+        outboundTtl.setMax(255);
         newPassword.getElement().setAttribute("minlength", "4");
         confirmPassword.getElement().setAttribute("minlength", "4");
 
@@ -117,6 +120,12 @@ public class SettingsPage extends Composite {
                 + "Host key is stored under the data directory.");
         sshHint.setStyleName("muted");
         listeners.add(sshHint);
+
+        listeners.add(new HTML("<h2>Outbound</h2>"));
+        listeners.add(Forms.field("Outbound IP TTL", outboundTtl,
+                "0 = OS default. 1–255 overrides TTL on sockets this proxy opens to the internet or an upstream "
+                        + "(ZeroOmega → this proxy → direct/upstream). Useful when the proxy runs on the same PC "
+                        + "(e.g. tethering). Takes effect on new outbound connections after Save."));
 
         Button save = new Button("Save & restart");
         save.setStyleName("primary");
@@ -189,6 +198,7 @@ public class SettingsPage extends Composite {
                 socksPort.setIntValue(dto.getSocksPort());
                 sshPort.setIntValue(dto.getSshPort());
                 adminServerPort.setIntValue(dto.getAdminServerPort() > 0 ? dto.getAdminServerPort() : 8080);
+                outboundTtl.setIntValue(dto.getOutboundTtl());
                 adminPortHint.setText("Takes effect after restart (tray Exit → relaunch).");
                 status.setHTML("HTTP: " + onOff(dto.isHttpRunning())
                         + " · HTTPS: " + onOff(dto.isHttpsRunning())
@@ -267,10 +277,12 @@ public class SettingsPage extends Composite {
         Integer sp = socksPort.getIntValue();
         Integer sshp = sshPort.getIntValue();
         Integer ap = adminServerPort.getIntValue();
+        Integer ttl = outboundTtl.getIntValue();
         dto.setHttpPort(hp == null ? 0 : hp);
         dto.setSocksPort(sp == null ? 0 : sp);
         dto.setSshPort(sshp == null ? 0 : sshp);
         dto.setAdminServerPort(ap == null ? 8080 : ap);
+        dto.setOutboundTtl(ttl == null ? 0 : ttl);
         return dto;
     }
 

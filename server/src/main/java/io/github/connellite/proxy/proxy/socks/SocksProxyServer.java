@@ -4,10 +4,12 @@ import io.github.connellite.proxy.config.ProxyProperties;
 import io.github.connellite.proxy.dto.AuthenticatedSession;
 import io.github.connellite.proxy.proxy.IdleCloseHandler;
 import io.github.connellite.proxy.proxy.OutboundConnector;
+import io.github.connellite.proxy.proxy.OutboundIpTtl;
 import io.github.connellite.proxy.proxy.RelayHandler;
 import io.github.connellite.proxy.proxy.UserTrafficShaping;
 import io.github.connellite.proxy.service.ProxyAuthService;
 import io.github.connellite.proxy.service.ProxyMetrics;
+import io.github.connellite.proxy.service.SettingsService;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
@@ -65,6 +67,7 @@ public final class SocksProxyServer implements AutoCloseable {
     private final ProxyAuthService authService;
     private final ProxyMetrics metrics;
     private final ProxyProperties properties;
+    private final SettingsService settingsService;
     private final OutboundConnector outboundConnector;
 
     private EventLoopGroup bossGroup;
@@ -224,6 +227,7 @@ public final class SocksProxyServer implements AutoCloseable {
                     .handler(new ChannelInitializer<NioDatagramChannel>() {
                         @Override
                         protected void initChannel(NioDatagramChannel ch) {
+                            OutboundIpTtl.apply(ch, settingsService.get().getOutboundTtl());
                             ch.pipeline().addLast(new Socks5UdpRelayHandler(inbound, session, metrics));
                         }
                     });

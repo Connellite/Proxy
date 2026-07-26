@@ -226,13 +226,27 @@
                 </executions>
                 <configuration>
                     <mainClass>io.github.connellite.proxy.ProxyApplication</mainClass>
-                    <jvmArguments>--add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED</jvmArguments>
+                    <jvmArguments>--add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED --add-opens java.base/sun.nio.ch=ALL-UNNAMED</jvmArguments>
                     <excludes>
                         <exclude>
                             <groupId>org.projectlombok</groupId>
                             <artifactId>lombok</artifactId>
                         </exclude>
                     </excludes>
+                </configuration>
+            </plugin>
+
+            <!-- Add-Opens for java -jar. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <archive>
+                        <manifestEntries>
+                            <!-- Manifest form omits =ALL-UNNAMED; JVM opens to the unnamed module. -->
+                            <Add-Opens>java.base/java.lang java.base/java.util java.base/sun.nio.ch</Add-Opens>
+                        </manifestEntries>
+                    </archive>
                 </configuration>
             </plugin>
 
@@ -368,6 +382,7 @@
                                 <buildArg>--enable-native-access=ALL-UNNAMED</buildArg>
                                 <buildArg>--add-opens=java.base/java.lang=ALL-UNNAMED</buildArg>
                                 <buildArg>--add-opens=java.base/java.util=ALL-UNNAMED</buildArg>
+                                <buildArg>--add-opens=java.base/sun.nio.ch=ALL-UNNAMED</buildArg>
                                 <buildArg>--initialize-at-run-time=java.awt,sun.awt,sun.java2d,sun.font,sun.swing</buildArg>
                                 <buildArg>-H:+UnlockExperimentalVMOptions</buildArg>
                                 <buildArg>-H:-AddAllFileSystemProviders</buildArg>

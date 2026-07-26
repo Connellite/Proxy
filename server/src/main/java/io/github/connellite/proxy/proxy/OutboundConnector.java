@@ -4,6 +4,7 @@ import io.github.connellite.proxy.config.ProxyProperties;
 import io.github.connellite.proxy.dto.UpstreamSnapshot;
 import io.github.connellite.proxy.model.UpstreamProxyType;
 import io.github.connellite.proxy.proxy.ssh.SshUpstreamClient;
+import io.github.connellite.proxy.service.SettingsService;
 import io.github.connellite.proxy.service.UpstreamProxyService;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
@@ -61,6 +62,7 @@ public class OutboundConnector {
 
     private final UpstreamProxyService upstreamProxyService;
     private final ProxyProperties properties;
+    private final SettingsService settingsService;
     private final SshUpstreamClient sshUpstreamClient;
 
     public void openTunnel(Channel inbound, String targetHost, int targetPort, TunnelCallback callback) {
@@ -84,7 +86,8 @@ public class OutboundConnector {
         bootstrap.handler(new ChannelInitializer<SocketChannel>() {
             @Override
             protected void initChannel(SocketChannel ch) {
-                // empty — caller installs handlers after success
+                applyOutboundTtl(ch);
+                // caller installs handlers after success
             }
         });
         bootstrap.connect(host, port).addListener((ChannelFutureListener) future -> {
@@ -105,6 +108,7 @@ public class OutboundConnector {
         bootstrap.handler(new ChannelInitializer<SocketChannel>() {
             @Override
             protected void initChannel(SocketChannel ch) {
+                applyOutboundTtl(ch);
                 ch.pipeline().addLast(new HttpClientCodec());
                 ch.pipeline().addLast(new HttpObjectAggregator(8192));
                 ch.pipeline().addLast(new SimpleChannelInboundHandler<FullHttpResponse>() {
@@ -185,6 +189,7 @@ public class OutboundConnector {
         bootstrap.handler(new ChannelInitializer<SocketChannel>() {
             @Override
             protected void initChannel(SocketChannel ch) {
+                applyOutboundTtl(ch);
                 ch.pipeline().addLast(Socks5ClientEncoder.DEFAULT);
                 ch.pipeline().addLast(new Socks5InitialResponseDecoder());
                 ch.pipeline().addLast(new Socks5UpstreamHandler(upstream, targetHost, targetPort, wantAuth, callback));
@@ -206,6 +211,10 @@ public class OutboundConnector {
                 .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, properties.getConnectTimeoutMs())
                 .option(ChannelOption.SO_KEEPALIVE, true)
                 .option(ChannelOption.TCP_NODELAY, true);
+    }
+
+    private void applyOutboundTtl(Channel channel) {
+        OutboundIpTtl.apply(channel, settingsService.get().getOutboundTtl());
     }
 
     private static void removeIfPresent(ChannelPipeline pipeline, Class<? extends ChannelHandler> type) {

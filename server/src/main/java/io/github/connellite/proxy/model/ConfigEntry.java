@@ -48,6 +48,8 @@ public class ConfigEntry {
     public static final String SSH_BIND_HOST = "ssh_bind_host";
     public static final String SSH_PORT = "ssh_port";
     public static final String ADMIN_SERVER_PORT = "admin_server_port";
+    /** Outbound IP TTL (0 = OS default, 1–255 = override on proxy→direct/upstream sockets). */
+    public static final String OUTBOUND_TTL = "outbound_ttl";
     public static final String BYTES_UP_TOTAL = "bytes_up_total";
     public static final String BYTES_DOWN_TOTAL = "bytes_down_total";
 
