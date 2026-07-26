@@ -5,6 +5,7 @@ import io.github.connellite.proxy.dto.AuthenticatedSession;
 import io.github.connellite.proxy.proxy.OutboundConnector;
 import io.github.connellite.proxy.proxy.RelayHandler;
 import io.github.connellite.proxy.proxy.UserTrafficShaping;
+import io.github.connellite.proxy.service.HttpStripHeaderService;
 import io.github.connellite.proxy.service.ProxyAuthService;
 import io.github.connellite.proxy.service.ProxyMetrics;
 import io.netty.buffer.ByteBuf;
@@ -40,6 +41,7 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Optional;
+import java.util.Set;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -50,6 +52,7 @@ public final class HttpProxyClientHandler extends SimpleChannelInboundHandler<Fu
     private final ProxyAuthService authService;
     private final ProxyMetrics metrics;
     private final OutboundConnector outboundConnector;
+    private final HttpStripHeaderService stripHeaderService;
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest request) {
@@ -190,8 +193,15 @@ public final class HttpProxyClientHandler extends SimpleChannelInboundHandler<Fu
         FullHttpRequest outboundRequest = request.retainedDuplicate();
         outboundRequest.setUri(path);
         outboundRequest.headers().set(HttpHeaderNames.HOST, uri.getPort() > 0 ? host + ":" + port : host);
+
         outboundRequest.headers().remove(HttpHeaderNames.PROXY_AUTHORIZATION);
         outboundRequest.headers().remove("Proxy-Connection");
+        Set<String> strip = stripHeaderService.currentNamesLowerCase();
+        if (!strip.isEmpty()) {
+            for (String name : strip) {
+                outboundRequest.headers().remove(name);
+            }
+        }
 
         Channel inbound = ctx.channel();
         Long userId = session == null ? null : session.userId();

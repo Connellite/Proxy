@@ -6,6 +6,7 @@ import io.github.connellite.proxy.proxy.http.HttpProxyServerInstance;
 import io.github.connellite.proxy.proxy.http.ProxyTlsService;
 import io.github.connellite.proxy.proxy.socks.SocksProxyServer;
 import io.github.connellite.proxy.proxy.ssh.SshProxyServer;
+import io.github.connellite.proxy.service.HttpStripHeaderService;
 import io.github.connellite.proxy.service.ProxyAuthService;
 import io.github.connellite.proxy.service.ProxyMetrics;
 import io.github.connellite.proxy.service.SettingsService;
@@ -45,14 +46,17 @@ public class ProxyServerManager implements ApplicationRunner {
                               ProxyTlsService tlsService,
                               SocksProxyServer socksProxyServer,
                               SshProxyServer sshProxyServer,
-                              OutboundConnector outboundConnector) {
+                              OutboundConnector outboundConnector,
+                              HttpStripHeaderService stripHeaderService) {
         this.settingsService = settingsService;
         this.metrics = metrics;
         this.tlsService = tlsService;
         this.socksProxyServer = socksProxyServer;
         this.sshProxyServer = sshProxyServer;
-        this.httpServer = new HttpProxyServerInstance(authService, metrics, properties, outboundConnector, "HTTP proxy");
-        this.httpsServer = new HttpProxyServerInstance(authService, metrics, properties, outboundConnector, "HTTPS proxy");
+        this.httpServer = new HttpProxyServerInstance(
+                authService, metrics, properties, outboundConnector, stripHeaderService, "HTTP proxy");
+        this.httpsServer = new HttpProxyServerInstance(
+                authService, metrics, properties, outboundConnector, stripHeaderService, "HTTPS proxy");
     }
 
     @Override

@@ -16,6 +16,8 @@ import io.github.connellite.proxy.client.rpc.AdminService;
 import io.github.connellite.proxy.client.rpc.dto.AdminRowDto;
 import io.github.connellite.proxy.client.rpc.dto.DashboardDto;
 import io.github.connellite.proxy.client.rpc.dto.EncryptionDto;
+import io.github.connellite.proxy.client.rpc.dto.HttpStripHeaderRowDto;
+import io.github.connellite.proxy.client.rpc.dto.HttpStripHeadersPageDto;
 import io.github.connellite.proxy.client.rpc.dto.PasswordChangeDto;
 import io.github.connellite.proxy.client.rpc.dto.SettingsDto;
 import io.github.connellite.proxy.client.rpc.dto.TlsStatusDto;
@@ -34,12 +36,14 @@ import io.github.connellite.proxy.dto.TlsStatus;
 import io.github.connellite.proxy.dto.UpstreamProxyForm;
 import io.github.connellite.proxy.dto.UserThroughput;
 import io.github.connellite.proxy.model.AdminAccount;
+import io.github.connellite.proxy.model.HttpStripHeader;
 import io.github.connellite.proxy.model.ProxyUser;
 import io.github.connellite.proxy.model.UpstreamProxy;
 import io.github.connellite.proxy.model.UpstreamProxyType;
 import io.github.connellite.proxy.proxy.ProxyServerManager;
 import io.github.connellite.proxy.proxy.http.ProxyTlsService;
 import io.github.connellite.proxy.security.AdminAccountService;
+import io.github.connellite.proxy.service.HttpStripHeaderService;
 import io.github.connellite.proxy.service.ProxyMetrics;
 import io.github.connellite.proxy.service.ProxyUserService;
 import io.github.connellite.proxy.service.SettingsService;
@@ -68,6 +72,7 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
 
     private final ProxyUserService userService;
     private final UpstreamProxyService upstreamProxyService;
+    private final HttpStripHeaderService stripHeaderService;
     private final SettingsService settingsService;
     private final ProxyServerManager proxyServerManager;
     private final ProxyMetrics proxyMetrics;
@@ -78,6 +83,7 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
 
     public AdminServiceImpl(ProxyUserService userService,
                             UpstreamProxyService upstreamProxyService,
+                            HttpStripHeaderService stripHeaderService,
                             SettingsService settingsService,
                             ProxyServerManager proxyServerManager,
                             ProxyMetrics proxyMetrics,
@@ -87,6 +93,7 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
                             ZoneId appZoneId) {
         this.userService = userService;
         this.upstreamProxyService = upstreamProxyService;
+        this.stripHeaderService = stripHeaderService;
         this.settingsService = settingsService;
         this.proxyServerManager = proxyServerManager;
         this.proxyMetrics = proxyMetrics;
@@ -329,6 +336,37 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
     @Override
     public void clearUpstreamProxySelection() {
         upstreamProxyService.clearSelection();
+    }
+
+    @Override
+    public HttpStripHeadersPageDto getHttpStripHeaders() {
+        HttpStripHeadersPageDto page = new HttpStripHeadersPageDto();
+        page.setHeaders(new ArrayList<>());
+        for (HttpStripHeader header : stripHeaderService.findAll()) {
+            HttpStripHeaderRowDto row = new HttpStripHeaderRowDto();
+            row.setId(header.getId());
+            row.setName(header.getName());
+            page.getHeaders().add(row);
+        }
+        return page;
+    }
+
+    @Override
+    public void addHttpStripHeader(String name) throws AdminRpcException {
+        try {
+            stripHeaderService.add(name);
+        } catch (RuntimeException ex) {
+            throw toRpcException("Failed to add strip header", ex);
+        }
+    }
+
+    @Override
+    public void deleteHttpStripHeader(long id) throws AdminRpcException {
+        try {
+            stripHeaderService.delete(id);
+        } catch (RuntimeException ex) {
+            throw toRpcException("Failed to delete strip header", ex);
+        }
     }
 
     @Override

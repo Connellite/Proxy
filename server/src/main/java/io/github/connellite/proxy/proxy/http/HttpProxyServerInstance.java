@@ -3,6 +3,7 @@ package io.github.connellite.proxy.proxy.http;
 import io.github.connellite.proxy.config.ProxyProperties;
 import io.github.connellite.proxy.proxy.IdleCloseHandler;
 import io.github.connellite.proxy.proxy.OutboundConnector;
+import io.github.connellite.proxy.service.HttpStripHeaderService;
 import io.github.connellite.proxy.service.ProxyAuthService;
 import io.github.connellite.proxy.service.ProxyMetrics;
 import io.netty.bootstrap.ServerBootstrap;
@@ -29,6 +30,7 @@ public final class HttpProxyServerInstance implements AutoCloseable {
     private final ProxyMetrics metrics;
     private final ProxyProperties properties;
     private final OutboundConnector outboundConnector;
+    private final HttpStripHeaderService stripHeaderService;
     private final String label;
 
     private EventLoopGroup bossGroup;
@@ -39,11 +41,13 @@ public final class HttpProxyServerInstance implements AutoCloseable {
                             ProxyMetrics metrics,
                             ProxyProperties properties,
                             OutboundConnector outboundConnector,
+                            HttpStripHeaderService stripHeaderService,
                             String label) {
         this.authService = authService;
         this.metrics = metrics;
         this.properties = properties;
         this.outboundConnector = outboundConnector;
+        this.stripHeaderService = stripHeaderService;
         this.label = label;
     }
 
@@ -67,7 +71,8 @@ public final class HttpProxyServerInstance implements AutoCloseable {
                         ch.pipeline().addLast(new IdleCloseHandler());
                         ch.pipeline().addLast(new HttpServerCodec());
                         ch.pipeline().addLast(new HttpObjectAggregator(properties.getHttpMaxContentLengthBytes()));
-                        ch.pipeline().addLast(new HttpProxyClientHandler(authService, metrics, outboundConnector));
+                        ch.pipeline().addLast(new HttpProxyClientHandler(
+                                authService, metrics, outboundConnector, stripHeaderService));
                     }
                 });
         serverChannel = bootstrap.bind(new InetSocketAddress(bindHost, port)).sync().channel();

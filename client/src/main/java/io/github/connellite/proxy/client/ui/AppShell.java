@@ -75,6 +75,14 @@ public class AppShell extends Composite {
                 showUpstreamProxies();
             }
         }));
+        nav.add(navLink("Strip headers", new ClickHandler() {
+            @Override
+            public void onClick(ClickEvent event) {
+                event.preventDefault();
+                clearFlash();
+                showHttpStripHeaders();
+            }
+        }));
         nav.add(navLink("Encryption", new ClickHandler() {
             @Override
             public void onClick(ClickEvent event) {
@@ -155,6 +163,11 @@ public class AppShell extends Composite {
         stopRefresh();
         clearFlash();
         content.setWidget(new UpstreamProxyFormPage(this, id));
+    }
+
+    public void showHttpStripHeaders() {
+        stopRefresh();
+        content.setWidget(new HttpStripHeadersPage(this));
     }
 
     public void showEncryption() {

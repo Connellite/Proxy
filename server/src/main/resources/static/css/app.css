@@ -244,6 +244,41 @@ td.cell-ellipsis {
 }
 .actions a.button:hover { text-decoration: none; }
 
+button.btn-icon {
+  min-width: 2.1rem;
+  width: 2.1rem;
+  height: 2.1rem;
+  padding: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1;
+  border-radius: 8px;
+}
+button.btn-icon.success {
+  background: var(--ok);
+  border-color: var(--ok);
+  color: #fff;
+}
+button.btn-icon.danger-fill {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+}
+button.btn-icon:hover { filter: brightness(1.05); }
+
+.strip-headers-table {
+  min-width: 420px !important;
+}
+.strip-headers-table .gwt-TextBox {
+  width: 100%;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  font: inherit;
+  box-sizing: border-box;
+}
+
 .badge {
   display: inline-block;
   min-width: 4.75rem;

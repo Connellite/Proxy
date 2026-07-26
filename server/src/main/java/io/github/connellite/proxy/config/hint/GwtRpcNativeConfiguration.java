@@ -24,6 +24,8 @@ import io.github.connellite.proxy.client.rpc.AdminService;
 import io.github.connellite.proxy.client.rpc.dto.AdminRowDto;
 import io.github.connellite.proxy.client.rpc.dto.DashboardDto;
 import io.github.connellite.proxy.client.rpc.dto.EncryptionDto;
+import io.github.connellite.proxy.client.rpc.dto.HttpStripHeaderRowDto;
+import io.github.connellite.proxy.client.rpc.dto.HttpStripHeadersPageDto;
 import io.github.connellite.proxy.client.rpc.dto.PasswordChangeDto;
 import io.github.connellite.proxy.client.rpc.dto.SettingsDto;
 import io.github.connellite.proxy.client.rpc.dto.TlsStatusDto;
@@ -87,6 +89,8 @@ public class GwtRpcNativeConfiguration {
                 UpstreamProxiesPageDto.class,
                 UpstreamProxyRowDto.class,
                 UpstreamProxyFormDto.class,
+                HttpStripHeadersPageDto.class,
+                HttpStripHeaderRowDto.class,
                 ArrayList.class,
                 LinkedList.class,
                 Vector.class,

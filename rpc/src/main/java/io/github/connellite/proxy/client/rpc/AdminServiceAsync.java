@@ -3,6 +3,7 @@ package io.github.connellite.proxy.client.rpc;
 import com.google.gwt.user.client.rpc.AsyncCallback;
 import io.github.connellite.proxy.client.rpc.dto.DashboardDto;
 import io.github.connellite.proxy.client.rpc.dto.EncryptionDto;
+import io.github.connellite.proxy.client.rpc.dto.HttpStripHeadersPageDto;
 import io.github.connellite.proxy.client.rpc.dto.PasswordChangeDto;
 import io.github.connellite.proxy.client.rpc.dto.SettingsDto;
 import io.github.connellite.proxy.client.rpc.dto.TlsStatusDto;
@@ -42,6 +43,12 @@ public interface AdminServiceAsync {
     void selectUpstreamProxy(long id, AsyncCallback<Void> callback);
 
     void clearUpstreamProxySelection(AsyncCallback<Void> callback);
+
+    void getHttpStripHeaders(AsyncCallback<HttpStripHeadersPageDto> callback);
+
+    void addHttpStripHeader(String name, AsyncCallback<Void> callback);
+
+    void deleteHttpStripHeader(long id, AsyncCallback<Void> callback);
 
     void getSettings(AsyncCallback<SettingsDto> callback);
 

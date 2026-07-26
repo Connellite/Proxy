@@ -4,6 +4,7 @@ import com.google.gwt.user.client.rpc.RemoteService;
 import com.google.gwt.user.client.rpc.RemoteServiceRelativePath;
 import io.github.connellite.proxy.client.rpc.dto.DashboardDto;
 import io.github.connellite.proxy.client.rpc.dto.EncryptionDto;
+import io.github.connellite.proxy.client.rpc.dto.HttpStripHeadersPageDto;
 import io.github.connellite.proxy.client.rpc.dto.PasswordChangeDto;
 import io.github.connellite.proxy.client.rpc.dto.SettingsDto;
 import io.github.connellite.proxy.client.rpc.dto.TlsStatusDto;
@@ -44,6 +45,12 @@ public interface AdminService extends RemoteService {
     void selectUpstreamProxy(long id) throws AdminRpcException;
 
     void clearUpstreamProxySelection();
+
+    HttpStripHeadersPageDto getHttpStripHeaders();
+
+    void addHttpStripHeader(String name) throws AdminRpcException;
+
+    void deleteHttpStripHeader(long id) throws AdminRpcException;
 
     SettingsDto getSettings();
 
