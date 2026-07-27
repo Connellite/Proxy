@@ -11,7 +11,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "proxy")
 public class ProxyProperties {
 
-    private String dataDir = "./data";
+    /** When empty: resolved from project folder ({@code .../data}). */
+    private String dataDir = "";
     private boolean httpAuthRequired = false;
     private boolean socksAuthRequired = false;
     private boolean socksUdpEnabled = false;

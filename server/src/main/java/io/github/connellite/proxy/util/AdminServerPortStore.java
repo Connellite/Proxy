@@ -22,10 +22,11 @@ public final class AdminServerPortStore {
 
 
     /**
-     * Early boot: {@code ${proxy.data-dir:./data}/proxy.db} → {@code admin_server_port}.
+     * Early boot: resolved data dir {@code /proxy.db} → {@code admin_server_port}.
+     * Order: {@code -Dproxy.data-dir}, else {@code catalina.base/data}, else {@code user.dir/data}, else {@code ./data}.
      */
     public static int readConfiguredPort() {
-        Path db = Path.of(System.getProperty("proxy.data-dir", "./data"), "proxy.db");
+        Path db = resolveDataDir().resolve("proxy.db");
         if (!Files.isRegularFile(db)) {
             return DEFAULT_PORT;
         }
@@ -45,6 +46,22 @@ public final class AdminServerPortStore {
         } catch (Exception ex) {
             return DEFAULT_PORT;
         }
+    }
+
+    static Path resolveDataDir() {
+        String configured = System.getProperty("proxy.data-dir");
+        if (configured != null && !configured.isBlank()) {
+            return Path.of(configured.trim()).toAbsolutePath().normalize();
+        }
+        String catalinaBase = System.getProperty("catalina.base");
+        if (catalinaBase != null && !catalinaBase.isBlank()) {
+            return Path.of(catalinaBase, "data").toAbsolutePath().normalize();
+        }
+        String userDir = System.getProperty("user.dir");
+        if (userDir != null && !userDir.isBlank()) {
+            return Path.of(userDir, "data").toAbsolutePath().normalize();
+        }
+        return Path.of("./data").toAbsolutePath().normalize();
     }
 
     public static Properties asServerPortProperties(int port) {
