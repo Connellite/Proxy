@@ -6,7 +6,11 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.web.SecurityFilterChain;
+#if SPRING_BOOT_3
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
+#else
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+#endif
 
 @Configuration
 @EnableWebSecurity
@@ -27,7 +31,8 @@ public class SecurityConfig {
                         .defaultSuccessUrl("/admin.html", true)
                         .permitAll())
                 .logout(logout -> logout
-                        .logoutRequestMatcher(new AntPathRequestMatcher("/logout"))
+                        // GWT uses Window.Location.assign("/logout") → GET
+                        .logoutRequestMatcher(PathPatternRequestMatcher.withDefaults().matcher("/logout"))
                         .logoutSuccessUrl("/login?logout")
                         .permitAll())
                 .userDetailsService(adminUserDetailsService)

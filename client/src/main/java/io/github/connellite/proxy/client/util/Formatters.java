@@ -5,7 +5,7 @@ public final class Formatters {
     private Formatters() {
     }
 
-    /** Decimal units like the old {@code FormatHelper#bytes}. */
+    /** Decimal byte units (kB, MB, …). */
     public static String formatBytes(long bytes) {
         if (bytes < 0) {
             long abs = bytes == Long.MIN_VALUE ? Long.MAX_VALUE : -bytes;

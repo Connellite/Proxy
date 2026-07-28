@@ -37,7 +37,6 @@
         <manifold.version>2026.1.6</manifold.version>
         <sqlite-jdbc.version>3.53.2.0</sqlite-jdbc.version>
         <guava.version>33.6.0-jre</guava.version>
-        <storage-units.version>2026.7.8</storage-units.version>
         <bouncycastle.version>1.80</bouncycastle.version>
         <sshd.version>2.18.0</sshd.version>
         <native-build-tools.version>0.10.6</native-build-tools.version>
@@ -101,11 +100,6 @@
                 <groupId>org.bouncycastle</groupId>
                 <artifactId>bcpkix-jdk18on</artifactId>
                 <version>${bouncycastle.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>wtf.metio.storage-units</groupId>
-                <artifactId>storage-units-model</artifactId>
-                <version>${storage-units.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.sshd</groupId>

@@ -1,11 +1,9 @@
 package io.github.connellite.proxy.config.hint;
 
 #if SPRING_BOOT_3
-import io.github.connellite.proxy.config.FormatHelper;
 import io.github.connellite.proxy.dto.EncryptionForm;
 import io.github.connellite.proxy.dto.PasswordChangeForm;
 import io.github.connellite.proxy.dto.ProxyUserForm;
-import io.github.connellite.proxy.dto.SettingsForm;
 import io.github.connellite.proxy.dto.TlsStatus;
 import io.github.connellite.proxy.dto.AppSettings;
 import io.github.connellite.proxy.dto.UserThroughput;
@@ -43,10 +41,8 @@ public class ThymeleafNativeConfiguration {
         };
 
         private static final Class<?>[] REFLECTION_TYPES = {
-                FormatHelper.class,
                 TlsStatus.class,
                 EncryptionForm.class,
-                SettingsForm.class,
                 ProxyUserForm.class,
                 PasswordChangeForm.class,
                 ProxyUser.class,
