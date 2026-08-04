@@ -1,6 +1,5 @@
 package io.github.connellite.proxy.service;
 
-import io.github.connellite.proxy.util.AdminServerPortStore;
 import io.github.connellite.proxy.config.ProxyProperties;
 import io.github.connellite.proxy.dto.AppSettings;
 import io.github.connellite.proxy.model.ConfigEntry;
@@ -43,9 +42,6 @@ public class SettingsService {
         if (existing.containsKey(ConfigEntry.BYTES_DOWN_TOTAL)) {
             settings.setBytesDownTotal(parseLong(existing.get(ConfigEntry.BYTES_DOWN_TOTAL), settings.getBytesDownTotal()));
         }
-        if (!AdminServerPortStore.isValidPort(settings.getAdminServerPort())) {
-            throw new IllegalArgumentException("Admin port must be between 1 and 65535");
-        }
         if (settings.getOutboundTtl() < 0 || settings.getOutboundTtl() > 255) {
             throw new IllegalArgumentException("Outbound TTL must be between 0 and 255 (0 = OS default)");
         }
@@ -83,7 +79,6 @@ public class SettingsService {
         settings.setSshEnabled(properties.getSsh().isEnabled());
         settings.setSshBindHost(properties.getSsh().getBindHost());
         settings.setSshPort(properties.getSsh().getPort());
-        settings.setAdminServerPort(AdminServerPortStore.DEFAULT_PORT);
         settings.setOutboundTtl(properties.getOutboundTtl());
         return settings;
     }

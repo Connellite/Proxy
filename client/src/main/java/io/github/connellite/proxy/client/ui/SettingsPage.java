@@ -36,7 +36,6 @@ public class SettingsPage extends Composite {
     private final PlainIntegerBox httpPort = new PlainIntegerBox();
     private final PlainIntegerBox socksPort = new PlainIntegerBox();
     private final PlainIntegerBox sshPort = new PlainIntegerBox();
-    private final PlainIntegerBox adminServerPort = new PlainIntegerBox();
     private final PlainIntegerBox outboundTtl = new PlainIntegerBox();
     private final Label adminPortHint = new Label();
     private final HTML status = new HTML();
@@ -53,8 +52,6 @@ public class SettingsPage extends Composite {
         socksPort.setMax(65535);
         sshPort.setMin(1);
         sshPort.setMax(65535);
-        adminServerPort.setMin(1);
-        adminServerPort.setMax(65535);
         outboundTtl.setMin(0);
         outboundTtl.setMax(255);
         newPassword.getElement().setAttribute("minlength", "4");
@@ -138,23 +135,6 @@ public class SettingsPage extends Composite {
         listeners.add(Forms.formActions(save));
         root.add(listeners);
 
-        FlowPanel adminPanel = new FlowPanel();
-        adminPanel.setStyleName("panel form");
-        adminPanel.add(new HTML("<h2>Admin UI</h2>"));
-        adminPanel.add(Forms.field("Admin web port (server.port)", adminServerPort));
-        adminPortHint.setStyleName("field-hint");
-        adminPanel.add(adminPortHint);
-        Button saveAdmin = new Button("Save admin port");
-        saveAdmin.setStyleName("primary");
-        saveAdmin.addClickHandler(new ClickHandler() {
-            @Override
-            public void onClick(ClickEvent event) {
-                saveSettings();
-            }
-        });
-        adminPanel.add(Forms.formActions(saveAdmin));
-        root.add(adminPanel);
-
         FlowPanel passwordPanel = new FlowPanel();
         passwordPanel.setStyleName("panel form");
         passwordPanel.add(new HTML("<h2>Admin password</h2>"));
@@ -197,7 +177,6 @@ public class SettingsPage extends Composite {
                 httpPort.setIntValue(dto.getHttpPort());
                 socksPort.setIntValue(dto.getSocksPort());
                 sshPort.setIntValue(dto.getSshPort());
-                adminServerPort.setIntValue(dto.getAdminServerPort() > 0 ? dto.getAdminServerPort() : 8080);
                 outboundTtl.setIntValue(dto.getOutboundTtl());
                 adminPortHint.setText("Takes effect after restart (tray Exit → relaunch).");
                 status.setHTML("HTTP: " + onOff(dto.isHttpRunning())
@@ -276,12 +255,10 @@ public class SettingsPage extends Composite {
         Integer hp = httpPort.getIntValue();
         Integer sp = socksPort.getIntValue();
         Integer sshp = sshPort.getIntValue();
-        Integer ap = adminServerPort.getIntValue();
         Integer ttl = outboundTtl.getIntValue();
         dto.setHttpPort(hp == null ? 0 : hp);
         dto.setSocksPort(sp == null ? 0 : sp);
         dto.setSshPort(sshp == null ? 0 : sshp);
-        dto.setAdminServerPort(ap == null ? 8080 : ap);
         dto.setOutboundTtl(ttl == null ? 0 : ttl);
         return dto;
     }

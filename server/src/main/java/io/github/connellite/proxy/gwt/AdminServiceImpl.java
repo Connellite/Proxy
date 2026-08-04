@@ -454,7 +454,6 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
         dto.setHttpAuthRequired(settings.isHttpAuthRequired());
         dto.setSocksAuthRequired(settings.isSocksAuthRequired());
         dto.setSocksUdpEnabled(settings.isSocksUdpEnabled());
-        dto.setAdminServerPort(settings.getAdminServerPort());
         dto.setOutboundTtl(settings.getOutboundTtl());
         dto.setHttpRunning(proxyServerManager.isHttpRunning());
         dto.setHttpsRunning(proxyServerManager.isHttpsRunning());
@@ -496,7 +495,6 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
         settings.setHttpAuthRequired(form.isHttpAuthRequired());
         settings.setSocksAuthRequired(form.isSocksAuthRequired());
         settings.setSocksUdpEnabled(form.isSocksUdpEnabled());
-        settings.setAdminServerPort(form.getAdminServerPort());
         settings.setOutboundTtl(form.getOutboundTtl());
     }
 

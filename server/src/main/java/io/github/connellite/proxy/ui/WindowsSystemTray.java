@@ -1,13 +1,12 @@
 package io.github.connellite.proxy.ui;
 
-import io.github.connellite.proxy.util.AdminServerPortStore;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.annotation.Order;
-import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
 import javax.imageio.ImageIO;
@@ -34,13 +33,14 @@ public class WindowsSystemTray implements ApplicationRunner {
 
     private static final String ICON_RESOURCE = "/static/icons/tray-icon.png";
 
+    @Value("${server.port}")
+    private Integer port;
+
     private final ConfigurableApplicationContext context;
-    private final Environment environment;
     private final AtomicBoolean installed = new AtomicBoolean(false);
 
-    public WindowsSystemTray(ConfigurableApplicationContext context, Environment environment) {
+    public WindowsSystemTray(ConfigurableApplicationContext context) {
         this.context = context;
-        this.environment = environment;
     }
 
     @Override
@@ -70,8 +70,6 @@ public class WindowsSystemTray implements ApplicationRunner {
     }
 
     private void install() throws Exception {
-        int port = environment.getProperty("local.server.port", Integer.class,
-                environment.getProperty("server.port", Integer.class, AdminServerPortStore.DEFAULT_PORT));
         String adminUrl = "http://127.0.0.1:" + port + "/admin.html";
 
         PopupMenu menu = new PopupMenu();

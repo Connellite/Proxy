@@ -1,6 +1,5 @@
 package io.github.connellite.proxy;
 
-import io.github.connellite.proxy.util.AdminServerPortStore;
 import org.springframework.boot.Banner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -24,7 +23,6 @@ public class ProxyApplication extends SpringBootServletInitializer {
         }
         SpringApplication app = new SpringApplication(ProxyApplication.class);
         app.setBannerMode(Banner.Mode.OFF);
-        app.setDefaultProperties(AdminServerPortStore.asServerPortProperties(AdminServerPortStore.readConfiguredPort()));
         app.run(args);
     }
 
