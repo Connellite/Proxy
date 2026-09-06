@@ -100,7 +100,7 @@ public class AppShell extends Composite {
             public void onClick(ClickEvent event) {
                 // Top-level navigation: FormPanel would submit into a hidden iframe,
                 // and Spring's X-Frame-Options: DENY blocks the login redirect there.
-                Window.Location.assign("/logout");
+                Window.Location.assign("logout");
             }
         });
         logout.add(logoutBtn);
