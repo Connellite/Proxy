@@ -11,8 +11,8 @@ spring:
     url: jdbc:sqlite:proxy.db
     driver-class-name: org.sqlite.JDBC
     hikari:
-      maximum-pool-size: 1
-      connection-init-sql: PRAGMA foreign_keys=ON
+      maximum-pool-size: 4
+      connection-init-sql: PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;
   jpa:
     hibernate:
       ddl-auto: update
