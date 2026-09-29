@@ -28,6 +28,9 @@ import java.security.cert.PKIXBuilderParameters;
 import java.security.cert.TrustAnchor;
 import java.security.cert.X509CertSelector;
 import java.security.cert.X509Certificate;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509TrustManager;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Enumeration;
@@ -262,7 +265,23 @@ public class ProxyTlsService {
     }
 
     private static PrivateKey toPrivateKey(Object object) throws Exception {
-        JcaPEMKeyConverter converter = new JcaPEMKeyConverter().setProvider(BouncyCastleProvider.PROVIDER_NAME);
+        // Prefer the platform KeyFactory in native images; BC SPI classes are easy to strip.
+        // Fall back to BC (with native reflection hints) when the JDK provider cannot decode the key.
+        Exception platformFailure = null;
+        try {
+            return convertPrivateKey(object, new JcaPEMKeyConverter());
+        } catch (Exception ex) {
+            platformFailure = ex;
+        }
+        try {
+            return convertPrivateKey(object, new JcaPEMKeyConverter().setProvider(BouncyCastleProvider.PROVIDER_NAME));
+        } catch (Exception bcFailure) {
+            bcFailure.addSuppressed(platformFailure);
+            throw bcFailure;
+        }
+    }
+
+    private static PrivateKey convertPrivateKey(Object object, JcaPEMKeyConverter converter) throws Exception {
         if (object instanceof PEMKeyPair) {
             return converter.getKeyPair((PEMKeyPair) object).getPrivate();
         }
@@ -289,12 +308,17 @@ public class ProxyTlsService {
             CertPathBuilder.getInstance("PKIX").build(params);
             return null;
         } catch (Exception ex) {
-            return "certificate chain is not trusted by system roots: " + ex.getMessage();
+            String detail = ex.getMessage() != null ? ex.getMessage() : ex.getClass().getSimpleName();
+            return "certificate chain is not trusted by system roots: " + detail;
         }
     }
 
     private static Set<TrustAnchor> systemTrustAnchors() throws Exception {
-        Set<TrustAnchor> anchors = new HashSet<>();
+        Set<TrustAnchor> anchors = fromDefaultTrustManagers();
+        if (!anchors.isEmpty()) {
+            return anchors;
+        }
+        // Fallback for environments where TrustManagerFactory has no default store (rare).
         String type = KeyStore.getDefaultType();
         Path[] candidates = new Path[]{
                 Path.of(System.getProperty("java.home"), "lib", "security", "cacerts"),
@@ -322,6 +346,27 @@ public class ProxyTlsService {
             if (!anchors.isEmpty()) {
                 return anchors;
             }
+        }
+        return anchors;
+    }
+
+    private static Set<TrustAnchor> fromDefaultTrustManagers() {
+        Set<TrustAnchor> anchors = new HashSet<>();
+        try {
+            TrustManagerFactory factory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+            factory.init((KeyStore) null);
+            for (TrustManager manager : factory.getTrustManagers()) {
+                if (!(manager instanceof X509TrustManager)) {
+                    continue;
+                }
+                for (X509Certificate cert : ((X509TrustManager) manager).getAcceptedIssuers()) {
+                    if (cert != null) {
+                        anchors.add(new TrustAnchor(cert, null));
+                    }
+                }
+            }
+        } catch (Exception ignored) {
+            // Fall through to cacerts file lookup.
         }
         return anchors;
     }
