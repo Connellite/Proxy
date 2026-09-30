@@ -18,17 +18,17 @@ public interface AdminServiceAsync {
 
     void getUsers(AsyncCallback<UsersPageDto> callback);
 
-    void getUserForm(Long id, AsyncCallback<UserFormDto> callback);
+    void getUserForm(String id, AsyncCallback<UserFormDto> callback);
 
     void createUser(UserFormDto form, AsyncCallback<Void> callback);
 
     void updateUser(UserFormDto form, AsyncCallback<Void> callback);
 
-    void setUserEnabled(long id, boolean enabled, AsyncCallback<Void> callback);
+    void setUserEnabled(String id, boolean enabled, AsyncCallback<Void> callback);
 
-    void resetUserTraffic(long id, AsyncCallback<Void> callback);
+    void resetUserTraffic(String id, AsyncCallback<Void> callback);
 
-    void deleteUser(long id, AsyncCallback<Void> callback);
+    void deleteUser(String id, AsyncCallback<Void> callback);
 
     void getUpstreamProxies(AsyncCallback<UpstreamProxiesPageDto> callback);
 

@@ -10,11 +10,12 @@ import lombok.Setter;
 @NoArgsConstructor
 public class UserRowDto implements IsSerializable {
 
-    private long id;
-    private String username;
+    private String id;
     private boolean enabled;
     private boolean usable;
     private boolean expired;
+    private boolean adminUi;
+    private boolean bootstrapAdmin;
     private int maxConnections;
     private long trafficLimitBytes = -1;
     private long speedLimitUpBps = -1;

@@ -20,20 +20,22 @@ import io.github.connellite.proxy.client.util.Rpc;
 public class UserFormPage extends Composite {
 
     private final AppShell shell;
-    private final Long editId;
+    private final String editId;
     private boolean creating = true;
+    private boolean bootstrapAdmin;
 
     private final HTML title = new HTML("<h1>User</h1>");
     private final TextBox username = new TextBox();
     private final PasswordTextBox password = new PasswordTextBox();
     private final CheckBox enabled = Forms.checkbox("Enabled");
+    private final CheckBox adminUi = Forms.checkbox("Admin (UI access)");
     private final PlainIntegerBox maxConnections = new PlainIntegerBox();
     private final PlainLongBox trafficLimitBytes = new PlainLongBox();
     private final PlainLongBox speedLimitUpBps = new PlainLongBox();
     private final PlainLongBox speedLimitDownBps = new PlainLongBox();
     private final DateInput expiresAt = new DateInput();
 
-    public UserFormPage(AppShell shell, Long id) {
+    public UserFormPage(AppShell shell, String id) {
         this.shell = shell;
         this.editId = id;
 
@@ -53,6 +55,7 @@ public class UserFormPage extends Composite {
         panel.add(Forms.field("Username", username));
         panel.add(Forms.field(id == null ? "Password" : "Password (leave blank to keep)", password));
         panel.add(enabled);
+        panel.add(adminUi);
         panel.add(Forms.field("Max connections (0 = unlimited)", maxConnections));
         panel.add(Forms.field("Traffic limit, bytes (−1 = ∞)", trafficLimitBytes,
                 "Total ↑+↓. When reached, proxy access is denied until counters are reset."));
@@ -96,11 +99,14 @@ public class UserFormPage extends Composite {
             @Override
             public void onSuccess(UserFormDto form) {
                 creating = form.isCreating() || form.getId() == null;
+                bootstrapAdmin = form.isBootstrapAdmin();
                 title.setHTML(creating ? "<h1>New user</h1>" : "<h1>Edit user</h1>");
-                username.setText(nullToEmpty(form.getUsername()));
+                username.setText(nullToEmpty(form.getId()));
                 password.setText(nullToEmpty(form.getPassword()));
                 expiresAt.setDateValue(nullToEmpty(form.getExpiresAt()));
                 enabled.setValue(form.isEnabled());
+                adminUi.setValue(form.isAdminUi() || bootstrapAdmin);
+                adminUi.setEnabled(!bootstrapAdmin);
                 maxConnections.setIntValue(form.getMaxConnections());
                 trafficLimitBytes.setLongValue(form.getTrafficLimitBytes());
                 speedLimitUpBps.setLongValue(form.getSpeedLimitUpBps());
@@ -112,13 +118,13 @@ public class UserFormPage extends Composite {
 
     private void save() {
         UserFormDto form = new UserFormDto();
-        form.setId(editId);
+        form.setId(creating ? username.getText().trim() : editId);
         form.setCreating(creating);
-        form.setUsername(username.getText().trim());
         form.setPassword(password.getText());
         String expires = expiresAt.getDateValue();
         form.setExpiresAt(expires.isEmpty() ? null : expires);
         form.setEnabled(enabled.getValue());
+        form.setAdminUi(bootstrapAdmin || Boolean.TRUE.equals(adminUi.getValue()));
         Integer max = maxConnections.getIntValue();
         form.setMaxConnections(max == null ? 0 : max);
         form.setTrafficLimitBytes(readLimit(trafficLimitBytes));

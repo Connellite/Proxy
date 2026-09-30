@@ -38,19 +38,19 @@ public class TrafficStatsService {
     private final SettingsService settingsService;
     private final MeterRegistry meterRegistry;
 
-    private final ConcurrentHashMap<Long, TrafficDelta> pendingUsers = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, TrafficDelta> pendingUsers = new ConcurrentHashMap<>();
     private final TrafficDelta pendingGlobal = new TrafficDelta();
     /** Bytes observed since this JVM process started (not reset on flush). */
     private final TrafficDelta sessionTotal = new TrafficDelta();
     /** Live total bytes (DB baseline + recorded) for quota checks without waiting for flush. */
-    private final ConcurrentHashMap<Long, AtomicLong> liveTotals = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, AtomicLong> liveTotals = new ConcurrentHashMap<>();
     /** Micrometer-backed live throughput meters per user. */
-    private final ConcurrentHashMap<Long, ThroughputMeters> throughputMeters = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, ThroughputMeters> throughputMeters = new ConcurrentHashMap<>();
 
     /**
      * Queue traffic for durable flush. {@code userId} may be null (anonymous / auth off).
      */
-    public void record(Long userId, long bytesUp, long bytesDown) {
+    public void record(String userId, long bytesUp, long bytesDown) {
         if (bytesUp <= 0 && bytesDown <= 0) {
             return;
         }
@@ -80,14 +80,14 @@ public class TrafficStatsService {
         });
     }
 
-    public boolean isOverTrafficLimit(Long userId, long trafficLimitBytes) {
+    public boolean isOverTrafficLimit(String userId, long trafficLimitBytes) {
         if (userId == null || trafficLimitBytes < 0) {
             return false;
         }
         return ensureLiveTotal(userId).get() >= trafficLimitBytes;
     }
 
-    public long liveTotalBytes(Long userId) {
+    public long liveTotalBytes(String userId) {
         if (userId == null) {
             return 0L;
         }
@@ -95,13 +95,13 @@ public class TrafficStatsService {
         return live == null ? 0L : Math.max(0L, live.get());
     }
 
-    public void clearLiveTotal(Long userId) {
+    public void clearLiveTotal(String userId) {
         if (userId != null) {
             liveTotals.remove(userId);
         }
     }
 
-    private AtomicLong ensureLiveTotal(Long userId) {
+    private AtomicLong ensureLiveTotal(String userId) {
         return liveTotals.computeIfAbsent(userId, id -> {
             long base = userRepository.findById(id)
                     .map(user -> user.getBytesUp() + user.getBytesDown())
@@ -110,7 +110,7 @@ public class TrafficStatsService {
         });
     }
 
-    public UserThroughput throughputFor(Long userId) {
+    public UserThroughput throughputFor(String userId) {
         if (userId == null) {
             return UserThroughput.ZERO;
         }
@@ -118,8 +118,8 @@ public class TrafficStatsService {
         return meters == null ? UserThroughput.ZERO : meters.snapshot();
     }
 
-    public Map<Long, UserThroughput> throughputSnapshot() {
-        Map<Long, UserThroughput> map = new ConcurrentHashMap<>();
+    public Map<String, UserThroughput> throughputSnapshot() {
+        Map<String, UserThroughput> map = new ConcurrentHashMap<>();
         throughputMeters.forEach((id, meters) -> map.put(id, meters.snapshot()));
         return map;
     }
@@ -188,10 +188,10 @@ public class TrafficStatsService {
         long globalDown = pendingGlobal.down.sumThenReset();
         if (globalUp > 0 || globalDown > 0) {
             if (globalUp > 0) {
-                configRepository.addToLong(ConfigEntry.BYTES_UP_TOTAL, globalUp);
+                settingsService.addToLong(ConfigEntry.BYTES_UP_TOTAL, globalUp);
             }
             if (globalDown > 0) {
-                configRepository.addToLong(ConfigEntry.BYTES_DOWN_TOTAL, globalDown);
+                settingsService.addToLong(ConfigEntry.BYTES_DOWN_TOTAL, globalDown);
             }
         }
 
@@ -199,7 +199,7 @@ public class TrafficStatsService {
             return;
         }
         Instant now = Instant.now();
-        for (Map.Entry<Long, TrafficDelta> entry : pendingUsers.entrySet()) {
+        for (Map.Entry<String, TrafficDelta> entry : pendingUsers.entrySet()) {
             TrafficDelta delta = pendingUsers.remove(entry.getKey());
             if (delta == null) {
                 continue;
@@ -235,8 +235,8 @@ public class TrafficStatsService {
         private final AtomicLong windowStartMs = new AtomicLong(System.currentTimeMillis());
         private final List<Meter> meters;
 
-        ThroughputMeters(MeterRegistry meterRegistry, Long userId) {
-            String userTag = String.valueOf(userId);
+        ThroughputMeters(MeterRegistry meterRegistry, String userId) {
+            String userTag = userId;
             Counter upCounter = Counter.builder("proxy.user.traffic.bytes")
                     .description("Total upstream proxy bytes observed for a user in this process")
                     .baseUnit("bytes")

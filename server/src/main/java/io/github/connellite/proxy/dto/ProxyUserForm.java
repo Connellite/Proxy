@@ -7,13 +7,15 @@ import lombok.Setter;
 @Setter
 public class ProxyUserForm {
 
-    private Long id;
-
-    private String username;
+    /** Login / PK ({@code USR_ID}). */
+    private String id;
 
     private String password;
 
     private boolean enabled = true;
+
+    /** When true, grant ROLE_ADMIN for UI access. */
+    private boolean adminUi;
 
     private int maxConnections;
 

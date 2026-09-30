@@ -9,11 +9,11 @@ import org.springframework.data.repository.query.Param;
 import java.time.Instant;
 import java.util.Optional;
 
-public interface ProxyUserRepository extends JpaRepository<ProxyUser, Long> {
+public interface ProxyUserRepository extends JpaRepository<ProxyUser, String> {
 
-    Optional<ProxyUser> findByUsernameIgnoreCase(String username);
+    Optional<ProxyUser> findByIdIgnoreCase(String id);
 
-    boolean existsByUsernameIgnoreCase(String username);
+    boolean existsByIdIgnoreCase(String id);
 
     @Modifying
     @Query("""
@@ -23,7 +23,7 @@ public interface ProxyUserRepository extends JpaRepository<ProxyUser, Long> {
                    u.lastUsedAt = :usedAt
              where u.id = :id
             """)
-    int addTraffic(@Param("id") Long id,
+    int addTraffic(@Param("id") String id,
                    @Param("up") long up,
                    @Param("down") long down,
                    @Param("usedAt") Instant usedAt);

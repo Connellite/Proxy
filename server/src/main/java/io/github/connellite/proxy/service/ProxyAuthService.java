@@ -24,7 +24,7 @@ public class ProxyAuthService {
     private final PasswordEncoder passwordEncoder;
     private final SettingsService settingsService;
     private final TrafficStatsService trafficStatsService;
-    private final ConcurrentHashMap<Long, UserConnectionState> connectionStates = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, UserConnectionState> connectionStates = new ConcurrentHashMap<>();
 
     public boolean isHttpAuthRequired() {
         return settingsService.get().isHttpAuthRequired();
@@ -43,11 +43,14 @@ public class ProxyAuthService {
         if (StringUtils.isBlank(username) || password == null) {
             return Optional.empty();
         }
-        Optional<ProxyUser> found = userRepository.findByUsernameIgnoreCase(username.trim());
+        Optional<ProxyUser> found = userRepository.findByIdIgnoreCase(username.trim());
         if (found.isEmpty()) {
             return Optional.empty();
         }
         ProxyUser user = found.get();
+        if (!user.hasUserRole()) {
+            return Optional.empty();
+        }
         trafficStatsService.warmLiveTotal(user);
         if (!user.isUsable() || trafficStatsService.isOverTrafficLimit(user.getId(), user.getTrafficLimitBytes())) {
             return Optional.empty();
@@ -63,7 +66,7 @@ public class ProxyAuthService {
             return Optional.of(ConnectionPermit.NOOP);
         }
         ProxyUser user = userRepository.findById(session.userId()).orElse(null);
-        if (user == null) {
+        if (user == null || !user.hasUserRole()) {
             return Optional.empty();
         }
         trafficStatsService.warmLiveTotal(user);
@@ -80,7 +83,7 @@ public class ProxyAuthService {
         }
     }
 
-    public int activeConnectionsFor(Long userId) {
+    public int activeConnectionsFor(String userId) {
         UserConnectionState state = connectionStates.get(userId);
         return state == null ? 0 : state.activeConnections();
     }

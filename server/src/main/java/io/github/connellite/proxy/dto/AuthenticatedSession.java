@@ -5,7 +5,7 @@ import io.github.connellite.proxy.model.ProxyUser;
 import java.util.Objects;
 
 public record AuthenticatedSession(
-        Long userId,
+        String userId,
         String username,
         long trafficLimitBytes,
         long speedLimitUpBps,
@@ -15,7 +15,7 @@ public record AuthenticatedSession(
     public AuthenticatedSession(ProxyUser user) {
         this(
                 Objects.requireNonNull(user.getId(), "userId"),
-                user.getUsername(),
+                user.getId(),
                 user.getTrafficLimitBytes(),
                 user.getSpeedLimitUpBps(),
                 user.getSpeedLimitDownBps()

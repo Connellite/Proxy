@@ -272,7 +272,7 @@ public final class SocksProxyServer implements AutoCloseable {
         private void relay(ChannelHandlerContext ctx, String host, int port,
                            AuthenticatedSession session, boolean socks4) {
             Channel inbound = ctx.channel();
-            Long userId = session == null ? null : session.userId();
+            String userId = session == null ? null : session.userId();
             UserTrafficShaping.install(inbound, session);
             outboundConnector.openTunnel(inbound, host, port, new OutboundConnector.TunnelCallback() {
                 @Override

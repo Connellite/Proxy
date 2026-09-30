@@ -143,7 +143,7 @@ public class AppShell extends Composite {
         content.setWidget(new UsersPage(this));
     }
 
-    public void showUserForm(Long id) {
+    public void showUserForm(String id) {
         stopRefresh();
         clearFlash();
         content.setWidget(new UserFormPage(this, id));

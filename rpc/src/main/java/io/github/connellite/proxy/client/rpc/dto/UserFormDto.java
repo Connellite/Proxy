@@ -11,11 +11,12 @@ import com.google.gwt.user.client.rpc.IsSerializable;
 @NoArgsConstructor
 public class UserFormDto implements IsSerializable {
 
-    private Long id;
-    private String username;
+    private String id;
     private String password;
     private String expiresAt;
     private boolean enabled;
+    private boolean adminUi;
+    private boolean bootstrapAdmin;
     private int maxConnections;
     private long trafficLimitBytes = -1;
     private long speedLimitUpBps = -1;

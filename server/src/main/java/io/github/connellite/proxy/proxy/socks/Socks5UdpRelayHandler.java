@@ -23,7 +23,7 @@ final class Socks5UdpRelayHandler extends SimpleChannelInboundHandler<DatagramPa
     private final Channel tcpControl;
     private final ProxyMetrics metrics;
     private final AuthenticatedSession session;
-    private final Long userId;
+    private final String userId;
 
     private volatile InetSocketAddress clientEndpoint;
 

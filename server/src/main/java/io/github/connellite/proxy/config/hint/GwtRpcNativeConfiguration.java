@@ -21,7 +21,6 @@ import com.google.gwt.user.server.rpc.core.java.util.LinkedList_ServerCustomFiel
 import com.google.gwt.user.server.rpc.core.java.util.Vector_ServerCustomFieldSerializer;
 import io.github.connellite.proxy.client.rpc.AdminRpcException;
 import io.github.connellite.proxy.client.rpc.AdminService;
-import io.github.connellite.proxy.client.rpc.dto.AdminRowDto;
 import io.github.connellite.proxy.client.rpc.dto.DashboardDto;
 import io.github.connellite.proxy.client.rpc.dto.EncryptionDto;
 import io.github.connellite.proxy.client.rpc.dto.HttpStripHeaderRowDto;
@@ -80,7 +79,6 @@ public class GwtRpcNativeConfiguration {
                 DashboardDto.class,
                 UsersPageDto.class,
                 UserRowDto.class,
-                AdminRowDto.class,
                 UserFormDto.class,
                 SettingsDto.class,
                 PasswordChangeDto.class,

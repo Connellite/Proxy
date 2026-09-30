@@ -25,15 +25,16 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @Entity
-@Table(name = "http_strip_headers", uniqueConstraints = @UniqueConstraint(columnNames = "name"))
+@Table(name = "HTTP_STRIP_HEADERS", uniqueConstraints = @UniqueConstraint(columnNames = "NAME"))
 public class HttpStripHeader {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "ID")
     private Long id;
 
     /** HTTP header name to remove from plain HTTP proxy requests before forwarding. */
-    @Column(nullable = false, length = 256)
+    @Column(name = "NAME", nullable = false, length = 256)
     private String name;
 
     public HttpStripHeader(String name) {

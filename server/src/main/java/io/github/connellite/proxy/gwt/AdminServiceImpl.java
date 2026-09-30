@@ -4,16 +4,14 @@ package io.github.connellite.proxy.gwt;
 import com.google.gwt.user.server.rpc.jakarta.RemoteServiceServlet;
 import jakarta.servlet.http.HttpServletRequest;
 #else
-
 import com.google.gwt.user.server.rpc.RemoteServiceServlet;
-
 import javax.servlet.http.HttpServletRequest;
 #endif
+
 import com.google.gwt.user.server.rpc.SerializationPolicy;
 import com.google.gwt.user.server.rpc.SerializationPolicyLoader;
 import io.github.connellite.proxy.client.rpc.AdminRpcException;
 import io.github.connellite.proxy.client.rpc.AdminService;
-import io.github.connellite.proxy.client.rpc.dto.AdminRowDto;
 import io.github.connellite.proxy.client.rpc.dto.DashboardDto;
 import io.github.connellite.proxy.client.rpc.dto.EncryptionDto;
 import io.github.connellite.proxy.client.rpc.dto.HttpStripHeaderRowDto;
@@ -27,28 +25,27 @@ import io.github.connellite.proxy.client.rpc.dto.UpstreamProxyRowDto;
 import io.github.connellite.proxy.client.rpc.dto.UserFormDto;
 import io.github.connellite.proxy.client.rpc.dto.UserRowDto;
 import io.github.connellite.proxy.client.rpc.dto.UsersPageDto;
-import io.github.connellite.proxy.util.LocalBindAddresses;
 import io.github.connellite.proxy.dto.AppSettings;
-import io.github.connellite.proxy.dto.EncryptionForm;
-import io.github.connellite.proxy.dto.PasswordChangeForm;
-import io.github.connellite.proxy.dto.ProxyUserForm;
-import io.github.connellite.proxy.dto.TlsStatus;
-import io.github.connellite.proxy.dto.UpstreamProxyForm;
 import io.github.connellite.proxy.dto.UserThroughput;
-import io.github.connellite.proxy.model.AdminAccount;
+import io.github.connellite.proxy.mapper.AdminRpcManualMapper;
+import io.github.connellite.proxy.mapper.AppSettingsMapper;
+import io.github.connellite.proxy.mapper.PasswordChangeFormMapper;
+import io.github.connellite.proxy.mapper.ProxyUserFormMapper;
+import io.github.connellite.proxy.mapper.TlsStatusMapper;
+import io.github.connellite.proxy.mapper.UpstreamProxyFormMapper;
 import io.github.connellite.proxy.model.HttpStripHeader;
 import io.github.connellite.proxy.model.ProxyUser;
 import io.github.connellite.proxy.model.UpstreamProxy;
 import io.github.connellite.proxy.model.UpstreamProxyType;
 import io.github.connellite.proxy.proxy.ProxyServerManager;
 import io.github.connellite.proxy.proxy.http.ProxyTlsService;
-import io.github.connellite.proxy.security.AdminAccountService;
 import io.github.connellite.proxy.service.HttpStripHeaderService;
 import io.github.connellite.proxy.service.ProxyMetrics;
 import io.github.connellite.proxy.service.ProxyUserService;
 import io.github.connellite.proxy.service.SettingsService;
 import io.github.connellite.proxy.service.TrafficStatsService;
 import io.github.connellite.proxy.service.UpstreamProxyService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.security.core.Authentication;
@@ -65,6 +62,7 @@ import java.util.List;
 
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class AdminServiceImpl extends RemoteServiceServlet implements AdminService {
 
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -77,31 +75,14 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
     private final ProxyServerManager proxyServerManager;
     private final ProxyMetrics proxyMetrics;
     private final TrafficStatsService trafficStatsService;
-    private final AdminAccountService adminAccountService;
     private final ProxyTlsService tlsService;
+    private final ProxyUserFormMapper proxyUserFormMapper;
+    private final PasswordChangeFormMapper passwordChangeFormMapper;
+    private final UpstreamProxyFormMapper upstreamProxyFormMapper;
+    private final AppSettingsMapper appSettingsMapper;
+    private final TlsStatusMapper tlsStatusMapper;
+    private final AdminRpcManualMapper adminRpcManualMapper;
     private final ZoneId appZoneId;
-
-    public AdminServiceImpl(ProxyUserService userService,
-                            UpstreamProxyService upstreamProxyService,
-                            HttpStripHeaderService stripHeaderService,
-                            SettingsService settingsService,
-                            ProxyServerManager proxyServerManager,
-                            ProxyMetrics proxyMetrics,
-                            TrafficStatsService trafficStatsService,
-                            AdminAccountService adminAccountService,
-                            ProxyTlsService tlsService,
-                            ZoneId appZoneId) {
-        this.userService = userService;
-        this.upstreamProxyService = upstreamProxyService;
-        this.stripHeaderService = stripHeaderService;
-        this.settingsService = settingsService;
-        this.proxyServerManager = proxyServerManager;
-        this.proxyMetrics = proxyMetrics;
-        this.trafficStatsService = trafficStatsService;
-        this.adminAccountService = adminAccountService;
-        this.tlsService = tlsService;
-        this.appZoneId = appZoneId;
-    }
 
     /**
      * Spring Boot serves {@code *.gwt.rpc} from the classpath ({@code static/proxyAdmin/}),
@@ -158,28 +139,22 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
     @Override
     public UsersPageDto getUsers() {
         UsersPageDto page = new UsersPageDto();
-        page.setAdmins(new ArrayList<>());
-        for (AdminAccount admin : adminAccountService.findAll()) {
-            AdminRowDto row = new AdminRowDto();
-            row.setUsername(admin.getUsername());
-            row.setUpdatedAt(formatInstant(admin.getUpdatedAt()));
-            page.getAdmins().add(row);
-        }
         page.setUsers(new ArrayList<>());
         for (ProxyUser user : userService.findAll()) {
             UserThroughput speed = trafficStatsService.throughputFor(user.getId());
             UserRowDto row = new UserRowDto();
             row.setId(user.getId());
-            row.setUsername(user.getUsername());
             row.setEnabled(user.isEnabled());
             row.setExpired(user.isExpired());
+            row.setAdminUi(user.hasAdminRole());
+            row.setBootstrapAdmin(userService.isBootstrapAdmin(user.getId()));
             row.setMaxConnections(user.getMaxConnections());
             row.setTrafficLimitBytes(user.getTrafficLimitBytes());
             row.setSpeedLimitUpBps(user.getSpeedLimitUpBps());
             row.setSpeedLimitDownBps(user.getSpeedLimitDownBps());
             boolean overQuota = trafficStatsService.isOverTrafficLimit(user.getId(), user.getTrafficLimitBytes());
             row.setTrafficLimitExceeded(overQuota);
-            row.setUsable(user.isUsable() && !overQuota);
+            row.setUsable(user.isUsable() && !overQuota && user.hasUserRole());
             row.setExpiresAt(formatInstant(user.getExpiresAt()));
             row.setBytesUp(user.getBytesUp());
             row.setBytesDown(user.getBytesDown());
@@ -193,11 +168,13 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
     }
 
     @Override
-    public UserFormDto getUserForm(Long id) {
+    public UserFormDto getUserForm(String id) {
         UserFormDto form = new UserFormDto();
         if (id == null) {
             form.setCreating(true);
             form.setEnabled(true);
+            form.setAdminUi(false);
+            form.setBootstrapAdmin(false);
             form.setMaxConnections(0);
             form.setTrafficLimitBytes(-1);
             form.setSpeedLimitUpBps(-1);
@@ -207,8 +184,9 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
         ProxyUser user = userService.getRequired(id);
         form.setCreating(false);
         form.setId(user.getId());
-        form.setUsername(user.getUsername());
         form.setEnabled(user.isEnabled());
+        form.setAdminUi(user.hasAdminRole());
+        form.setBootstrapAdmin(userService.isBootstrapAdmin(user.getId()));
         form.setMaxConnections(user.getMaxConnections());
         form.setTrafficLimitBytes(user.getTrafficLimitBytes());
         form.setSpeedLimitUpBps(user.getSpeedLimitUpBps());
@@ -222,7 +200,7 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
     @Override
     public void createUser(UserFormDto form) throws AdminRpcException {
         try {
-            userService.create(toProxyUserForm(form));
+            userService.create(proxyUserFormMapper.toForm(form));
         } catch (RuntimeException ex) {
             throw toRpcException("Failed to create user", ex);
         }
@@ -234,25 +212,29 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
             throw new AdminRpcException("User id is required");
         }
         try {
-            userService.update(form.getId(), toProxyUserForm(form));
+            userService.update(form.getId(), proxyUserFormMapper.toForm(form));
         } catch (RuntimeException ex) {
             throw toRpcException("Failed to update user", ex);
         }
     }
 
     @Override
-    public void setUserEnabled(long id, boolean enabled) {
+    public void setUserEnabled(String id, boolean enabled) {
         userService.setEnabled(id, enabled);
     }
 
     @Override
-    public void resetUserTraffic(long id) {
+    public void resetUserTraffic(String id) {
         userService.resetTraffic(id);
     }
 
     @Override
-    public void deleteUser(long id) {
-        userService.delete(id);
+    public void deleteUser(String id) throws AdminRpcException {
+        try {
+            userService.delete(id);
+        } catch (RuntimeException ex) {
+            throw toRpcException("Failed to delete user", ex);
+        }
     }
 
     @Override
@@ -301,7 +283,7 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
     @Override
     public void createUpstreamProxy(UpstreamProxyFormDto form) throws AdminRpcException {
         try {
-            upstreamProxyService.create(toUpstreamForm(form, true));
+            upstreamProxyService.create(upstreamProxyFormMapper.toForm(form, true));
         } catch (RuntimeException ex) {
             throw toRpcException("Failed to create upstream proxy", ex);
         }
@@ -313,7 +295,7 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
             throw new AdminRpcException("Upstream proxy id is required");
         }
         try {
-            upstreamProxyService.update(form.getId(), toUpstreamForm(form, false));
+            upstreamProxyService.update(form.getId(), upstreamProxyFormMapper.toForm(form, false));
         } catch (RuntimeException ex) {
             throw toRpcException("Failed to update upstream proxy", ex);
         }
@@ -371,14 +353,14 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
 
     @Override
     public SettingsDto getSettings() {
-        return toSettingsDto(settingsService.get());
+        return adminRpcManualMapper.toSettingsDto(settingsService.get());
     }
 
     @Override
     public void saveSettings(SettingsDto form) throws AdminRpcException {
         try {
             AppSettings settings = settingsService.get();
-            applySettings(settings, form);
+            appSettingsMapper.apply(settings, form);
             settingsService.save(settings);
             proxyServerManager.restart();
         } catch (RuntimeException ex) {
@@ -397,12 +379,8 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
         if (auth == null || auth.getName() == null) {
             throw new AdminRpcException("Not authenticated");
         }
-        PasswordChangeForm passwordForm = new PasswordChangeForm();
-        passwordForm.setCurrentPassword(form.getCurrentPassword());
-        passwordForm.setNewPassword(form.getNewPassword());
-        passwordForm.setConfirmPassword(form.getConfirmPassword());
         try {
-            adminAccountService.changePassword(auth.getName(), passwordForm);
+            userService.changePassword(auth.getName(), passwordChangeFormMapper.toForm(form));
         } catch (RuntimeException ex) {
             throw toRpcException("Failed to change password", ex);
         }
@@ -411,17 +389,17 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
     @Override
     public EncryptionDto getEncryption() {
         AppSettings settings = settingsService.get();
-        EncryptionDto dto = toEncryptionDto(settings);
-        dto.setTlsStatus(toTlsStatusDto(tlsService.status(settings)));
+        EncryptionDto dto = adminRpcManualMapper.toEncryptionDto(settings);
+        dto.setTlsStatus(tlsStatusMapper.toDto(tlsService.status(settings), appZoneId));
         return dto;
     }
 
     @Override
     public TlsStatusDto previewEncryption(EncryptionDto form) throws AdminRpcException {
         try {
-            AppSettings preview = copySettings(settingsService.get());
-            applyEncryption(preview, form);
-            return toTlsStatusDto(tlsService.status(preview));
+            AppSettings preview = appSettingsMapper.copy(settingsService.get());
+            adminRpcManualMapper.applyEncryption(preview, form);
+            return tlsStatusMapper.toDto(tlsService.status(preview), appZoneId);
         } catch (RuntimeException ex) {
             throw toRpcException("Failed to preview encryption", ex);
         }
@@ -431,209 +409,13 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
     public void saveEncryption(EncryptionDto form) throws AdminRpcException {
         try {
             AppSettings settings = settingsService.get();
-            applyEncryption(settings, form);
+            adminRpcManualMapper.applyEncryption(settings, form);
             tlsService.validateSettingsOrThrow(settings);
             settingsService.save(settings);
             proxyServerManager.restart();
         } catch (RuntimeException ex) {
             throw toRpcException("Failed to save encryption settings", ex);
         }
-    }
-
-    private SettingsDto toSettingsDto(AppSettings settings) {
-        SettingsDto dto = new SettingsDto();
-        dto.setHttpEnabled(settings.isHttpEnabled());
-        dto.setHttpBindHost(settings.getHttpBindHost());
-        dto.setHttpPort(settings.getHttpPort());
-        dto.setSocksEnabled(settings.isSocksEnabled());
-        dto.setSocksBindHost(settings.getSocksBindHost());
-        dto.setSocksPort(settings.getSocksPort());
-        dto.setSshEnabled(settings.isSshEnabled());
-        dto.setSshBindHost(settings.getSshBindHost());
-        dto.setSshPort(settings.getSshPort());
-        dto.setHttpAuthRequired(settings.isHttpAuthRequired());
-        dto.setSocksAuthRequired(settings.isSocksAuthRequired());
-        dto.setSocksUdpEnabled(settings.isSocksUdpEnabled());
-        dto.setOutboundTtl(settings.getOutboundTtl());
-        dto.setHttpRunning(proxyServerManager.isHttpRunning());
-        dto.setHttpsRunning(proxyServerManager.isHttpsRunning());
-        dto.setSocksRunning(proxyServerManager.isSocksRunning());
-        dto.setSshRunning(proxyServerManager.isSshRunning());
-        dto.setLastError(proxyServerManager.getLastError());
-        dto.setBindHostOptions(new ArrayList<>(LocalBindAddresses.optionsIncluding(
-                settings.getHttpBindHost(), settings.getSocksBindHost(), settings.getSshBindHost())));
-        return dto;
-    }
-
-    private EncryptionDto toEncryptionDto(AppSettings settings) {
-        EncryptionDto dto = new EncryptionDto();
-        dto.setHttpsEnabled(settings.isHttpsEnabled());
-        dto.setHttpsBindHost(settings.getHttpsBindHost());
-        dto.setHttpsPort(settings.getHttpsPort());
-        dto.setServerName(settings.getHttpsServerName() != null ? settings.getHttpsServerName() : "");
-        dto.setCertificateChain(settings.getHttpsCertificateChain());
-        dto.setCertificatePath(settings.getHttpsCertificatePath());
-        dto.setPrivateKey(null);
-        dto.setPrivateKeyPath(settings.getHttpsPrivateKeyPath());
-        dto.setPrivateKeySaved(StringUtils.isNotBlank(settings.getHttpsPrivateKey()));
-        dto.setHttpsRunning(proxyServerManager.isHttpsRunning());
-        dto.setLastError(proxyServerManager.getLastError());
-        dto.setBindHostOptions(new ArrayList<>(LocalBindAddresses.optionsIncluding(settings.getHttpsBindHost())));
-        return dto;
-    }
-
-    private static void applySettings(AppSettings settings, SettingsDto form) {
-        settings.setHttpEnabled(form.isHttpEnabled());
-        settings.setHttpBindHost(StringUtils.trimToEmpty(form.getHttpBindHost()));
-        settings.setHttpPort(form.getHttpPort());
-        settings.setSocksEnabled(form.isSocksEnabled());
-        settings.setSocksBindHost(StringUtils.trimToEmpty(form.getSocksBindHost()));
-        settings.setSocksPort(form.getSocksPort());
-        settings.setSshEnabled(form.isSshEnabled());
-        settings.setSshBindHost(StringUtils.trimToEmpty(form.getSshBindHost()));
-        settings.setSshPort(form.getSshPort());
-        settings.setHttpAuthRequired(form.isHttpAuthRequired());
-        settings.setSocksAuthRequired(form.isSocksAuthRequired());
-        settings.setSocksUdpEnabled(form.isSocksUdpEnabled());
-        settings.setOutboundTtl(form.getOutboundTtl());
-    }
-
-    private static void applyEncryption(AppSettings settings, EncryptionDto form) {
-        EncryptionForm bridge = new EncryptionForm();
-        bridge.setHttpsEnabled(form.isHttpsEnabled());
-        bridge.setHttpsBindHost(form.getHttpsBindHost());
-        bridge.setHttpsPort(form.getHttpsPort());
-        bridge.setServerName(form.getServerName());
-        bridge.setCertificateChain(form.getCertificateChain());
-        bridge.setCertificatePath(form.getCertificatePath());
-        bridge.setPrivateKey(form.getPrivateKey());
-        bridge.setPrivateKeyPath(form.getPrivateKeyPath());
-        bridge.setPrivateKeySaved(form.isPrivateKeySaved());
-
-        settings.setHttpsEnabled(bridge.isHttpsEnabled());
-        settings.setHttpsBindHost(bridge.getHttpsBindHost().trim());
-        settings.setHttpsPort(bridge.getHttpsPort());
-        settings.setHttpsServerName(StringUtils.trimToNull(bridge.getServerName()));
-        applyCertificateFields(settings, bridge);
-        applyPrivateKeyFields(settings, bridge);
-    }
-
-    private static void applyCertificateFields(AppSettings settings, EncryptionForm form) {
-        String chain = StringUtils.trimToNull(form.getCertificateChain());
-        String path = StringUtils.trimToNull(form.getCertificatePath());
-        if (chain != null && path != null) {
-            throw new IllegalArgumentException("certificate data and file can't be set together");
-        }
-        if (path != null) {
-            settings.setHttpsCertificatePath(path);
-            settings.setHttpsCertificateChain(null);
-        } else {
-            settings.setHttpsCertificatePath(null);
-            settings.setHttpsCertificateChain(chain);
-        }
-    }
-
-    private static void applyPrivateKeyFields(AppSettings settings, EncryptionForm form) {
-        String key = form.getPrivateKey();
-        boolean keyProvided = StringUtils.isNotBlank(key);
-        String path = StringUtils.trimToNull(form.getPrivateKeyPath());
-        if (keyProvided && path != null) {
-            throw new IllegalArgumentException("private key data and file can't be set together");
-        }
-        if (path != null) {
-            settings.setHttpsPrivateKeyPath(path);
-            settings.setHttpsPrivateKey(null);
-        } else if (keyProvided) {
-            settings.setHttpsPrivateKey(key.trim());
-            settings.setHttpsPrivateKeyPath(null);
-        } else if (form.isPrivateKeySaved()) {
-            settings.setHttpsPrivateKeyPath(null);
-        } else {
-            settings.setHttpsPrivateKey(null);
-            settings.setHttpsPrivateKeyPath(null);
-        }
-    }
-
-    private static UpstreamProxyForm toUpstreamForm(UpstreamProxyFormDto form, boolean creating) {
-        UpstreamProxyForm target = new UpstreamProxyForm();
-        target.setName(form.getName());
-        try {
-            target.setType(UpstreamProxyType.valueOf(
-                    StringUtils.isBlank(form.getType()) ? "HTTP" : form.getType().trim().toUpperCase()));
-        } catch (IllegalArgumentException ex) {
-            throw new IllegalArgumentException("Type must be HTTP, SOCKS5 or SSH");
-        }
-        target.setHost(form.getHost());
-        target.setPort(form.getPort());
-        target.setUsername(form.getUsername());
-        target.setPassword(form.getPassword());
-        target.setUpdatePassword(creating || StringUtils.isNotBlank(form.getPassword()));
-        return target;
-    }
-
-    private static ProxyUserForm toProxyUserForm(UserFormDto form) {
-        ProxyUserForm target = new ProxyUserForm();
-        target.setId(form.getId());
-        target.setUsername(form.getUsername());
-        target.setPassword(form.getPassword());
-        target.setEnabled(form.isEnabled());
-        target.setMaxConnections(form.getMaxConnections());
-        target.setTrafficLimitBytes(form.getTrafficLimitBytes());
-        target.setSpeedLimitUpBps(form.getSpeedLimitUpBps());
-        target.setSpeedLimitDownBps(form.getSpeedLimitDownBps());
-        target.setExpiresAt(form.getExpiresAt());
-        return target;
-    }
-
-    private TlsStatusDto toTlsStatusDto(TlsStatus status) {
-        TlsStatusDto dto = new TlsStatusDto();
-        dto.setUsingCustomCertificate(status.isUsingCustomCertificate());
-        dto.setValidCert(status.isValidCert());
-        dto.setValidKey(status.isValidKey());
-        dto.setValidChain(status.isValidChain());
-        dto.setValidPair(status.isValidPair());
-        dto.setPrivateKeySaved(status.isPrivateKeySaved());
-        dto.setKeyType(status.getKeyType());
-        dto.setSubject(status.getSubject());
-        dto.setIssuer(status.getIssuer());
-        dto.setNotBefore(status.getNotBefore() == null
-                ? null
-                : DATE_TIME_FMT.format(status.getNotBefore().atZone(appZoneId)));
-        dto.setNotAfter(status.getNotAfter() == null
-                ? null
-                : DATE_TIME_FMT.format(status.getNotAfter().atZone(appZoneId)));
-        dto.setWarningValidation(status.getWarningValidation());
-        dto.setDnsNames(status.getDnsNames() == null ? new ArrayList<>() : new ArrayList<>(status.getDnsNames()));
-        return dto;
-    }
-
-    private static AppSettings copySettings(AppSettings source) {
-        AppSettings copy = new AppSettings();
-        copy.setHttpEnabled(source.isHttpEnabled());
-        copy.setHttpBindHost(source.getHttpBindHost());
-        copy.setHttpPort(source.getHttpPort());
-        copy.setHttpsEnabled(source.isHttpsEnabled());
-        copy.setHttpsBindHost(source.getHttpsBindHost());
-        copy.setHttpsPort(source.getHttpsPort());
-        copy.setHttpsServerName(source.getHttpsServerName());
-        copy.setHttpsCertificateChain(source.getHttpsCertificateChain());
-        copy.setHttpsCertificatePath(source.getHttpsCertificatePath());
-        copy.setHttpsPrivateKey(source.getHttpsPrivateKey());
-        copy.setHttpsPrivateKeyPath(source.getHttpsPrivateKeyPath());
-        copy.setSocksEnabled(source.isSocksEnabled());
-        copy.setSocksBindHost(source.getSocksBindHost());
-        copy.setSocksPort(source.getSocksPort());
-        copy.setSshEnabled(source.isSshEnabled());
-        copy.setSshBindHost(source.getSshBindHost());
-        copy.setSshPort(source.getSshPort());
-        copy.setHttpAuthRequired(source.isHttpAuthRequired());
-        copy.setSocksAuthRequired(source.isSocksAuthRequired());
-        copy.setSocksUdpEnabled(source.isSocksUdpEnabled());
-        copy.setAdminServerPort(source.getAdminServerPort());
-        copy.setOutboundTtl(source.getOutboundTtl());
-        copy.setBytesUpTotal(source.getBytesUpTotal());
-        copy.setBytesDownTotal(source.getBytesDownTotal());
-        return copy;
     }
 
     private AdminRpcException toRpcException(String action, Throwable ex) {

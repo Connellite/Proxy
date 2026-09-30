@@ -2,10 +2,13 @@ package io.github.connellite.proxy.service;
 
 import io.github.connellite.proxy.dto.AuthenticatedSession;
 import io.github.connellite.proxy.model.ProxyUser;
+import io.github.connellite.proxy.model.Role;
 import io.github.connellite.proxy.repository.ProxyUserRepository;
 import org.junit.jupiter.api.Test;
 
+import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -15,7 +18,7 @@ class ProxyAuthServiceTest {
 
     @Test
     void enforcesMaxConnectionsWithSemaphorePermits() {
-        ProxyUser user = userWithMaxConnections(1L, 2);
+        ProxyUser user = userWithMaxConnections("user-1", 2);
         ProxyAuthService authService = authServiceFor(user);
         AuthenticatedSession session = new AuthenticatedSession(user);
 
@@ -35,7 +38,7 @@ class ProxyAuthServiceTest {
 
     @Test
     void restoresFullLimitedCapacityAfterUnlimitedConnectionsDrain() {
-        ProxyUser user = userWithMaxConnections(1L, 0);
+        ProxyUser user = userWithMaxConnections("user-1", 0);
         ProxyAuthService authService = authServiceFor(user);
         AuthenticatedSession session = new AuthenticatedSession(user);
 
@@ -66,12 +69,17 @@ class ProxyAuthServiceTest {
         return new ProxyAuthService(repository, null, null, trafficStats);
     }
 
-    private static ProxyUser userWithMaxConnections(Long id, int maxConnections) {
+    private static ProxyUser userWithMaxConnections(String id, int maxConnections) {
         ProxyUser user = new ProxyUser();
         user.setId(id);
-        user.setUsername("user-" + id);
         user.setEnabled(true);
         user.setMaxConnections(maxConnections);
+        Role userRole = new Role();
+        userRole.setId(Role.USER);
+        userRole.setActive(true);
+        Set<Role> roles = new HashSet<>();
+        roles.add(userRole);
+        user.setRoles(roles);
         return user;
     }
 }

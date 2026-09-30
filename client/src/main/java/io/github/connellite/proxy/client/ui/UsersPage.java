@@ -10,7 +10,6 @@ import com.google.gwt.user.client.ui.FlexTable;
 import com.google.gwt.user.client.ui.FlowPanel;
 import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.Label;
-import io.github.connellite.proxy.client.rpc.dto.AdminRowDto;
 import io.github.connellite.proxy.client.rpc.dto.UserRowDto;
 import io.github.connellite.proxy.client.rpc.dto.UsersPageDto;
 import io.github.connellite.proxy.client.util.AutoRefresh;
@@ -51,8 +50,8 @@ public class UsersPage extends Composite {
         actions.add(create);
         header.add(actions);
 
-        Label hint = new Label("Speed is the last ~1s average (↑ client→proxy / ↓ proxy→client). "
-                + "Admin accounts are for the web UI only.");
+        Label hint = new Label("ROLE_ADMIN can sign in to this UI; ROLE_USER can use the proxy. "
+                + "Accounts may have either or both roles.");
         hint.setStyleName("hint");
 
         tableHost.setStyleName("table-wrap");
@@ -90,8 +89,6 @@ public class UsersPage extends Composite {
             table.getCellFormatter().setStyleName(0, i, "");
         }
         table.getRowFormatter().setStyleName(0, "");
-        // mark header row via DOM class on table - CSS uses thead; FlexTable uses tbody only.
-        // Apply header styles manually:
         for (int i = 0; i < headers.length; i++) {
             table.getCellFormatter().getElement(0, i).getStyle().setProperty("background", "#efe8dc");
             table.getCellFormatter().getElement(0, i).getStyle().setProperty("fontSize", "0.75rem");
@@ -101,33 +98,12 @@ public class UsersPage extends Composite {
         }
 
         int row = 1;
-        if (page.getAdmins() != null) {
-            for (AdminRowDto admin : page.getAdmins()) {
-                table.getRowFormatter().addStyleName(row, "admin-row");
-                table.setText(row, 0, nullToEmpty(admin.getUsername()));
-                table.getCellFormatter().addStyleName(row, 0, "cell-ellipsis");
-                table.setHTML(row, 1, "<span class=\"badge admin\">admin</span>");
-                table.setHTML(row, 2, "<span class=\"num muted-cell\">—</span>");
-                table.setHTML(row, 3, "<span class=\"num muted-cell\">—</span>");
-                table.setHTML(row, 4, "<span class=\"num muted-cell\">never</span>");
-                table.setHTML(row, 5, "<span class=\"num muted-cell\">—</span>");
-                table.setText(row, 6, Formatters.dash(admin.getUpdatedAt()));
-                table.getCellFormatter().addStyleName(row, 6, "num");
-                Button password = new Button("Password");
-                password.addClickHandler(new ClickHandler() {
-                    @Override
-                    public void onClick(ClickEvent event) {
-                        shell.showSettings();
-                    }
-                });
-                table.setWidget(row, 7, password);
-                row++;
-            }
-        }
-
         if (page.getUsers() != null) {
             for (final UserRowDto user : page.getUsers()) {
-                table.setText(row, 0, nullToEmpty(user.getUsername()));
+                if (user.isAdminUi()) {
+                    table.getRowFormatter().addStyleName(row, "admin-row");
+                }
+                table.setText(row, 0, nullToEmpty(user.getId()));
                 table.getCellFormatter().addStyleName(row, 0, "cell-ellipsis");
                 table.setHTML(row, 1, statusBadge(user));
                 table.setHTML(row, 2, connCell(user));
@@ -173,19 +149,22 @@ public class UsersPage extends Composite {
     }
 
     private static String statusBadge(UserRowDto user) {
+        StringBuilder badges = new StringBuilder();
+        if (user.isAdminUi()) {
+            badges.append("<span class=\"badge admin\">admin</span> ");
+        }
         if (user.isUsable()) {
-            return "<span class=\"badge ok\">active</span>";
+            badges.append("<span class=\"badge ok\">active</span>");
+        } else if (!user.isEnabled()) {
+            badges.append("<span class=\"badge muted\">disabled</span>");
+        } else if (user.isExpired()) {
+            badges.append("<span class=\"badge warn\">expired</span>");
+        } else if (user.isTrafficLimitExceeded()) {
+            badges.append("<span class=\"badge warn\">quota</span>");
+        } else {
+            badges.append("<span class=\"badge muted\">inactive</span>");
         }
-        if (!user.isEnabled()) {
-            return "<span class=\"badge muted\">disabled</span>";
-        }
-        if (user.isExpired()) {
-            return "<span class=\"badge warn\">expired</span>";
-        }
-        if (user.isTrafficLimitExceeded()) {
-            return "<span class=\"badge warn\">quota</span>";
-        }
-        return "<span class=\"badge muted\">inactive</span>";
+        return badges.toString().trim();
     }
 
     private static String connCell(UserRowDto user) {
@@ -220,19 +199,8 @@ public class UsersPage extends Composite {
         reset.addClickHandler(new ClickHandler() {
             @Override
             public void onClick(ClickEvent event) {
-                if (Window.confirm("Reset traffic counters for " + user.getUsername() + "?")) {
+                if (Window.confirm("Reset traffic counters for " + user.getId() + "?")) {
                     shell.getRpc().resetUserTraffic(user.getId(), voidReload("Traffic counters reset"));
-                }
-            }
-        });
-
-        Button delete = new Button("Delete");
-        delete.setStyleName("danger");
-        delete.addClickHandler(new ClickHandler() {
-            @Override
-            public void onClick(ClickEvent event) {
-                if (Window.confirm("Delete this user?")) {
-                    shell.getRpc().deleteUser(user.getId(), voidReload("User deleted"));
                 }
             }
         });
@@ -240,7 +208,20 @@ public class UsersPage extends Composite {
         actions.add(edit);
         actions.add(toggle);
         actions.add(reset);
-        actions.add(delete);
+
+        if (!user.isBootstrapAdmin()) {
+            Button delete = new Button("Delete");
+            delete.setStyleName("danger");
+            delete.addClickHandler(new ClickHandler() {
+                @Override
+                public void onClick(ClickEvent event) {
+                    if (Window.confirm("Delete this user?")) {
+                        shell.getRpc().deleteUser(user.getId(), voidReload("User deleted"));
+                    }
+                }
+            });
+            actions.add(delete);
+        }
         return actions;
     }
 

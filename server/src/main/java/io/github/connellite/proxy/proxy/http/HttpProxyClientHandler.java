@@ -120,7 +120,7 @@ public final class HttpProxyClientHandler extends SimpleChannelInboundHandler<Fu
         int port = target.port();
 
         Channel inbound = ctx.channel();
-        Long userId = session == null ? null : session.userId();
+        String userId = session == null ? null : session.userId();
 
         outboundConnector.openTunnel(inbound, host, port, new OutboundConnector.TunnelCallback() {
             @Override
@@ -204,7 +204,7 @@ public final class HttpProxyClientHandler extends SimpleChannelInboundHandler<Fu
         }
 
         Channel inbound = ctx.channel();
-        Long userId = session == null ? null : session.userId();
+        String userId = session == null ? null : session.userId();
 
         outboundConnector.openTunnel(inbound, host, port, new OutboundConnector.TunnelCallback() {
             @Override

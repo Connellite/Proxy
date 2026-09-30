@@ -24,7 +24,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @Entity
-@Table(name = "config")
+@Table(name = "CONFIG")
 public class ConfigEntry {
 
     public static final String HTTP_ENABLED = "http_enabled";
@@ -54,7 +54,7 @@ public class ConfigEntry {
     public static final String BYTES_DOWN_TOTAL = "bytes_down_total";
 
     @Id
-    @Column(name = "key", nullable = false, length = 256)
+    @Column(name = "CFG_KEY", nullable = false, length = 256)
     private String key;
 
     @Lob
@@ -63,7 +63,7 @@ public class ConfigEntry {
 #else
     @Type(type = "org.hibernate.type.TextType")
 #endif
-    @Column(name = "value")
+    @Column(name = "CFG_VALUE")
     private String value;
 
     public ConfigEntry(String key, String value) {

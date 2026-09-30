@@ -4,8 +4,7 @@ import io.github.connellite.proxy.config.ProxyProperties;
 import io.github.connellite.proxy.dto.AppSettings;
 import io.github.connellite.proxy.model.ConfigEntry;
 import io.github.connellite.proxy.repository.ConfigRepository;
-import com.google.common.primitives.Ints;
-import com.google.common.primitives.Longs;
+import io.github.connellite.proxy.util.ParseUtils;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
@@ -37,10 +36,10 @@ public class SettingsService {
         Map<String, String> existing = toMap(repository.findAll());
         // Do not clobber lifetime traffic flushed concurrently.
         if (existing.containsKey(ConfigEntry.BYTES_UP_TOTAL)) {
-            settings.setBytesUpTotal(parseLong(existing.get(ConfigEntry.BYTES_UP_TOTAL), settings.getBytesUpTotal()));
+            settings.setBytesUpTotal(ParseUtils.parseLong(existing.get(ConfigEntry.BYTES_UP_TOTAL), settings.getBytesUpTotal()));
         }
         if (existing.containsKey(ConfigEntry.BYTES_DOWN_TOTAL)) {
-            settings.setBytesDownTotal(parseLong(existing.get(ConfigEntry.BYTES_DOWN_TOTAL), settings.getBytesDownTotal()));
+            settings.setBytesDownTotal(ParseUtils.parseLong(existing.get(ConfigEntry.BYTES_DOWN_TOTAL), settings.getBytesDownTotal()));
         }
         if (settings.getOutboundTtl() < 0 || settings.getOutboundTtl() > 255) {
             throw new IllegalArgumentException("Outbound TTL must be between 0 and 255 (0 = OS default)");
@@ -57,6 +56,14 @@ public class SettingsService {
         AppSettings defaults = defaultsFromProperties();
         repository.saveAll(toEntries(defaults));
         return defaults;
+    }
+
+    @Transactional
+    public void addToLong(String key, long delta) {
+        ConfigEntry entry = repository.findByIdForUpdate(key).orElseGet(() -> new ConfigEntry(key, "0"));
+        long current = ParseUtils.parseLong(entry.getValue(), 0L);
+        entry.setValue(Long.toString(current + delta));
+        repository.save(entry);
     }
 
     private AppSettings defaultsFromProperties() {
@@ -86,30 +93,30 @@ public class SettingsService {
     private static AppSettings fromEntries(List<ConfigEntry> entries) {
         Map<String, String> map = toMap(entries);
         AppSettings settings = new AppSettings();
-        settings.setHttpEnabled(parseBoolean(map.get(ConfigEntry.HTTP_ENABLED), settings.isHttpEnabled()));
-        settings.setHttpBindHost(parseString(map.get(ConfigEntry.HTTP_BIND_HOST), settings.getHttpBindHost()));
-        settings.setHttpPort(parseInt(map.get(ConfigEntry.HTTP_PORT), settings.getHttpPort()));
-        settings.setHttpsEnabled(parseBoolean(map.get(ConfigEntry.HTTPS_ENABLED), settings.isHttpsEnabled()));
-        settings.setHttpsBindHost(parseString(map.get(ConfigEntry.HTTPS_BIND_HOST), settings.getHttpsBindHost()));
-        settings.setHttpsPort(parseInt(map.get(ConfigEntry.HTTPS_PORT), settings.getHttpsPort()));
+        settings.setHttpEnabled(ParseUtils.parseBoolean(map.get(ConfigEntry.HTTP_ENABLED), settings.isHttpEnabled()));
+        settings.setHttpBindHost(ParseUtils.parseString(map.get(ConfigEntry.HTTP_BIND_HOST), settings.getHttpBindHost()));
+        settings.setHttpPort(ParseUtils.parseInt(map.get(ConfigEntry.HTTP_PORT), settings.getHttpPort()));
+        settings.setHttpsEnabled(ParseUtils.parseBoolean(map.get(ConfigEntry.HTTPS_ENABLED), settings.isHttpsEnabled()));
+        settings.setHttpsBindHost(ParseUtils.parseString(map.get(ConfigEntry.HTTPS_BIND_HOST), settings.getHttpsBindHost()));
+        settings.setHttpsPort(ParseUtils.parseInt(map.get(ConfigEntry.HTTPS_PORT), settings.getHttpsPort()));
         settings.setHttpsServerName(StringUtils.trimToNull(map.get(ConfigEntry.HTTPS_SERVER_NAME)));
         settings.setHttpsCertificateChain(StringUtils.trimToNull(map.get(ConfigEntry.HTTPS_CERTIFICATE_CHAIN)));
         settings.setHttpsCertificatePath(StringUtils.trimToNull(map.get(ConfigEntry.HTTPS_CERTIFICATE_PATH)));
         settings.setHttpsPrivateKey(StringUtils.trimToNull(map.get(ConfigEntry.HTTPS_PRIVATE_KEY)));
         settings.setHttpsPrivateKeyPath(StringUtils.trimToNull(map.get(ConfigEntry.HTTPS_PRIVATE_KEY_PATH)));
-        settings.setSocksEnabled(parseBoolean(map.get(ConfigEntry.SOCKS_ENABLED), settings.isSocksEnabled()));
-        settings.setSocksBindHost(parseString(map.get(ConfigEntry.SOCKS_BIND_HOST), settings.getSocksBindHost()));
-        settings.setSocksPort(parseInt(map.get(ConfigEntry.SOCKS_PORT), settings.getSocksPort()));
-        settings.setHttpAuthRequired(parseBoolean(map.get(ConfigEntry.HTTP_AUTH_REQUIRED), settings.isHttpAuthRequired()));
-        settings.setSocksAuthRequired(parseBoolean(map.get(ConfigEntry.SOCKS_AUTH_REQUIRED), settings.isSocksAuthRequired()));
-        settings.setSocksUdpEnabled(parseBoolean(map.get(ConfigEntry.SOCKS_UDP_ENABLED), settings.isSocksUdpEnabled()));
-        settings.setSshEnabled(parseBoolean(map.get(ConfigEntry.SSH_ENABLED), settings.isSshEnabled()));
-        settings.setSshBindHost(parseString(map.get(ConfigEntry.SSH_BIND_HOST), settings.getSshBindHost()));
-        settings.setSshPort(parseInt(map.get(ConfigEntry.SSH_PORT), settings.getSshPort()));
-        settings.setAdminServerPort(parseInt(map.get(ConfigEntry.ADMIN_SERVER_PORT), settings.getAdminServerPort()));
-        settings.setOutboundTtl(parseInt(map.get(ConfigEntry.OUTBOUND_TTL), settings.getOutboundTtl()));
-        settings.setBytesUpTotal(parseLong(map.get(ConfigEntry.BYTES_UP_TOTAL), 0L));
-        settings.setBytesDownTotal(parseLong(map.get(ConfigEntry.BYTES_DOWN_TOTAL), 0L));
+        settings.setSocksEnabled(ParseUtils.parseBoolean(map.get(ConfigEntry.SOCKS_ENABLED), settings.isSocksEnabled()));
+        settings.setSocksBindHost(ParseUtils.parseString(map.get(ConfigEntry.SOCKS_BIND_HOST), settings.getSocksBindHost()));
+        settings.setSocksPort(ParseUtils.parseInt(map.get(ConfigEntry.SOCKS_PORT), settings.getSocksPort()));
+        settings.setHttpAuthRequired(ParseUtils.parseBoolean(map.get(ConfigEntry.HTTP_AUTH_REQUIRED), settings.isHttpAuthRequired()));
+        settings.setSocksAuthRequired(ParseUtils.parseBoolean(map.get(ConfigEntry.SOCKS_AUTH_REQUIRED), settings.isSocksAuthRequired()));
+        settings.setSocksUdpEnabled(ParseUtils.parseBoolean(map.get(ConfigEntry.SOCKS_UDP_ENABLED), settings.isSocksUdpEnabled()));
+        settings.setSshEnabled(ParseUtils.parseBoolean(map.get(ConfigEntry.SSH_ENABLED), settings.isSshEnabled()));
+        settings.setSshBindHost(ParseUtils.parseString(map.get(ConfigEntry.SSH_BIND_HOST), settings.getSshBindHost()));
+        settings.setSshPort(ParseUtils.parseInt(map.get(ConfigEntry.SSH_PORT), settings.getSshPort()));
+        settings.setAdminServerPort(ParseUtils.parseInt(map.get(ConfigEntry.ADMIN_SERVER_PORT), settings.getAdminServerPort()));
+        settings.setOutboundTtl(ParseUtils.parseInt(map.get(ConfigEntry.OUTBOUND_TTL), settings.getOutboundTtl()));
+        settings.setBytesUpTotal(ParseUtils.parseLong(map.get(ConfigEntry.BYTES_UP_TOTAL), 0L));
+        settings.setBytesDownTotal(ParseUtils.parseLong(map.get(ConfigEntry.BYTES_DOWN_TOTAL), 0L));
         return settings;
     }
 
@@ -148,23 +155,5 @@ public class SettingsService {
             map.put(entry.getKey(), entry.getValue());
         }
         return map;
-    }
-
-    private static boolean parseBoolean(String value, boolean defaultValue) {
-        return value == null ? defaultValue : Boolean.parseBoolean(value);
-    }
-
-    private static int parseInt(String value, int defaultValue) {
-        Integer parsed = Ints.tryParse(StringUtils.defaultString(value));
-        return parsed != null ? parsed : defaultValue;
-    }
-
-    private static long parseLong(String value, long defaultValue) {
-        Long parsed = Longs.tryParse(StringUtils.defaultString(value));
-        return parsed != null ? parsed : defaultValue;
-    }
-
-    private static String parseString(String value, String defaultValue) {
-        return StringUtils.isBlank(value) ? defaultValue : value;
     }
 }

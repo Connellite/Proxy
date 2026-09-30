@@ -1,8 +1,12 @@
 package io.github.connellite.proxy.service;
 
-import io.github.connellite.proxy.model.ProxyUser;
-import io.github.connellite.proxy.repository.ProxyUserRepository;
+import io.github.connellite.proxy.config.ProxyProperties;
+import io.github.connellite.proxy.dto.PasswordChangeForm;
 import io.github.connellite.proxy.dto.ProxyUserForm;
+import io.github.connellite.proxy.model.ProxyUser;
+import io.github.connellite.proxy.model.Role;
+import io.github.connellite.proxy.repository.ProxyUserRepository;
+import io.github.connellite.proxy.repository.RoleRepository;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -13,16 +17,20 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
 public class ProxyUserService {
 
     private final ProxyUserRepository repository;
+    private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final ProxyAuthService authService;
     private final TrafficStatsService trafficStatsService;
+    private final ProxyProperties properties;
     private final ZoneId appZoneId;
 
     @Transactional(readOnly = true)
@@ -31,50 +39,51 @@ public class ProxyUserService {
     }
 
     @Transactional(readOnly = true)
-    public ProxyUser getRequired(Long id) {
+    public ProxyUser getRequired(String id) {
         return repository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + id));
     }
 
     @Transactional
     public ProxyUser create(ProxyUserForm form) {
-        String username = form.getUsername().trim();
-        if (repository.existsByUsernameIgnoreCase(username)) {
+        String id = normalizeId(form.getId());
+        if (repository.existsByIdIgnoreCase(id)) {
             throw new IllegalArgumentException("Username already exists");
         }
         if (StringUtils.isBlank(form.getPassword())) {
             throw new IllegalArgumentException("Password is required");
         }
         ProxyUser user = new ProxyUser();
+        user.setId(id);
         applyForm(user, form, true);
+        applyRoles(user, form.isAdminUi());
         return repository.save(user);
     }
 
     @Transactional
-    public ProxyUser update(Long id, ProxyUserForm form) {
+    public ProxyUser update(String id, ProxyUserForm form) {
         ProxyUser user = getRequired(id);
-        String username = form.getUsername().trim();
-        if (!user.getUsername().equalsIgnoreCase(username) && repository.existsByUsernameIgnoreCase(username)) {
-            throw new IllegalArgumentException("Username already exists");
-        }
         applyForm(user, form, false);
+        applyRoles(user, form.isAdminUi());
         return repository.save(user);
     }
 
     @Transactional
-    public void delete(Long id) {
+    public void delete(String id) {
+        ensureNotBootstrapAdmin(id);
         repository.deleteById(id);
+        trafficStatsService.clearLiveTotal(id);
     }
 
     @Transactional
-    public void setEnabled(Long id, boolean enabled) {
+    public void setEnabled(String id, boolean enabled) {
         ProxyUser user = getRequired(id);
         user.setEnabled(enabled);
         repository.save(user);
     }
 
     @Transactional
-    public void resetTraffic(Long id) {
+    public void resetTraffic(String id) {
         ProxyUser user = getRequired(id);
         user.setBytesUp(0);
         user.setBytesDown(0);
@@ -82,12 +91,29 @@ public class ProxyUserService {
         trafficStatsService.clearLiveTotal(id);
     }
 
-    public int activeConnections(Long userId) {
+    public int activeConnections(String userId) {
         return authService.activeConnectionsFor(userId);
     }
 
+    public boolean isBootstrapAdmin(String id) {
+        return id != null && id.equalsIgnoreCase(bootstrapAdminId());
+    }
+
+    @Transactional
+    public void changePassword(String id, PasswordChangeForm form) {
+        if (!form.getNewPassword().equals(form.getConfirmPassword())) {
+            throw new IllegalArgumentException("New passwords do not match");
+        }
+        ProxyUser user = repository.findByIdIgnoreCase(id)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        if (!passwordEncoder.matches(form.getCurrentPassword(), user.getPasswordHash())) {
+            throw new IllegalArgumentException("Current password is incorrect");
+        }
+        user.setPasswordHash(passwordEncoder.encode(form.getNewPassword()));
+        repository.save(user);
+    }
+
     private void applyForm(ProxyUser user, ProxyUserForm form, boolean creating) {
-        user.setUsername(form.getUsername().trim());
         user.setEnabled(form.isEnabled());
         user.setMaxConnections(Math.max(0, form.getMaxConnections()));
         user.setTrafficLimitBytes(normalizeLimit(form.getTrafficLimitBytes()));
@@ -99,6 +125,42 @@ public class ProxyUserService {
         }
     }
 
+    private void applyRoles(ProxyUser user, boolean adminUi) {
+        Set<Role> roles = new HashSet<>();
+        roles.add(requiredRole(Role.USER));
+        // Bootstrap account always keeps ROLE_ADMIN (UI cannot revoke it).
+        if (adminUi || isBootstrapAdmin(user.getId())) {
+            roles.add(requiredRole(Role.ADMIN));
+        }
+        user.setRoles(roles);
+    }
+
+    private Role requiredRole(String roleId) {
+        return roleRepository.findById(roleId)
+                .orElseThrow(() -> new IllegalStateException("Missing role: " + roleId));
+    }
+
+    private void ensureNotBootstrapAdmin(String id) {
+        if (isBootstrapAdmin(id)) {
+            throw new IllegalArgumentException("Cannot delete bootstrap admin account");
+        }
+    }
+
+    private String bootstrapAdminId() {
+        return StringUtils.trimToEmpty(properties.getBootstrap().getAdminUsername());
+    }
+
+    private static String normalizeId(String id) {
+        String trimmed = StringUtils.trimToNull(id);
+        if (trimmed == null) {
+            throw new IllegalArgumentException("Username is required");
+        }
+        if (trimmed.length() > 64) {
+            throw new IllegalArgumentException("Username must be at most 64 characters");
+        }
+        return trimmed;
+    }
+
     /** Collapse any negative to -1 (unlimited). */
     private static long normalizeLimit(long value) {
         return value < 0 ? -1L : value;
@@ -108,7 +170,6 @@ public class ProxyUserService {
         if (StringUtils.isBlank(value)) {
             return null;
         }
-        // Calendar date from the date picker → end of that day in configured timezone.
         LocalDate date = LocalDate.parse(value);
         return date.atTime(LocalTime.of(23, 59, 59)).atZone(appZoneId).toInstant();
     }

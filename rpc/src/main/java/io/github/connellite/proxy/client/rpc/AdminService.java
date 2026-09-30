@@ -20,17 +20,17 @@ public interface AdminService extends RemoteService {
 
     UsersPageDto getUsers();
 
-    UserFormDto getUserForm(Long id);
+    UserFormDto getUserForm(String id);
 
     void createUser(UserFormDto form) throws AdminRpcException;
 
     void updateUser(UserFormDto form) throws AdminRpcException;
 
-    void setUserEnabled(long id, boolean enabled);
+    void setUserEnabled(String id, boolean enabled);
 
-    void resetUserTraffic(long id);
+    void resetUserTraffic(String id);
 
-    void deleteUser(long id);
+    void deleteUser(String id) throws AdminRpcException;
 
     UpstreamProxiesPageDto getUpstreamProxies();
 

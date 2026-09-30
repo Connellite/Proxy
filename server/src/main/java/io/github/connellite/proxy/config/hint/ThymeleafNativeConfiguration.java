@@ -7,8 +7,8 @@ import io.github.connellite.proxy.dto.ProxyUserForm;
 import io.github.connellite.proxy.dto.TlsStatus;
 import io.github.connellite.proxy.dto.AppSettings;
 import io.github.connellite.proxy.dto.UserThroughput;
-import io.github.connellite.proxy.model.AdminAccount;
 import io.github.connellite.proxy.model.ProxyUser;
+import io.github.connellite.proxy.model.Role;
 import org.springframework.aot.hint.MemberCategory;
 import org.springframework.aot.hint.RuntimeHints;
 import org.springframework.aot.hint.RuntimeHintsRegistrar;
@@ -46,7 +46,7 @@ public class ThymeleafNativeConfiguration {
                 ProxyUserForm.class,
                 PasswordChangeForm.class,
                 ProxyUser.class,
-                AdminAccount.class,
+                Role.class,
                 AppSettings.class,
                 UserThroughput.class,
                 Lists.class,
