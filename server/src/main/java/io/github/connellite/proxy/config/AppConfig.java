@@ -53,13 +53,12 @@ public class AppConfig {
     @ConfigurationProperties("spring.datasource.hikari")
     public DataSource dataSource(@Qualifier("dataDir") Path dataDir, DataSourceProperties dataSourceProperties) {
         Path dbFile = dataDir.resolve("proxy.db");
-        DataSource dataSource = DataSourceBuilder.create()
+        return DataSourceBuilder.create()
                 .type(dataSourceProperties.getType())
                 .driverClassName(dataSourceProperties.determineDriverClassName())
                 .url("jdbc:sqlite:" + dbFile.toAbsolutePath())
                 .username(dataSourceProperties.determineUsername())
                 .password(dataSourceProperties.determinePassword())
                 .build();
-        return new WritableSqliteDataSource(dataSource);
     }
 }
