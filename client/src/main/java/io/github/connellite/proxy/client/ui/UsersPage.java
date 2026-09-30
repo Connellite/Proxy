@@ -50,14 +50,14 @@ public class UsersPage extends Composite {
         actions.add(create);
         header.add(actions);
 
-        Label hint = new Label("ROLE_ADMIN can sign in to this UI; ROLE_USER can use the proxy. "
-                + "Accounts may have either or both roles.");
+        Label hint = new Label("Admin can sign in to this UI; User can use the proxy. "
+                + "Accounts may have either, both, or neither role.");
         hint.setStyleName("hint");
 
         tableHost.setStyleName("table-wrap");
 
         root.add(header);
-        root.add(hint);
+        // root.add(hint);
         root.add(tableHost);
         initWidget(root);
         load();
@@ -82,7 +82,7 @@ public class UsersPage extends Composite {
         FlexTable table = new FlexTable();
         table.setStyleName("users-table");
         String[] headers = {
-                "Username", "Status", "Conn", "Speed", "Expires", "Traffic", "Last used", "Actions"
+                "Username", "Roles", "Status", "Conn", "Speed", "Expires", "Traffic", "Last used", "Actions"
         };
         for (int i = 0; i < headers.length; i++) {
             table.setText(0, i, headers[i]);
@@ -100,16 +100,17 @@ public class UsersPage extends Composite {
         int row = 1;
         if (page.getUsers() != null) {
             for (final UserRowDto user : page.getUsers()) {
-                if (user.isAdminUi()) {
+                if (user.isRoleAdmin()) {
                     table.getRowFormatter().addStyleName(row, "admin-row");
                 }
                 table.setText(row, 0, nullToEmpty(user.getId()));
                 table.getCellFormatter().addStyleName(row, 0, "cell-ellipsis");
-                table.setHTML(row, 1, statusBadge(user));
-                table.setHTML(row, 2, connCell(user));
-                table.getCellFormatter().addStyleName(row, 2, "num");
+                table.setHTML(row, 1, rolesBadge(user));
+                table.setHTML(row, 2, statusBadge(user));
+                table.setHTML(row, 3, connCell(user));
+                table.getCellFormatter().addStyleName(row, 3, "num");
                 boolean live = user.getUpBps() > 0 || user.getDownBps() > 0;
-                table.setHTML(row, 3,
+                table.setHTML(row, 4,
                         "<div class=\"metric-line\">↑ <span class=\"num\">"
                                 + Formatters.formatRate(user.getUpBps())
                                 + "</span> <span class=\"muted-cell\">/ "
@@ -120,11 +121,11 @@ public class UsersPage extends Composite {
                                 + "</span> <span class=\"muted-cell\">/ "
                                 + Formatters.formatRateLimit(user.getSpeedLimitDownBps())
                                 + "</span></div>");
-                table.getCellFormatter().setStyleName(row, 3, live ? "speed live" : "speed");
-                table.setText(row, 4, Formatters.never(user.getExpiresAt()));
-                table.getCellFormatter().addStyleName(row, 4, "num");
+                table.getCellFormatter().setStyleName(row, 4, live ? "speed live" : "speed");
+                table.setText(row, 5, Formatters.never(user.getExpiresAt()));
+                table.getCellFormatter().addStyleName(row, 5, "num");
                 long used = user.getBytesUp() + user.getBytesDown();
-                table.setHTML(row, 5,
+                table.setHTML(row, 6,
                         "<div class=\"metric-line traffic\">↑ <span class=\"num\">"
                                 + Formatters.formatBytes(user.getBytesUp()) + "</span></div>"
                                 + "<div class=\"metric-line\">↓ <span class=\"num\">"
@@ -132,39 +133,50 @@ public class UsersPage extends Composite {
                                 + "<div class=\"metric-line muted-cell\">Σ "
                                 + Formatters.formatBytes(used) + " / "
                                 + Formatters.formatLimit(user.getTrafficLimitBytes()) + "</div>");
-                table.setText(row, 6, Formatters.dash(user.getLastUsedAt()));
-                table.getCellFormatter().addStyleName(row, 6, "num");
-                table.setWidget(row, 7, actionsFor(user));
+                table.setText(row, 7, Formatters.dash(user.getLastUsedAt()));
+                table.getCellFormatter().addStyleName(row, 7, "num");
+                table.setWidget(row, 8, actionsFor(user));
                 row++;
             }
         }
 
         if (row == 1) {
             table.setText(1, 0, "No accounts yet.");
-            table.getFlexCellFormatter().setColSpan(1, 0, 8);
+            table.getFlexCellFormatter().setColSpan(1, 0, 9);
             table.getCellFormatter().setStyleName(1, 0, "empty");
         }
 
         tableHost.add(table);
     }
 
-    private static String statusBadge(UserRowDto user) {
+    private static String rolesBadge(UserRowDto user) {
         StringBuilder badges = new StringBuilder();
-        if (user.isAdminUi()) {
-            badges.append("<span class=\"badge admin\">admin</span> ");
+        if (user.isRoleAdmin()) {
+            badges.append("<span class=\"badge admin\">Admin</span> ");
         }
-        if (user.isUsable()) {
-            badges.append("<span class=\"badge ok\">active</span>");
-        } else if (!user.isEnabled()) {
-            badges.append("<span class=\"badge muted\">disabled</span>");
-        } else if (user.isExpired()) {
-            badges.append("<span class=\"badge warn\">expired</span>");
-        } else if (user.isTrafficLimitExceeded()) {
-            badges.append("<span class=\"badge warn\">quota</span>");
-        } else {
-            badges.append("<span class=\"badge muted\">inactive</span>");
+        if (user.isRoleUser()) {
+            badges.append("<span class=\"badge\">User</span> ");
+        }
+        if (badges.length() == 0) {
+            return "<span class=\"muted-cell\">—</span>";
         }
         return badges.toString().trim();
+    }
+
+    private static String statusBadge(UserRowDto user) {
+        if (user.isUsable()) {
+            return "<span class=\"badge ok\">active</span>";
+        }
+        if (!user.isEnabled()) {
+            return "<span class=\"badge muted\">disabled</span>";
+        }
+        if (user.isExpired()) {
+            return "<span class=\"badge warn\">expired</span>";
+        }
+        if (user.isTrafficLimitExceeded()) {
+            return "<span class=\"badge warn\">quota</span>";
+        }
+        return "<span class=\"badge muted\">inactive</span>";
     }
 
     private static String connCell(UserRowDto user) {
@@ -186,15 +198,6 @@ public class UsersPage extends Composite {
             }
         });
 
-        Button toggle = new Button(user.isEnabled() ? "Disable" : "Enable");
-        toggle.addClickHandler(new ClickHandler() {
-            @Override
-            public void onClick(ClickEvent event) {
-                shell.getRpc().setUserEnabled(user.getId(), !user.isEnabled(), voidReload(
-                        user.isEnabled() ? "User disabled" : "User enabled"));
-            }
-        });
-
         Button reset = new Button("Reset traffic");
         reset.addClickHandler(new ClickHandler() {
             @Override
@@ -206,7 +209,17 @@ public class UsersPage extends Composite {
         });
 
         actions.add(edit);
-        actions.add(toggle);
+        if (!user.isBootstrapAdmin()) {
+            Button toggle = new Button(user.isEnabled() ? "Disable" : "Enable");
+            toggle.addClickHandler(new ClickHandler() {
+                @Override
+                public void onClick(ClickEvent event) {
+                    shell.getRpc().setUserEnabled(user.getId(), !user.isEnabled(), voidReload(
+                            user.isEnabled() ? "User disabled" : "User enabled"));
+                }
+            });
+            actions.add(toggle);
+        }
         actions.add(reset);
 
         if (!user.isBootstrapAdmin()) {

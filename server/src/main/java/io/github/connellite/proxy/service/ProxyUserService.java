@@ -56,7 +56,7 @@ public class ProxyUserService {
         ProxyUser user = new ProxyUser();
         user.setId(id);
         applyForm(user, form, true);
-        applyRoles(user, form.isAdminUi());
+        applyRoles(user, form);
         return repository.save(user);
     }
 
@@ -64,7 +64,7 @@ public class ProxyUserService {
     public ProxyUser update(String id, ProxyUserForm form) {
         ProxyUser user = getRequired(id);
         applyForm(user, form, false);
-        applyRoles(user, form.isAdminUi());
+        applyRoles(user, form);
         return repository.save(user);
     }
 
@@ -78,6 +78,9 @@ public class ProxyUserService {
     @Transactional
     public void setEnabled(String id, boolean enabled) {
         ProxyUser user = getRequired(id);
+        if (!enabled && isBootstrapAdmin(user.getId())) {
+            throw new IllegalArgumentException("Cannot disable bootstrap admin account");
+        }
         user.setEnabled(enabled);
         repository.save(user);
     }
@@ -114,7 +117,8 @@ public class ProxyUserService {
     }
 
     private void applyForm(ProxyUser user, ProxyUserForm form, boolean creating) {
-        user.setEnabled(form.isEnabled());
+        // Bootstrap admin must stay enabled so the UI remains reachable.
+        user.setEnabled(isBootstrapAdmin(user.getId()) || form.isEnabled());
         user.setMaxConnections(Math.max(0, form.getMaxConnections()));
         user.setTrafficLimitBytes(normalizeLimit(form.getTrafficLimitBytes()));
         user.setSpeedLimitUpBps(normalizeLimit(form.getSpeedLimitUpBps()));
@@ -125,12 +129,15 @@ public class ProxyUserService {
         }
     }
 
-    private void applyRoles(ProxyUser user, boolean adminUi) {
+    private void applyRoles(ProxyUser user, ProxyUserForm form) {
         Set<Role> roles = new HashSet<>();
-        roles.add(requiredRole(Role.USER));
-        // Bootstrap account always keeps ROLE_ADMIN (UI cannot revoke it).
-        if (adminUi || isBootstrapAdmin(user.getId())) {
+        boolean bootstrap = isBootstrapAdmin(user.getId());
+        // Bootstrap admin always keeps ROLE_ADMIN; ROLE_USER is optional.
+        if (bootstrap || form.isRoleAdmin()) {
             roles.add(requiredRole(Role.ADMIN));
+        }
+        if (form.isRoleUser()) {
+            roles.add(requiredRole(Role.USER));
         }
         user.setRoles(roles);
     }

@@ -146,7 +146,8 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
             row.setId(user.getId());
             row.setEnabled(user.isEnabled());
             row.setExpired(user.isExpired());
-            row.setAdminUi(user.hasAdminRole());
+            row.setRoleAdmin(user.hasAdminRole());
+            row.setRoleUser(user.hasUserRole());
             row.setBootstrapAdmin(userService.isBootstrapAdmin(user.getId()));
             row.setMaxConnections(user.getMaxConnections());
             row.setTrafficLimitBytes(user.getTrafficLimitBytes());
@@ -173,7 +174,8 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
         if (id == null) {
             form.setCreating(true);
             form.setEnabled(true);
-            form.setAdminUi(false);
+            form.setRoleAdmin(false);
+            form.setRoleUser(true);
             form.setBootstrapAdmin(false);
             form.setMaxConnections(0);
             form.setTrafficLimitBytes(-1);
@@ -185,7 +187,8 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
         form.setCreating(false);
         form.setId(user.getId());
         form.setEnabled(user.isEnabled());
-        form.setAdminUi(user.hasAdminRole());
+        form.setRoleAdmin(user.hasAdminRole());
+        form.setRoleUser(user.hasUserRole());
         form.setBootstrapAdmin(userService.isBootstrapAdmin(user.getId()));
         form.setMaxConnections(user.getMaxConnections());
         form.setTrafficLimitBytes(user.getTrafficLimitBytes());

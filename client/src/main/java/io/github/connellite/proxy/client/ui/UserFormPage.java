@@ -28,7 +28,8 @@ public class UserFormPage extends Composite {
     private final TextBox username = new TextBox();
     private final PasswordTextBox password = new PasswordTextBox();
     private final CheckBox enabled = Forms.checkbox("Enabled");
-    private final CheckBox adminUi = Forms.checkbox("Admin (UI access)");
+    private final CheckBox roleAdmin = Forms.checkbox("Admin (UI login)");
+    private final CheckBox roleUser = Forms.checkbox("User (proxy access)");
     private final PlainIntegerBox maxConnections = new PlainIntegerBox();
     private final PlainLongBox trafficLimitBytes = new PlainLongBox();
     private final PlainLongBox speedLimitUpBps = new PlainLongBox();
@@ -55,7 +56,8 @@ public class UserFormPage extends Composite {
         panel.add(Forms.field("Username", username));
         panel.add(Forms.field(id == null ? "Password" : "Password (leave blank to keep)", password));
         panel.add(enabled);
-        panel.add(adminUi);
+        panel.add(Forms.field("Roles", rolesPanel(),
+                "Bootstrap admin always keeps Admin. Other accounts may have either, both, or none."));
         panel.add(Forms.field("Max connections (0 = unlimited)", maxConnections));
         panel.add(Forms.field("Traffic limit, bytes (−1 = ∞)", trafficLimitBytes,
                 "Total ↑+↓. When reached, proxy access is denied until counters are reset."));
@@ -89,6 +91,13 @@ public class UserFormPage extends Composite {
         load();
     }
 
+    private FlowPanel rolesPanel() {
+        FlowPanel roles = new FlowPanel();
+        roles.add(roleAdmin);
+        roles.add(roleUser);
+        return roles;
+    }
+
     private void load() {
         shell.getRpc().getUserForm(editId, new AsyncCallback<UserFormDto>() {
             @Override
@@ -104,9 +113,11 @@ public class UserFormPage extends Composite {
                 username.setText(nullToEmpty(form.getId()));
                 password.setText(nullToEmpty(form.getPassword()));
                 expiresAt.setDateValue(nullToEmpty(form.getExpiresAt()));
-                enabled.setValue(form.isEnabled());
-                adminUi.setValue(form.isAdminUi() || bootstrapAdmin);
-                adminUi.setEnabled(!bootstrapAdmin);
+                enabled.setValue(bootstrapAdmin || form.isEnabled());
+                enabled.setEnabled(!bootstrapAdmin);
+                roleAdmin.setValue(bootstrapAdmin || form.isRoleAdmin());
+                roleAdmin.setEnabled(!bootstrapAdmin);
+                roleUser.setValue(form.isRoleUser());
                 maxConnections.setIntValue(form.getMaxConnections());
                 trafficLimitBytes.setLongValue(form.getTrafficLimitBytes());
                 speedLimitUpBps.setLongValue(form.getSpeedLimitUpBps());
@@ -123,8 +134,9 @@ public class UserFormPage extends Composite {
         form.setPassword(password.getText());
         String expires = expiresAt.getDateValue();
         form.setExpiresAt(expires.isEmpty() ? null : expires);
-        form.setEnabled(enabled.getValue());
-        form.setAdminUi(bootstrapAdmin || Boolean.TRUE.equals(adminUi.getValue()));
+        form.setEnabled(bootstrapAdmin || Boolean.TRUE.equals(enabled.getValue()));
+        form.setRoleAdmin(bootstrapAdmin || Boolean.TRUE.equals(roleAdmin.getValue()));
+        form.setRoleUser(Boolean.TRUE.equals(roleUser.getValue()));
         Integer max = maxConnections.getIntValue();
         form.setMaxConnections(max == null ? 0 : max);
         form.setTrafficLimitBytes(readLimit(trafficLimitBytes));

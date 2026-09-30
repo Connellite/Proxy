@@ -15,7 +15,8 @@ public class UserFormDto implements IsSerializable {
     private String password;
     private String expiresAt;
     private boolean enabled;
-    private boolean adminUi;
+    private boolean roleAdmin;
+    private boolean roleUser;
     private boolean bootstrapAdmin;
     private int maxConnections;
     private long trafficLimitBytes = -1;

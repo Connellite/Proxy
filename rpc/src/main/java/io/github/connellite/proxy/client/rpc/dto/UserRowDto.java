@@ -14,7 +14,8 @@ public class UserRowDto implements IsSerializable {
     private boolean enabled;
     private boolean usable;
     private boolean expired;
-    private boolean adminUi;
+    private boolean roleAdmin;
+    private boolean roleUser;
     private boolean bootstrapAdmin;
     private int maxConnections;
     private long trafficLimitBytes = -1;

@@ -60,12 +60,21 @@ public class DataBootstrap implements ApplicationRunner {
             log.warn("Created default admin account '{}' — change the password in the web UI", adminId);
             return;
         }
+        boolean changed = false;
+        if (!admin.isEnabled()) {
+            admin.setEnabled(true);
+            changed = true;
+            log.warn("Re-enabled bootstrap admin account '{}'", admin.getId());
+        }
         if (!admin.hasAdminRole()) {
             Set<Role> roles = new HashSet<>(admin.getRoles());
             roles.add(adminRole);
             admin.setRoles(roles);
-            userRepository.save(admin);
+            changed = true;
             log.warn("Restored ROLE_ADMIN on bootstrap account '{}'", admin.getId());
+        }
+        if (changed) {
+            userRepository.save(admin);
         }
     }
 

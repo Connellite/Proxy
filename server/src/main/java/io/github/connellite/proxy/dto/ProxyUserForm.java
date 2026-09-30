@@ -14,8 +14,11 @@ public class ProxyUserForm {
 
     private boolean enabled = true;
 
-    /** When true, grant ROLE_ADMIN for UI access. */
-    private boolean adminUi;
+    /** Grant {@code ROLE_ADMIN} (admin UI login). */
+    private boolean roleAdmin;
+
+    /** Grant {@code ROLE_USER} (proxy access). */
+    private boolean roleUser;
 
     private int maxConnections;
 
