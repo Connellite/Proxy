@@ -13,7 +13,7 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -29,11 +29,16 @@ public class DataBootstrap implements ApplicationRunner {
     private final SettingsService settingsService;
     private final ProxyProperties properties;
     private final PasswordEncoder passwordEncoder;
+    private final TransactionTemplate transactionTemplate;
 
     @Override
-    @Transactional
     public void run(ApplicationArguments args) {
+        // Separate TX from role/admin seed so SQLite does not hold a long snapshot across steps.
         settingsService.ensureInitialized();
+        transactionTemplate.executeWithoutResult(status -> seedRolesAndAdmin());
+    }
+
+    private void seedRolesAndAdmin() {
         Role adminRole = ensureRole(Role.ADMIN);
         ensureRole(Role.USER);
 

@@ -13,6 +13,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 
+import com.zaxxer.hikari.HikariDataSource;
+import org.sqlite.SQLiteConfig;
+
 import javax.sql.DataSource;
 import java.nio.file.Path;
 import java.time.DateTimeException;
@@ -46,12 +49,26 @@ public class AppConfig {
     @ConfigurationProperties("spring.datasource.hikari")
     public DataSource dataSource(@Qualifier("dataDir") Path dataDir, DataSourceProperties dataSourceProperties) {
         Path dbFile = dataDir.resolve("proxy.db");
-        return DataSourceBuilder.create()
-                .type(dataSourceProperties.getType())
+        HikariDataSource dataSource = DataSourceBuilder.create()
+                .type(HikariDataSource.class)
                 .driverClassName(dataSourceProperties.determineDriverClassName())
                 .url("jdbc:sqlite:" + dbFile.toAbsolutePath())
                 .username(dataSourceProperties.determineUsername())
                 .password(dataSourceProperties.determinePassword())
                 .build();
+        dataSource.setDataSourceProperties(sqliteConfig().toProperties());
+        return dataSource;
+    }
+
+    private static SQLiteConfig sqliteConfig() {
+        SQLiteConfig config = new SQLiteConfig();
+        config.setJournalMode(SQLiteConfig.JournalMode.WAL);
+        config.setSynchronous(SQLiteConfig.SynchronousMode.NORMAL);
+        config.enforceForeignKeys(true);
+        config.setBusyTimeout(10_000);
+        // BEGIN IMMEDIATE takes the write lock up front, so pooled writers wait on busy_timeout
+        // instead of failing with SQLITE_BUSY_SNAPSHOT when upgrading a read snapshot.
+        config.setTransactionMode(SQLiteConfig.TransactionMode.IMMEDIATE);
+        return config;
     }
 }
