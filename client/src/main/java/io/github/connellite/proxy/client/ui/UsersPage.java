@@ -217,17 +217,15 @@ public class UsersPage extends Composite {
 
         actions.add(edit);
         actions.add(ssh);
-        if (!user.isBootstrapAdmin()) {
-            Button toggle = new Button(user.isEnabled() ? "Disable" : "Enable");
-            toggle.addClickHandler(new ClickHandler() {
-                @Override
-                public void onClick(ClickEvent event) {
-                    shell.getRpc().setUserEnabled(user.getId(), !user.isEnabled(), voidReload(
-                            user.isEnabled() ? "User disabled" : "User enabled"));
-                }
-            });
-            actions.add(toggle);
-        }
+        Button toggle = new Button(user.isEnabled() ? "Disable" : "Enable");
+        toggle.addClickHandler(new ClickHandler() {
+            @Override
+            public void onClick(ClickEvent event) {
+                shell.getRpc().setUserEnabled(user.getId(), !user.isEnabled(), voidReload(
+                        user.isEnabled() ? "User disabled" : "User enabled"));
+            }
+        });
+        actions.add(toggle);
         actions.add(reset);
 
         if (!user.isBootstrapAdmin()) {

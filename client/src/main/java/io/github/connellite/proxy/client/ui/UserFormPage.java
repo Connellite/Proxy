@@ -113,8 +113,7 @@ public class UserFormPage extends Composite {
                 username.setText(nullToEmpty(form.getId()));
                 password.setText(nullToEmpty(form.getPassword()));
                 expiresAt.setDateValue(nullToEmpty(form.getExpiresAt()));
-                enabled.setValue(bootstrapAdmin || form.isEnabled());
-                enabled.setEnabled(!bootstrapAdmin);
+                enabled.setValue(form.isEnabled());
                 roleAdmin.setValue(bootstrapAdmin || form.isRoleAdmin());
                 roleAdmin.setEnabled(!bootstrapAdmin);
                 roleUser.setValue(form.isRoleUser());
@@ -134,7 +133,7 @@ public class UserFormPage extends Composite {
         form.setPassword(password.getText());
         String expires = expiresAt.getDateValue();
         form.setExpiresAt(expires.isEmpty() ? null : expires);
-        form.setEnabled(bootstrapAdmin || Boolean.TRUE.equals(enabled.getValue()));
+        form.setEnabled(Boolean.TRUE.equals(enabled.getValue()));
         form.setRoleAdmin(bootstrapAdmin || Boolean.TRUE.equals(roleAdmin.getValue()));
         form.setRoleUser(Boolean.TRUE.equals(roleUser.getValue()));
         Integer max = maxConnections.getIntValue();

@@ -61,11 +61,6 @@ public class DataBootstrap implements ApplicationRunner {
             return;
         }
         boolean changed = false;
-        if (!admin.isEnabled()) {
-            admin.setEnabled(true);
-            changed = true;
-            log.warn("Re-enabled bootstrap admin account '{}'", admin.getId());
-        }
         if (!admin.hasAdminRole()) {
             Set<Role> roles = new HashSet<>(admin.getRoles());
             roles.add(adminRole);

@@ -89,9 +89,6 @@ public class ProxyUserService {
     @Transactional
     public void setEnabled(String id, boolean enabled) {
         ProxyUser user = getRequired(id);
-        if (!enabled && isBootstrapAdmin(user.getId())) {
-            throw new IllegalArgumentException("Cannot disable bootstrap admin account");
-        }
         user.setEnabled(enabled);
         repository.save(user);
     }
@@ -128,8 +125,7 @@ public class ProxyUserService {
     }
 
     private void applyForm(ProxyUser user, ProxyUserForm form, boolean creating) {
-        // Bootstrap admin must stay enabled so the UI remains reachable.
-        user.setEnabled(isBootstrapAdmin(user.getId()) || form.isEnabled());
+        user.setEnabled(form.isEnabled());
         user.setMaxConnections(Math.max(0, form.getMaxConnections()));
         user.setTrafficLimitBytes(normalizeLimit(form.getTrafficLimitBytes()));
         user.setSpeedLimitUpBps(normalizeLimit(form.getSpeedLimitUpBps()));
