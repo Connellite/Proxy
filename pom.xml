@@ -38,6 +38,11 @@
         <mapstruct.version>1.6.3</mapstruct.version>
         <manifold.version>2026.1.6</manifold.version>
         <sqlite-jdbc.version>3.53.2.0</sqlite-jdbc.version>
+        <postgresql.version>42.7.7</postgresql.version>
+        <mssql-jdbc.version>12.8.1.jre11</mssql-jdbc.version>
+        <oracle-jdbc.version>23.6.0.24.10</oracle-jdbc.version>
+        <!-- runtime in the executable JAR; the WAR omits them (Tomcat lib). Native sets provided. -->
+        <jdbc-drivers.scope>runtime</jdbc-drivers.scope>
         <guava.version>33.6.0-jre</guava.version>
         <bouncycastle.version>1.80</bouncycastle.version>
         <sshd.version>2.18.0</sshd.version>
@@ -102,6 +107,21 @@
                 <groupId>org.xerial</groupId>
                 <artifactId>sqlite-jdbc</artifactId>
                 <version>${sqlite-jdbc.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.postgresql</groupId>
+                <artifactId>postgresql</artifactId>
+                <version>${postgresql.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.microsoft.sqlserver</groupId>
+                <artifactId>mssql-jdbc</artifactId>
+                <version>${mssql-jdbc.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.oracle.database.jdbc</groupId>
+                <artifactId>ojdbc11</artifactId>
+                <version>${oracle-jdbc.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.netty</groupId>
@@ -268,6 +288,7 @@
                 <gwt.servlet.artifactId>gwt-servlet-jakarta</gwt.servlet.artifactId>
                 <gwt.servlet.version>2.11.0</gwt.servlet.version>
                 <tomcat.scope>compile</tomcat.scope>
+                <jdbc-drivers.scope>provided</jdbc-drivers.scope>
             </properties>
             <dependencyManagement>
                 <dependencies>

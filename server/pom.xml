@@ -48,6 +48,21 @@
             <artifactId>sqlite-jdbc</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>${jdbc-drivers.scope}</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.microsoft.sqlserver</groupId>
+            <artifactId>mssql-jdbc</artifactId>
+            <scope>${jdbc-drivers.scope}</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.oracle.database.jdbc</groupId>
+            <artifactId>ojdbc11</artifactId>
+            <scope>${jdbc-drivers.scope}</scope>
+        </dependency>
+        <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty-all</artifactId>
         </dependency>
@@ -282,6 +297,8 @@
                 <configuration>
                     <attachClasses>false</attachClasses>
                     <failOnMissingWebXml>false</failOnMissingWebXml>
+                    <!-- PostgreSQL, SQL Server and Oracle drivers ship only in the executable JAR. -->
+                    <packagingExcludes>WEB-INF/lib/postgresql-*.jar,WEB-INF/lib/mssql-jdbc-*.jar,WEB-INF/lib/ojdbc11-*.jar</packagingExcludes>
                 </configuration>
             </plugin>
         </plugins>

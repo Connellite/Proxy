@@ -7,17 +7,27 @@ spring:
   application:
     name: proxy
   datasource:
-    # URL is overridden by AppConfig DataSource bean after path resolution.
-    url: jdbc:sqlite:proxy.db
-    driver-class-name: org.sqlite.JDBC
+    # Native images always use SQLite at {data-dir}/proxy.db and ignore url.
+    # Any other build uses spring.datasource.url when it is set, including jdbc:sqlite.
+    # With no URL, the SQLite file is {data-dir}/proxy.db.
+    # WAR on Tomcat: the driver is in Tomcat lib, not inside the WAR.
+    # Executable JAR: PostgreSQL, SQL Server and Oracle drivers are inside the JAR.
+    # The driver class is taken from the URL. Set driver-class-name only to override that.
+    # jndi-name: java:comp/env/jdbc/proxy
+    # url: jdbc:postgresql://localhost:5432/proxy
+    # username: proxy
+    # password: secret
     hikari:
-      # SQLite pragmas / transaction mode are set via SQLiteConfig in AppConfig.
+      # Applied to the SQLite pool and to a JDBC URL pool. JNDI uses the Tomcat Resource pool.
       maximum-pool-size: 4
   jpa:
     hibernate:
       ddl-auto: update
     open-in-view: false
-    database-platform: @sqlite.dialect@
+    # Optional. When unset, Hibernate resolves the dialect from JDBC metadata.
+    # Boot 2: org.hibernate.dialect.PostgreSQL10Dialect, SQLServer2012Dialect, Oracle12cDialect
+    # Boot 3: org.hibernate.dialect.PostgreSQLDialect, SQLServerDialect, OracleDialect
+    # database-platform:
     properties:
       hibernate:
         jdbc:
