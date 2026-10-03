@@ -19,7 +19,6 @@ import org.apache.sshd.core.CoreModuleProperties;
 import org.apache.sshd.server.ServerFactoryManager;
 import org.apache.sshd.server.SshServer;
 import org.apache.sshd.server.auth.keyboard.DefaultKeyboardInteractiveAuthenticator;
-import org.apache.sshd.server.auth.pubkey.RejectAllPublickeyAuthenticator;
 import org.apache.sshd.server.forward.AgentForwardingFilter;
 import org.apache.sshd.server.forward.ForwardingFilter;
 import org.apache.sshd.server.forward.TcpForwardingFilter;
@@ -33,6 +32,7 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.PublicKey;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Optional;
@@ -74,7 +74,7 @@ public final class SshProxyServer implements AutoCloseable {
         sshd.setPort(port);
         sshd.setKeyPairProvider(new SimpleGeneratorHostKeyProvider(hostKey));
         sshd.setPasswordAuthenticator(this::authenticatePassword);
-        sshd.setPublickeyAuthenticator(RejectAllPublickeyAuthenticator.INSTANCE);
+        sshd.setPublickeyAuthenticator(this::authenticatePublicKey);
         sshd.setKeyboardInteractiveAuthenticator(DefaultKeyboardInteractiveAuthenticator.INSTANCE);
         sshd.setShellFactory(channel -> new SshAuthMessageCommand());
         sshd.setCommandFactory((channel, command) -> new SshAuthMessageCommand());
@@ -121,7 +121,14 @@ public final class SshProxyServer implements AutoCloseable {
     }
 
     private boolean authenticatePassword(String username, String password, ServerSession session) {
-        Optional<AuthenticatedSession> authenticated = authService.authenticate(username, password);
+        return bindSession(authService.authenticateSshPassword(username, password), session);
+    }
+
+    private boolean authenticatePublicKey(String username, PublicKey key, ServerSession session) {
+        return bindSession(authService.authenticatePublicKey(username, key), session);
+    }
+
+    private static boolean bindSession(Optional<AuthenticatedSession> authenticated, ServerSession session) {
         if (authenticated.isEmpty()) {
             return false;
         }

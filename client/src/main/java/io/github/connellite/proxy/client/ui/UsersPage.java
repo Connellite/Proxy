@@ -197,6 +197,13 @@ public class UsersPage extends Composite {
                 shell.showUserForm(user.getId());
             }
         });
+        Button ssh = new Button("SSH");
+        ssh.addClickHandler(new ClickHandler() {
+            @Override
+            public void onClick(ClickEvent event) {
+                shell.showSshAccess(user.getId());
+            }
+        });
 
         Button reset = new Button("Reset traffic");
         reset.addClickHandler(new ClickHandler() {
@@ -209,6 +216,7 @@ public class UsersPage extends Composite {
         });
 
         actions.add(edit);
+        actions.add(ssh);
         if (!user.isBootstrapAdmin()) {
             Button toggle = new Button(user.isEnabled() ? "Disable" : "Enable");
             toggle.addClickHandler(new ClickHandler() {

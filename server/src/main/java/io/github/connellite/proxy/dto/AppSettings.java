@@ -50,7 +50,7 @@ public class AppSettings {
     /** When true, SOCKS5 accepts UDP ASSOCIATE in addition to TCP CONNECT. */
     private boolean socksUdpEnabled = false;
 
-    /** SSH tunnel / port-forward listener (Apache Mina SSHD). Always password-auth via ProxyUser. */
+    /** SSH tunnel / port-forward listener (Apache Mina SSHD). Password and user public keys via ProxyUser. */
     private boolean sshEnabled = false;
 
     private String sshBindHost = "0.0.0.0";

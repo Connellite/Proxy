@@ -7,6 +7,8 @@ import io.github.connellite.proxy.client.rpc.dto.EncryptionDto;
 import io.github.connellite.proxy.client.rpc.dto.HttpStripHeadersPageDto;
 import io.github.connellite.proxy.client.rpc.dto.PasswordChangeDto;
 import io.github.connellite.proxy.client.rpc.dto.SettingsDto;
+import io.github.connellite.proxy.client.rpc.dto.SshAccessDto;
+import io.github.connellite.proxy.client.rpc.dto.SshIssuedKeyDto;
 import io.github.connellite.proxy.client.rpc.dto.TlsStatusDto;
 import io.github.connellite.proxy.client.rpc.dto.UpstreamProxiesPageDto;
 import io.github.connellite.proxy.client.rpc.dto.UpstreamProxyFormDto;
@@ -31,6 +33,14 @@ public interface AdminService extends RemoteService {
     void resetUserTraffic(String id);
 
     void deleteUser(String id) throws AdminRpcException;
+
+    SshAccessDto getSshAccess(String userId) throws AdminRpcException;
+
+    void setSshPasswordEnabled(String userId, boolean enabled) throws AdminRpcException;
+
+    SshIssuedKeyDto issueSshKey(String userId, String comment, String passphrase) throws AdminRpcException;
+
+    void revokeSshKey(String userId, long keyId) throws AdminRpcException;
 
     UpstreamProxiesPageDto getUpstreamProxies();
 

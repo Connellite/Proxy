@@ -27,6 +27,9 @@ import io.github.connellite.proxy.client.rpc.dto.HttpStripHeaderRowDto;
 import io.github.connellite.proxy.client.rpc.dto.HttpStripHeadersPageDto;
 import io.github.connellite.proxy.client.rpc.dto.PasswordChangeDto;
 import io.github.connellite.proxy.client.rpc.dto.SettingsDto;
+import io.github.connellite.proxy.client.rpc.dto.SshAccessDto;
+import io.github.connellite.proxy.client.rpc.dto.SshIssuedKeyDto;
+import io.github.connellite.proxy.client.rpc.dto.SshUserKeyRowDto;
 import io.github.connellite.proxy.client.rpc.dto.TlsStatusDto;
 import io.github.connellite.proxy.client.rpc.dto.UpstreamProxiesPageDto;
 import io.github.connellite.proxy.client.rpc.dto.UpstreamProxyFormDto;
@@ -89,6 +92,9 @@ public class GwtRpcNativeConfiguration {
                 UpstreamProxyFormDto.class,
                 HttpStripHeadersPageDto.class,
                 HttpStripHeaderRowDto.class,
+                SshAccessDto.class,
+                SshUserKeyRowDto.class,
+                SshIssuedKeyDto.class,
                 ArrayList.class,
                 LinkedList.class,
                 Vector.class,

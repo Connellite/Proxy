@@ -60,6 +60,19 @@ public class ProxyUser implements UserDetails {
 #endif
     private boolean enabled = true;
 
+    /**
+     * When false, this user cannot authenticate to the SSH proxy with a password.
+     * HTTP, SOCKS, and admin login still use {@link #passwordHash}.
+     */
+    @Column(name = "SSH_PASSWORD_ENABLED", nullable = false)
+    @ColumnDefault("'T'")
+#if SPRING_BOOT_3
+    @Convert(converter = TrueFalseConverter.class)
+#else
+    @Type(type = "true_false")
+#endif
+    private boolean sshPasswordEnabled = true;
+
     /** 0 = unlimited */
     @Column(name = "MAX_CONNECTIONS", nullable = false)
     @ColumnDefault("0")

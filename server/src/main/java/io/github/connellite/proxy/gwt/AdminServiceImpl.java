@@ -18,6 +18,9 @@ import io.github.connellite.proxy.client.rpc.dto.HttpStripHeaderRowDto;
 import io.github.connellite.proxy.client.rpc.dto.HttpStripHeadersPageDto;
 import io.github.connellite.proxy.client.rpc.dto.PasswordChangeDto;
 import io.github.connellite.proxy.client.rpc.dto.SettingsDto;
+import io.github.connellite.proxy.client.rpc.dto.SshAccessDto;
+import io.github.connellite.proxy.client.rpc.dto.SshIssuedKeyDto;
+import io.github.connellite.proxy.client.rpc.dto.SshUserKeyRowDto;
 import io.github.connellite.proxy.client.rpc.dto.TlsStatusDto;
 import io.github.connellite.proxy.client.rpc.dto.UpstreamProxiesPageDto;
 import io.github.connellite.proxy.client.rpc.dto.UpstreamProxyFormDto;
@@ -26,6 +29,7 @@ import io.github.connellite.proxy.client.rpc.dto.UserFormDto;
 import io.github.connellite.proxy.client.rpc.dto.UserRowDto;
 import io.github.connellite.proxy.client.rpc.dto.UsersPageDto;
 import io.github.connellite.proxy.dto.AppSettings;
+import io.github.connellite.proxy.dto.IssuedSshKey;
 import io.github.connellite.proxy.dto.UserThroughput;
 import io.github.connellite.proxy.mapper.AdminRpcManualMapper;
 import io.github.connellite.proxy.mapper.AppSettingsMapper;
@@ -35,6 +39,7 @@ import io.github.connellite.proxy.mapper.TlsStatusMapper;
 import io.github.connellite.proxy.mapper.UpstreamProxyFormMapper;
 import io.github.connellite.proxy.model.HttpStripHeader;
 import io.github.connellite.proxy.model.ProxyUser;
+import io.github.connellite.proxy.model.SshUserKey;
 import io.github.connellite.proxy.model.UpstreamProxy;
 import io.github.connellite.proxy.model.UpstreamProxyType;
 import io.github.connellite.proxy.proxy.ProxyServerManager;
@@ -42,6 +47,7 @@ import io.github.connellite.proxy.proxy.http.ProxyTlsService;
 import io.github.connellite.proxy.service.HttpStripHeaderService;
 import io.github.connellite.proxy.service.ProxyMetrics;
 import io.github.connellite.proxy.service.ProxyUserService;
+import io.github.connellite.proxy.service.SshUserKeyService;
 import io.github.connellite.proxy.service.SettingsService;
 import io.github.connellite.proxy.service.TrafficStatsService;
 import io.github.connellite.proxy.service.UpstreamProxyService;
@@ -69,6 +75,7 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
     private static final DateTimeFormatter DATE_TIME_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
     private final ProxyUserService userService;
+    private final SshUserKeyService sshUserKeyService;
     private final UpstreamProxyService upstreamProxyService;
     private final HttpStripHeaderService stripHeaderService;
     private final SettingsService settingsService;
@@ -237,6 +244,61 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
             userService.delete(id);
         } catch (RuntimeException ex) {
             throw toRpcException("Failed to delete user", ex);
+        }
+    }
+
+    @Override
+    public SshAccessDto getSshAccess(String userId) throws AdminRpcException {
+        try {
+            ProxyUser user = userService.getRequired(userId);
+            SshAccessDto dto = new SshAccessDto();
+            dto.setUserId(user.getId());
+            dto.setSshPasswordEnabled(user.isSshPasswordEnabled());
+            for (SshUserKey key : sshUserKeyService.list(user.getId())) {
+                SshUserKeyRowDto row = new SshUserKeyRowDto();
+                row.setId(key.getId());
+                row.setComment(key.getComment());
+                row.setFingerprint(key.getFingerprint());
+                row.setCreatedAt(formatInstant(key.getCreatedAt()));
+                dto.getKeys().add(row);
+            }
+            return dto;
+        } catch (RuntimeException ex) {
+            throw toRpcException("Failed to load SSH access", ex);
+        }
+    }
+
+    @Override
+    public void setSshPasswordEnabled(String userId, boolean enabled) throws AdminRpcException {
+        try {
+            userService.setSshPasswordEnabled(userId, enabled);
+        } catch (RuntimeException ex) {
+            throw toRpcException("Failed to update SSH password", ex);
+        }
+    }
+
+    @Override
+    public SshIssuedKeyDto issueSshKey(String userId, String comment, String passphrase) throws AdminRpcException {
+        try {
+            IssuedSshKey issued = sshUserKeyService.issue(userId, comment, passphrase);
+            SshIssuedKeyDto dto = new SshIssuedKeyDto();
+            dto.setId(issued.id());
+            dto.setFingerprint(issued.fingerprint());
+            dto.setPublicKey(issued.publicKey());
+            dto.setPrivateKey(issued.privateKey());
+            dto.setEncrypted(issued.encrypted());
+            return dto;
+        } catch (RuntimeException ex) {
+            throw toRpcException("Failed to issue SSH key", ex);
+        }
+    }
+
+    @Override
+    public void revokeSshKey(String userId, long keyId) throws AdminRpcException {
+        try {
+            sshUserKeyService.revoke(userId, keyId);
+        } catch (RuntimeException ex) {
+            throw toRpcException("Failed to revoke SSH key", ex);
         }
     }
 

@@ -60,6 +60,12 @@
             <artifactId>bcpkix-jdk18on</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.graalvm.sdk</groupId>
+            <artifactId>nativeimage</artifactId>
+            <version>23.1.2</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
         </dependency>
@@ -383,10 +389,11 @@
                                 <buildArg>--add-opens=java.base/java.lang=ALL-UNNAMED</buildArg>
                                 <buildArg>--add-opens=java.base/java.util=ALL-UNNAMED</buildArg>
                                 <buildArg>--add-opens=java.base/sun.nio.ch=ALL-UNNAMED</buildArg>
-                                <buildArg>--initialize-at-run-time=java.awt,sun.awt,sun.java2d,sun.font,sun.swing</buildArg>
+                                <buildArg>--initialize-at-run-time=java.awt,sun.awt,sun.java2d,sun.font,sun.swing,org.apache.sshd.common.digest.BuiltinDigests,org.bouncycastle.jcajce.provider.drbg</buildArg>
                                 <buildArg>-H:+UnlockExperimentalVMOptions</buildArg>
                                 <buildArg>-H:-AddAllFileSystemProviders</buildArg>
-                                <buildArg>--strict-image-heap</buildArg>
+                                <buildArg>--features=io.github.connellite.proxy.config.feature.BouncyCastleFeature</buildArg>
+                                <buildArg>--initialize-at-build-time=org.bouncycastle</buildArg>
                                 <buildArg>-H:+ReportExceptionStackTraces</buildArg>
                             </buildArgs>
                         </configuration>

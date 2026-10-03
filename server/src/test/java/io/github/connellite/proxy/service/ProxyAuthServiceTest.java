@@ -66,7 +66,7 @@ class ProxyAuthServiceTest {
         TrafficStatsService trafficStats = mock(TrafficStatsService.class);
         when(trafficStats.isOverTrafficLimit(org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.anyLong())).thenReturn(false);
-        return new ProxyAuthService(repository, null, null, trafficStats);
+        return new ProxyAuthService(repository, null, null, null, trafficStats);
     }
 
     private static ProxyUser userWithMaxConnections(String id, int maxConnections) {

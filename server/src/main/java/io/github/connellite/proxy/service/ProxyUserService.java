@@ -7,6 +7,7 @@ import io.github.connellite.proxy.model.ProxyUser;
 import io.github.connellite.proxy.model.Role;
 import io.github.connellite.proxy.repository.ProxyUserRepository;
 import io.github.connellite.proxy.repository.RoleRepository;
+import io.github.connellite.proxy.repository.SshUserKeyRepository;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -26,6 +27,7 @@ import java.util.Set;
 public class ProxyUserService {
 
     private final ProxyUserRepository repository;
+    private final SshUserKeyRepository sshUserKeyRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final ProxyAuthService authService;
@@ -71,8 +73,17 @@ public class ProxyUserService {
     @Transactional
     public void delete(String id) {
         ensureNotBootstrapAdmin(id);
+        sshUserKeyRepository.deleteByUser_Id(id);
+        sshUserKeyRepository.flush();
         repository.deleteById(id);
         trafficStatsService.clearLiveTotal(id);
+    }
+
+    @Transactional
+    public void setSshPasswordEnabled(String id, boolean enabled) {
+        ProxyUser user = getRequired(id);
+        user.setSshPasswordEnabled(enabled);
+        repository.save(user);
     }
 
     @Transactional

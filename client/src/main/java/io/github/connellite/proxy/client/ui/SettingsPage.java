@@ -87,42 +87,59 @@ public class SettingsPage extends Composite {
         statusRow.add(encLink);
         root.add(statusRow);
 
-        FlowPanel listeners = new FlowPanel();
-        listeners.setStyleName("panel form");
-        listeners.add(new HTML("<h2>Listeners</h2>"));
-        listeners.add(httpEnabled);
-        listeners.add(Forms.twoCol(
+        root.add(new HTML("<h2>Listeners</h2>"));
+
+        FlowPanel httpPanel = new FlowPanel();
+        httpPanel.setStyleName("panel form");
+        httpPanel.add(new HTML("<h2>HTTP</h2>"));
+        httpPanel.add(httpEnabled);
+        httpPanel.add(Forms.twoCol(
                 Forms.field("HTTP bind address", httpBindHost,
                         "0.0.0.0 = all interfaces; 127.0.0.1 = this PC only."),
                 Forms.field("HTTP port", httpPort)));
-        listeners.add(httpAuthRequired);
-        listeners.add(socksEnabled);
-        listeners.add(Forms.twoCol(
+        httpPanel.add(httpAuthRequired);
+        root.add(httpPanel);
+
+        FlowPanel socksPanel = new FlowPanel();
+        socksPanel.setStyleName("panel form");
+        socksPanel.add(new HTML("<h2>SOCKS</h2>"));
+        socksPanel.add(socksEnabled);
+        socksPanel.add(Forms.twoCol(
                 Forms.field("SOCKS bind address", socksBindHost,
                         "0.0.0.0 = all interfaces; 127.0.0.1 = this PC only."),
                 Forms.field("SOCKS port", socksPort)));
-        listeners.add(socksAuthRequired);
-        listeners.add(socksUdpEnabled);
+        socksPanel.add(socksAuthRequired);
+        socksPanel.add(socksUdpEnabled);
         Label udpHint = new Label("When off, SOCKS5 accepts only TCP CONNECT (current default). "
                 + "UDP ASSOCIATE is needed for some apps (DNS-over-SOCKS, games, VoIP).");
         udpHint.setStyleName("muted");
-        listeners.add(udpHint);
-        listeners.add(sshEnabled);
-        listeners.add(Forms.twoCol(
+        socksPanel.add(udpHint);
+        root.add(socksPanel);
+
+        FlowPanel sshPanel = new FlowPanel();
+        sshPanel.setStyleName("panel form");
+        sshPanel.add(new HTML("<h2>SSH</h2>"));
+        sshPanel.add(sshEnabled);
+        sshPanel.add(Forms.twoCol(
                 Forms.field("SSH bind address", sshBindHost,
                         "0.0.0.0 = all interfaces; 127.0.0.1 = this PC only."),
                 Forms.field("SSH port", sshPort)));
-        Label sshHint = new Label("Password auth uses the same proxy users. Shell/exec are disabled "
+        Label sshHint = new Label("Password and public keys use proxy users. "
+                + "Keys and the SSH password switch are on the user SSH page. Shell/exec are disabled "
                 + "(GitHub-style notice in PuTTY). Use local/remote port forwarding for tunnels. "
                 + "Host key is stored under the data directory.");
         sshHint.setStyleName("muted");
-        listeners.add(sshHint);
+        sshPanel.add(sshHint);
+        root.add(sshPanel);
 
-        listeners.add(new HTML("<h2>Outbound</h2>"));
-        listeners.add(Forms.field("Outbound IP TTL", outboundTtl,
+        FlowPanel outboundPanel = new FlowPanel();
+        outboundPanel.setStyleName("panel form");
+        outboundPanel.add(new HTML("<h2>Outbound</h2>"));
+        outboundPanel.add(Forms.field("Outbound IP TTL", outboundTtl,
                 "0 = OS default. 1–255 overrides TTL on sockets this proxy opens to the internet or an upstream "
                         + "(ZeroOmega → this proxy → direct/upstream). Useful when the proxy runs on the same PC "
                         + "(e.g. tethering). Takes effect on new outbound connections after Save."));
+        root.add(outboundPanel);
 
         Button save = new Button("Save & restart");
         save.setStyleName("primary");
@@ -132,8 +149,9 @@ public class SettingsPage extends Composite {
                 saveSettings();
             }
         });
-        listeners.add(Forms.formActions(save));
-        root.add(listeners);
+        FlowPanel saveRow = Forms.formActions(save);
+        saveRow.addStyleName("settings-save");
+        root.add(saveRow);
 
         FlowPanel passwordPanel = new FlowPanel();
         passwordPanel.setStyleName("panel form");

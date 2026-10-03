@@ -6,6 +6,8 @@ import io.github.connellite.proxy.client.rpc.dto.EncryptionDto;
 import io.github.connellite.proxy.client.rpc.dto.HttpStripHeadersPageDto;
 import io.github.connellite.proxy.client.rpc.dto.PasswordChangeDto;
 import io.github.connellite.proxy.client.rpc.dto.SettingsDto;
+import io.github.connellite.proxy.client.rpc.dto.SshAccessDto;
+import io.github.connellite.proxy.client.rpc.dto.SshIssuedKeyDto;
 import io.github.connellite.proxy.client.rpc.dto.TlsStatusDto;
 import io.github.connellite.proxy.client.rpc.dto.UpstreamProxiesPageDto;
 import io.github.connellite.proxy.client.rpc.dto.UpstreamProxyFormDto;
@@ -29,6 +31,14 @@ public interface AdminServiceAsync {
     void resetUserTraffic(String id, AsyncCallback<Void> callback);
 
     void deleteUser(String id, AsyncCallback<Void> callback);
+
+    void getSshAccess(String userId, AsyncCallback<SshAccessDto> callback);
+
+    void setSshPasswordEnabled(String userId, boolean enabled, AsyncCallback<Void> callback);
+
+    void issueSshKey(String userId, String comment, String passphrase, AsyncCallback<SshIssuedKeyDto> callback);
+
+    void revokeSshKey(String userId, long keyId, AsyncCallback<Void> callback);
 
     void getUpstreamProxies(AsyncCallback<UpstreamProxiesPageDto> callback);
 

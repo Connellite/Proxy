@@ -3,13 +3,17 @@ package io.github.connellite.proxy.service;
 import io.github.connellite.proxy.dto.AuthenticatedSession;
 import io.github.connellite.proxy.dto.AppSettings;
 import io.github.connellite.proxy.model.ProxyUser;
+import io.github.connellite.proxy.model.SshUserKey;
+import io.github.connellite.proxy.proxy.ssh.SshKeyMaterial;
 import io.github.connellite.proxy.repository.ProxyUserRepository;
+import io.github.connellite.proxy.repository.SshUserKeyRepository;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.PublicKey;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Semaphore;
@@ -21,6 +25,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class ProxyAuthService {
 
     private final ProxyUserRepository userRepository;
+    private final SshUserKeyRepository sshUserKeyRepository;
     private final PasswordEncoder passwordEncoder;
     private final SettingsService settingsService;
     private final TrafficStatsService trafficStatsService;
@@ -40,7 +45,61 @@ public class ProxyAuthService {
 
     @Transactional(readOnly = true)
     public Optional<AuthenticatedSession> authenticate(String username, String password) {
-        if (StringUtils.isBlank(username) || password == null) {
+        if (password == null) {
+            return Optional.empty();
+        }
+        Optional<ProxyUser> user = usableProxyUser(username);
+        if (user.isEmpty()) {
+            return Optional.empty();
+        }
+        if (!passwordEncoder.matches(password, user.get().getPasswordHash())) {
+            return Optional.empty();
+        }
+        return Optional.of(new AuthenticatedSession(user.get()));
+    }
+
+    /**
+     * SSH password auth. HTTP and SOCKS keep using {@link #authenticate} and ignore this flag.
+     */
+    @Transactional(readOnly = true)
+    public Optional<AuthenticatedSession> authenticateSshPassword(String username, String password) {
+        if (password == null) {
+            return Optional.empty();
+        }
+        Optional<ProxyUser> user = usableProxyUser(username);
+        if (user.isEmpty() || !user.get().isSshPasswordEnabled()) {
+            return Optional.empty();
+        }
+        if (!passwordEncoder.matches(password, user.get().getPasswordHash())) {
+            return Optional.empty();
+        }
+        return Optional.of(new AuthenticatedSession(user.get()));
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<AuthenticatedSession> authenticatePublicKey(String username, PublicKey key) {
+        if (key == null) {
+            return Optional.empty();
+        }
+        Optional<ProxyUser> user = usableProxyUser(username);
+        if (user.isEmpty()) {
+            return Optional.empty();
+        }
+        String fingerprint;
+        try {
+            fingerprint = SshKeyMaterial.fingerprint(key);
+        } catch (RuntimeException ex) {
+            return Optional.empty();
+        }
+        Optional<SshUserKey> stored = sshUserKeyRepository.findByUser_IdAndFingerprint(user.get().getId(), fingerprint);
+        if (stored.isEmpty() || !SshKeyMaterial.matches(stored.get().getPublicKey(), key)) {
+            return Optional.empty();
+        }
+        return Optional.of(new AuthenticatedSession(user.get()));
+    }
+
+    private Optional<ProxyUser> usableProxyUser(String username) {
+        if (StringUtils.isBlank(username)) {
             return Optional.empty();
         }
         Optional<ProxyUser> found = userRepository.findByIdIgnoreCase(username.trim());
@@ -55,10 +114,7 @@ public class ProxyAuthService {
         if (!user.isUsable() || trafficStatsService.isOverTrafficLimit(user.getId(), user.getTrafficLimitBytes())) {
             return Optional.empty();
         }
-        if (!passwordEncoder.matches(password, user.getPasswordHash())) {
-            return Optional.empty();
-        }
-        return Optional.of(new AuthenticatedSession(user));
+        return Optional.of(user);
     }
 
     public Optional<ConnectionPermit> acquireConnection(AuthenticatedSession session) {
