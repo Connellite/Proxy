@@ -264,7 +264,6 @@
                 <manifold.spring.symbol>SPRING_BOOT_2</manifold.spring.symbol>
                 <spring.boot.compat.version>2.7.18</spring.boot.compat.version>
                 <sqlite.dialect>org.sqlite.hibernate.dialect.SQLiteDialect</sqlite.dialect>
-                <netty.version>4.1.138.Final</netty.version>
                 <gwt.servlet.artifactId>gwt-servlet</gwt.servlet.artifactId>
                 <gwt.servlet.version>2.10.0</gwt.servlet.version>
                 <tomcat.scope>provided</tomcat.scope>
@@ -288,7 +287,6 @@
                 <manifold.spring.symbol>SPRING_BOOT_3</manifold.spring.symbol>
                 <spring.boot.compat.version>3.5.13</spring.boot.compat.version>
                 <sqlite.dialect>org.hibernate.community.dialect.SQLiteDialect</sqlite.dialect>
-                <netty.version>4.1.138.Final</netty.version>
                 <gwt.servlet.artifactId>gwt-servlet-jakarta</gwt.servlet.artifactId>
                 <gwt.servlet.version>2.11.0</gwt.servlet.version>
                 <tomcat.scope>provided</tomcat.scope>
