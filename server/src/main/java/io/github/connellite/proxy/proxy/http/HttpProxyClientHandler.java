@@ -2,7 +2,8 @@ package io.github.connellite.proxy.proxy.http;
 
 import com.google.common.net.HostAndPort;
 import io.github.connellite.proxy.dto.AuthenticatedSession;
-import io.github.connellite.proxy.proxy.OutboundConnector;
+import io.github.connellite.proxy.proxy.outbound.OutboundConnector;
+import io.github.connellite.proxy.proxy.outbound.TunnelCallback;
 import io.github.connellite.proxy.proxy.RelayHandler;
 import io.github.connellite.proxy.proxy.UserTrafficShaping;
 import io.github.connellite.proxy.service.HttpStripHeaderService;
@@ -122,7 +123,7 @@ public final class HttpProxyClientHandler extends SimpleChannelInboundHandler<Fu
         Channel inbound = ctx.channel();
         String userId = session == null ? null : session.userId();
 
-        outboundConnector.openTunnel(inbound, host, port, new OutboundConnector.TunnelCallback() {
+        outboundConnector.openTunnel(inbound, host, port, new TunnelCallback() {
             @Override
             public void onSuccess(Channel outbound) {
                 outbound.pipeline().addLast(new RelayHandler(inbound,
@@ -206,7 +207,7 @@ public final class HttpProxyClientHandler extends SimpleChannelInboundHandler<Fu
         Channel inbound = ctx.channel();
         String userId = session == null ? null : session.userId();
 
-        outboundConnector.openTunnel(inbound, host, port, new OutboundConnector.TunnelCallback() {
+        outboundConnector.openTunnel(inbound, host, port, new TunnelCallback() {
             @Override
             public void onSuccess(Channel outbound) {
                 outbound.pipeline().addLast(new HttpRequestEncoder());

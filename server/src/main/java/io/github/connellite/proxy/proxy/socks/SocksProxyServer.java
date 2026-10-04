@@ -3,8 +3,9 @@ package io.github.connellite.proxy.proxy.socks;
 import io.github.connellite.proxy.config.ProxyProperties;
 import io.github.connellite.proxy.dto.AuthenticatedSession;
 import io.github.connellite.proxy.proxy.IdleCloseHandler;
-import io.github.connellite.proxy.proxy.OutboundConnector;
-import io.github.connellite.proxy.proxy.OutboundIpTtl;
+import io.github.connellite.proxy.proxy.outbound.OutboundConnector;
+import io.github.connellite.proxy.proxy.outbound.TunnelCallback;
+import io.github.connellite.proxy.proxy.outbound.OutboundIpTtl;
 import io.github.connellite.proxy.proxy.RelayHandler;
 import io.github.connellite.proxy.proxy.UserTrafficShaping;
 import io.github.connellite.proxy.service.ProxyAuthService;
@@ -274,7 +275,7 @@ public final class SocksProxyServer implements AutoCloseable {
             Channel inbound = ctx.channel();
             String userId = session == null ? null : session.userId();
             UserTrafficShaping.install(inbound, session);
-            outboundConnector.openTunnel(inbound, host, port, new OutboundConnector.TunnelCallback() {
+            outboundConnector.openTunnel(inbound, host, port, new TunnelCallback() {
                 @Override
                 public void onSuccess(Channel outbound) {
                     outbound.pipeline().addLast(new RelayHandler(inbound,

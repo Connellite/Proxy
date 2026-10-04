@@ -21,7 +21,7 @@ public interface UpstreamProxyFormMapper {
         try {
             return UpstreamProxyType.valueOf(StringUtils.isBlank(type) ? "HTTP" : type.trim().toUpperCase());
         } catch (IllegalArgumentException ex) {
-            throw new IllegalArgumentException("Type must be HTTP, SOCKS5 or SSH");
+            throw new IllegalArgumentException("Type must be HTTP, HTTPS, SOCKS5 or SSH");
         }
     }
 

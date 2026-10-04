@@ -15,7 +15,7 @@ import java.io.FileDescriptor;
 import java.lang.reflect.Method;
 
 /**
- * GraalVM reflection/JNI metadata for {@link io.github.connellite.proxy.proxy.OutboundIpTtl}.
+ * GraalVM reflection/JNI metadata for {@link io.github.connellite.proxy.proxy.outbound.OutboundIpTtl}.
  * Without these hints, {@code Class.getDeclaredMethod("javaChannel")} fails at runtime in native
  * images with {@link NoSuchMethodException} even though the method exists on the JVM.
  */

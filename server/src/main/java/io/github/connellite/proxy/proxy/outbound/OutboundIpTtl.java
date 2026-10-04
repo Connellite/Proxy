@@ -1,4 +1,4 @@
-package io.github.connellite.proxy.proxy;
+package io.github.connellite.proxy.proxy.outbound;
 
 import io.netty.channel.Channel;
 import io.netty.channel.socket.DatagramChannel;
@@ -65,8 +65,8 @@ public final class OutboundIpTtl {
             return;
         }
         try {
-            if (channel instanceof DatagramChannel) {
-                ((DatagramChannel) channel).config().setTimeToLive(ttl);
+            if (channel instanceof DatagramChannel datagramChannel) {
+                datagramChannel.config().setTimeToLive(ttl);
                 if (channel instanceof NioDatagramChannel) {
                     try {
                         applyNioChannel(invokeJavaChannel(channel), ttl);
