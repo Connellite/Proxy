@@ -3,6 +3,7 @@ package io.github.connellite.proxy.proxy;
 import io.github.connellite.proxy.config.ProxyProperties;
 import io.github.connellite.proxy.dto.AppSettings;
 import io.github.connellite.proxy.proxy.http.HttpProxyServerInstance;
+import io.github.connellite.proxy.proxy.http.HttpsProxyServerInstance;
 import io.github.connellite.proxy.proxy.outbound.OutboundConnector;
 import io.github.connellite.proxy.proxy.http.ProxyTlsService;
 import io.github.connellite.proxy.proxy.socks.SocksProxyServer;
@@ -35,7 +36,7 @@ public class ProxyServerManager implements ApplicationRunner {
     private final SocksProxyServer socksProxyServer;
     private final SshProxyServer sshProxyServer;
     private final HttpProxyServerInstance httpServer;
-    private final HttpProxyServerInstance httpsServer;
+    private final HttpsProxyServerInstance httpsServer;
 
     @Getter
     private volatile String lastError;
@@ -55,9 +56,9 @@ public class ProxyServerManager implements ApplicationRunner {
         this.socksProxyServer = socksProxyServer;
         this.sshProxyServer = sshProxyServer;
         this.httpServer = new HttpProxyServerInstance(
-                authService, metrics, properties, outboundConnector, stripHeaderService, "HTTP proxy");
-        this.httpsServer = new HttpProxyServerInstance(
-                authService, metrics, properties, outboundConnector, stripHeaderService, "HTTPS proxy");
+                authService, metrics, properties, outboundConnector, stripHeaderService);
+        this.httpsServer = new HttpsProxyServerInstance(
+                authService, metrics, properties, outboundConnector, stripHeaderService);
     }
 
     @Override
@@ -75,7 +76,7 @@ public class ProxyServerManager implements ApplicationRunner {
         metrics.resetActiveConnections();
         try {
             if (settings.isHttpEnabled()) {
-                httpServer.start(settings.getHttpBindHost(), settings.getHttpPort(), null);
+                httpServer.start(settings.getHttpBindHost(), settings.getHttpPort());
             } else {
                 log.info("HTTP proxy disabled");
             }
