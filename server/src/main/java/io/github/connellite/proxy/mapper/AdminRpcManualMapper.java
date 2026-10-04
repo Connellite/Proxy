@@ -49,6 +49,7 @@ public class AdminRpcManualMapper {
     public EncryptionDto toEncryptionDto(AppSettings settings) {
         EncryptionDto dto = new EncryptionDto();
         dto.setHttpsEnabled(settings.isHttpsEnabled());
+        dto.setHttpsAuthRequired(settings.isHttpsAuthRequired());
         dto.setHttpsBindHost(settings.getHttpsBindHost());
         dto.setHttpsPort(settings.getHttpsPort());
         dto.setServerName(settings.getHttpsServerName() != null ? settings.getHttpsServerName() : "");
@@ -66,6 +67,7 @@ public class AdminRpcManualMapper {
     public void applyEncryption(AppSettings settings, EncryptionDto form) {
         EncryptionForm bridge = new EncryptionForm();
         bridge.setHttpsEnabled(form.isHttpsEnabled());
+        bridge.setHttpsAuthRequired(form.isHttpsAuthRequired());
         bridge.setHttpsBindHost(form.getHttpsBindHost());
         bridge.setHttpsPort(form.getHttpsPort());
         bridge.setServerName(form.getServerName());
@@ -76,6 +78,7 @@ public class AdminRpcManualMapper {
         bridge.setPrivateKeySaved(form.isPrivateKeySaved());
 
         settings.setHttpsEnabled(bridge.isHttpsEnabled());
+        settings.setHttpsAuthRequired(bridge.isHttpsAuthRequired());
         settings.setHttpsBindHost(bridge.getHttpsBindHost().trim());
         settings.setHttpsPort(bridge.getHttpsPort());
         settings.setHttpsServerName(StringUtils.trimToNull(bridge.getServerName()));

@@ -45,6 +45,8 @@ public class AppSettings {
 
     private boolean httpAuthRequired = false;
 
+    private boolean httpsAuthRequired = false;
+
     private boolean socksAuthRequired = false;
 
     /** When true, SOCKS5 accepts UDP ASSOCIATE in addition to TCP CONNECT. */

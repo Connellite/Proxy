@@ -25,6 +25,11 @@ public class HttpsProxyServerInstance extends HttpProxyServerInstance {
         return "HTTPS proxy";
     }
 
+    @Override
+    protected HttpProxyClientHandler newClientHandler() {
+        return new HttpsProxyClientHandler(authService, metrics, outboundConnector, stripHeaderService);
+    }
+
     public synchronized void start(String bindHost, int port, SslContext sslContext) throws InterruptedException {
         if (sslContext == null) {
             throw new IllegalStateException("HTTPS proxy requires a TLS context");

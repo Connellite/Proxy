@@ -24,6 +24,7 @@ public class EncryptionPage extends Composite {
     private final AppShell shell;
 
     private final CheckBox httpsEnabled = Forms.checkbox("Enable HTTPS proxy encryption");
+    private final CheckBox httpsAuthRequired = Forms.checkbox("Require username/password for HTTPS proxy");
     private final ListBox httpsBindHost = BindHostList.create();
     private final PlainIntegerBox httpsPort = new PlainIntegerBox();
     private final TextBox serverName = new TextBox();
@@ -69,6 +70,7 @@ public class EncryptionPage extends Composite {
                 Forms.field("HTTPS bind address", httpsBindHost,
                         "0.0.0.0 = all interfaces; 127.0.0.1 = this PC only."),
                 Forms.field("HTTPS port", httpsPort)));
+        form.add(httpsAuthRequired);
         form.add(Forms.field("Server name", serverName,
                 "Must match a DNS name or IP in the certificate."));
         form.add(Forms.field("Certificates", certificateChain,
@@ -127,6 +129,7 @@ public class EncryptionPage extends Composite {
     private void apply(EncryptionDto dto) {
         privateKeySaved = dto.isPrivateKeySaved();
         httpsEnabled.setValue(dto.isHttpsEnabled());
+        httpsAuthRequired.setValue(dto.isHttpsAuthRequired());
         BindHostList.fill(httpsBindHost, dto.getBindHostOptions(), dto.getHttpsBindHost());
         httpsPort.setIntValue(dto.getHttpsPort());
         serverName.setText(nullToEmpty(dto.getServerName()));
@@ -168,6 +171,7 @@ public class EncryptionPage extends Composite {
     private EncryptionDto collect() {
         EncryptionDto dto = new EncryptionDto();
         dto.setHttpsEnabled(httpsEnabled.getValue());
+        dto.setHttpsAuthRequired(httpsAuthRequired.getValue());
         dto.setHttpsBindHost(BindHostList.selected(httpsBindHost));
         Integer port = httpsPort.getIntValue();
         dto.setHttpsPort(port == null ? 0 : port);
@@ -241,8 +245,7 @@ public class EncryptionPage extends Composite {
     }
 
     private static HTML mutedHtml(String html) {
-        HTML el = new HTML("<p class=\"muted\">" + html + "</p>");
-        return el;
+        return new HTML("<p class=\"muted\">" + html + "</p>");
     }
 
     private static String escape(String value) {

@@ -26,11 +26,11 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class HttpProxyServerInstance implements AutoCloseable {
 
-    private final ProxyAuthService authService;
-    private final ProxyMetrics metrics;
+    protected final ProxyAuthService authService;
+    protected final ProxyMetrics metrics;
     private final ProxyProperties properties;
-    private final OutboundConnector outboundConnector;
-    private final HttpStripHeaderService stripHeaderService;
+    protected final OutboundConnector outboundConnector;
+    protected final HttpStripHeaderService stripHeaderService;
 
     private EventLoopGroup bossGroup;
     private EventLoopGroup workerGroup;
@@ -52,6 +52,10 @@ public class HttpProxyServerInstance implements AutoCloseable {
         return "HTTP proxy";
     }
 
+    protected HttpProxyClientHandler newClientHandler() {
+        return new HttpProxyClientHandler(authService, metrics, outboundConnector, stripHeaderService);
+    }
+
     public synchronized void start(String bindHost, int port) throws InterruptedException {
         stop();
         bossGroup = new MultiThreadIoEventLoopGroup(1, NioIoHandler.newFactory());
@@ -70,8 +74,7 @@ public class HttpProxyServerInstance implements AutoCloseable {
                         ch.pipeline().addLast(new IdleCloseHandler());
                         ch.pipeline().addLast(new HttpServerCodec());
                         ch.pipeline().addLast(new HttpObjectAggregator(properties.getHttpMaxContentLengthBytes()));
-                        ch.pipeline().addLast(new HttpProxyClientHandler(
-                                authService, metrics, outboundConnector, stripHeaderService));
+                        ch.pipeline().addLast(newClientHandler());
                     }
                 });
         serverChannel = bootstrap.bind(new InetSocketAddress(bindHost, port)).sync().channel();

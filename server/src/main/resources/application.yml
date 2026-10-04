@@ -64,6 +64,7 @@ proxy:
     bind-host: 0.0.0.0
     port: 2222
   http-auth-required: false
+  https-auth-required: false
   socks-auth-required: false
   socks-udp-enabled: false
   connect-timeout-ms: 15000

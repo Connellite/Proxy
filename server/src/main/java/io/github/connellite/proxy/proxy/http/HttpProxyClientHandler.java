@@ -46,11 +46,11 @@ import java.util.Set;
 
 @Slf4j
 @RequiredArgsConstructor
-public final class HttpProxyClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
+public class HttpProxyClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
 
     static final AttributeKey<AuthenticatedSession> SESSION_KEY = AttributeKey.valueOf("proxySession");
 
-    private final ProxyAuthService authService;
+    protected final ProxyAuthService authService;
     private final ProxyMetrics metrics;
     private final OutboundConnector outboundConnector;
     private final HttpStripHeaderService stripHeaderService;
@@ -60,7 +60,7 @@ public final class HttpProxyClientHandler extends SimpleChannelInboundHandler<Fu
         AuthenticatedSession session = ctx.channel().attr(SESSION_KEY).get();
         if (session == null) {
             Optional<AuthenticatedSession> authenticated = authenticate(request);
-            if (authService.isHttpAuthRequired()) {
+            if (authRequired()) {
                 if (authenticated.isEmpty()) {
                     sendProxyAuthRequired(ctx);
                     return;
@@ -90,6 +90,10 @@ public final class HttpProxyClientHandler extends SimpleChannelInboundHandler<Fu
         } else {
             handleHttp(ctx, request, session);
         }
+    }
+
+    protected boolean authRequired() {
+        return authService.isHttpAuthRequired();
     }
 
     private Optional<AuthenticatedSession> authenticate(FullHttpRequest request) {
@@ -142,7 +146,7 @@ public final class HttpProxyClientHandler extends SimpleChannelInboundHandler<Fu
                         return;
                     }
                     inbound.pipeline().remove(HttpObjectAggregator.class);
-                    inbound.pipeline().remove(HttpProxyClientHandler.class);
+                    inbound.pipeline().remove(HttpProxyClientHandler.this);
                     if (inbound.pipeline().get(HttpServerCodec.class) != null) {
                         inbound.pipeline().remove(HttpServerCodec.class);
                     }

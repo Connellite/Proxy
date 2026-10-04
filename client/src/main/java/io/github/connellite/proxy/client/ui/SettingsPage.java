@@ -26,7 +26,7 @@ public class SettingsPage extends Composite {
     private final CheckBox httpEnabled = Forms.checkbox("Enable HTTP proxy");
     private final CheckBox socksEnabled = Forms.checkbox("Enable SOCKS4/5 proxy");
     private final CheckBox sshEnabled = Forms.checkbox("Enable SSH tunnel proxy (port forward / PuTTY)");
-    private final CheckBox httpAuthRequired = Forms.checkbox("Require username/password for HTTP / HTTPS proxy");
+    private final CheckBox httpAuthRequired = Forms.checkbox("Require username/password for HTTP proxy");
     private final CheckBox socksAuthRequired = Forms.checkbox(
             "Require username/password for SOCKS5 (SOCKS4 disabled while on)");
     private final CheckBox socksUdpEnabled = Forms.checkbox("Full SOCKS5 with UDP (TCP CONNECT + UDP ASSOCIATE)");

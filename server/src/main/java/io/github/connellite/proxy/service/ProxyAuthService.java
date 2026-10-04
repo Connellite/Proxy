@@ -35,6 +35,10 @@ public class ProxyAuthService {
         return settingsService.get().isHttpAuthRequired();
     }
 
+    public boolean isHttpsAuthRequired() {
+        return settingsService.get().isHttpsAuthRequired();
+    }
+
     public boolean isSocksAuthRequired() {
         return settingsService.get().isSocksAuthRequired();
     }

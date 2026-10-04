@@ -42,6 +42,7 @@ public class ConfigEntry {
     public static final String SOCKS_BIND_HOST = "socks_bind_host";
     public static final String SOCKS_PORT = "socks_port";
     public static final String HTTP_AUTH_REQUIRED = "http_auth_required";
+    public static final String HTTPS_AUTH_REQUIRED = "https_auth_required";
     public static final String SOCKS_AUTH_REQUIRED = "socks_auth_required";
     public static final String SOCKS_UDP_ENABLED = "socks_udp_enabled";
     public static final String SSH_ENABLED = "ssh_enabled";

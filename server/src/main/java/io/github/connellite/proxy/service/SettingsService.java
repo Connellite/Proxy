@@ -81,6 +81,7 @@ public class SettingsService {
         settings.setSocksBindHost(properties.getSocks5().getBindHost());
         settings.setSocksPort(properties.getSocks5().getPort());
         settings.setHttpAuthRequired(properties.isHttpAuthRequired());
+        settings.setHttpsAuthRequired(properties.isHttpsAuthRequired());
         settings.setSocksAuthRequired(properties.isSocksAuthRequired());
         settings.setSocksUdpEnabled(properties.isSocksUdpEnabled());
         settings.setSshEnabled(properties.getSsh().isEnabled());
@@ -108,6 +109,7 @@ public class SettingsService {
         settings.setSocksBindHost(ParseUtils.parseString(map.get(ConfigEntry.SOCKS_BIND_HOST), settings.getSocksBindHost()));
         settings.setSocksPort(ParseUtils.parseInt(map.get(ConfigEntry.SOCKS_PORT), settings.getSocksPort()));
         settings.setHttpAuthRequired(ParseUtils.parseBoolean(map.get(ConfigEntry.HTTP_AUTH_REQUIRED), settings.isHttpAuthRequired()));
+        settings.setHttpsAuthRequired(ParseUtils.parseBoolean(map.get(ConfigEntry.HTTPS_AUTH_REQUIRED), settings.isHttpsAuthRequired()));
         settings.setSocksAuthRequired(ParseUtils.parseBoolean(map.get(ConfigEntry.SOCKS_AUTH_REQUIRED), settings.isSocksAuthRequired()));
         settings.setSocksUdpEnabled(ParseUtils.parseBoolean(map.get(ConfigEntry.SOCKS_UDP_ENABLED), settings.isSocksUdpEnabled()));
         settings.setSshEnabled(ParseUtils.parseBoolean(map.get(ConfigEntry.SSH_ENABLED), settings.isSshEnabled()));
@@ -137,6 +139,7 @@ public class SettingsService {
         entries.add(new ConfigEntry(ConfigEntry.SOCKS_BIND_HOST, settings.getSocksBindHost()));
         entries.add(new ConfigEntry(ConfigEntry.SOCKS_PORT, Integer.toString(settings.getSocksPort())));
         entries.add(new ConfigEntry(ConfigEntry.HTTP_AUTH_REQUIRED, Boolean.toString(settings.isHttpAuthRequired())));
+        entries.add(new ConfigEntry(ConfigEntry.HTTPS_AUTH_REQUIRED, Boolean.toString(settings.isHttpsAuthRequired())));
         entries.add(new ConfigEntry(ConfigEntry.SOCKS_AUTH_REQUIRED, Boolean.toString(settings.isSocksAuthRequired())));
         entries.add(new ConfigEntry(ConfigEntry.SOCKS_UDP_ENABLED, Boolean.toString(settings.isSocksUdpEnabled())));
         entries.add(new ConfigEntry(ConfigEntry.SSH_ENABLED, Boolean.toString(settings.isSshEnabled())));

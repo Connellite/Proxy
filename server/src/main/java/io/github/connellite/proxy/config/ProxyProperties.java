@@ -14,6 +14,7 @@ public class ProxyProperties {
     /** When empty: resolved from project folder ({@code .../data}). */
     private String dataDir = "";
     private boolean httpAuthRequired = false;
+    private boolean httpsAuthRequired = false;
     private boolean socksAuthRequired = false;
     private boolean socksUdpEnabled = false;
     private int connectTimeoutMs = 15_000;
