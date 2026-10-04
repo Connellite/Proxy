@@ -199,7 +199,7 @@ public class EncryptionPage extends Composite {
         }
         flags.add(flag(keyLabel, tls.isValidKey()));
         flags.add(flag("Pair: " + (tls.isValidPair() ? "valid" : "invalid"), tls.isValidPair()));
-        flags.add(flag("Chain (system trust): " + (tls.isValidChain() ? "trusted" : "not trusted"),
+        flags.add(flag("Chain: " + (tls.isValidChain() ? "valid" : "invalid"),
                 tls.isValidChain(), !tls.isValidChain()));
         tlsPanel.add(flags);
 

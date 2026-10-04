@@ -11,11 +11,13 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.openssl.PEMKeyPair;
 import org.bouncycastle.openssl.PEMParser;
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
+import org.apache.http.conn.ssl.DefaultHostnameVerifier;
 import org.springframework.stereotype.Component;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.StringReader;
+import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -28,6 +30,7 @@ import java.security.cert.PKIXBuilderParameters;
 import java.security.cert.TrustAnchor;
 import java.security.cert.X509CertSelector;
 import java.security.cert.X509Certificate;
+import javax.net.ssl.SSLException;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
@@ -47,6 +50,10 @@ import java.util.Set;
 @Slf4j
 @Component
 public class ProxyTlsService {
+
+    private static final int SAN_DNS = 2;
+    private static final int SAN_IP = 7;
+    private static final DefaultHostnameVerifier HOSTNAME_VERIFIER = new DefaultHostnameVerifier();
 
     static {
         if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
@@ -68,16 +75,14 @@ public class ProxyTlsService {
                     "HTTPS requires a certificate chain and private key (PEM content or file paths)");
         }
         TlsMaterial material = loadMaterial(settings);
-        TlsStatus status = validate(settings, material);
-        if (!status.isValidPair()) {
-            throw new IllegalStateException(status.getWarningValidation() != null
-                    ? status.getWarningValidation()
+        ValidatedTls validated = validate(settings, material);
+        if (validated.context() == null) {
+            throw new IllegalStateException(validated.status().getWarningValidation() != null
+                    ? validated.status().getWarningValidation()
                     : "TLS certificate/private key pair is invalid");
         }
-        log.info("Using TLS certificate (subject={})", status.getSubject());
-        return SslContextBuilder.forServer(
-                new ByteArrayInputStream(material.certificateChain),
-                new ByteArrayInputStream(material.privateKey)).build();
+        log.info("Using TLS certificate (subject={})", validated.status().getSubject());
+        return validated.context();
     }
 
     public synchronized TlsStatus status(AppSettings settings) {
@@ -92,7 +97,7 @@ public class ProxyTlsService {
         }
         try {
             TlsMaterial material = loadMaterial(settings);
-            status = validate(settings, material);
+            status = validate(settings, material).status();
             status.setUsingCustomCertificate(hasCustomPair(settings));
             status.setPrivateKeySaved(hasInlinePrivateKey(settings));
             return status;
@@ -104,6 +109,9 @@ public class ProxyTlsService {
     }
 
     public void validateSettingsOrThrow(AppSettings settings) {
+        if (settings == null) {
+            throw new IllegalArgumentException("settings must not be null");
+        }
         if (StringUtils.isNotBlank(settings.getHttpsCertificateChain()) && StringUtils.isNotBlank(settings.getHttpsCertificatePath())) {
             throw new IllegalArgumentException("certificate data and file can't be set together");
         }
@@ -124,7 +132,7 @@ public class ProxyTlsService {
         }
     }
 
-    private TlsStatus validate(AppSettings settings, TlsMaterial material) {
+    private ValidatedTls validate(AppSettings settings, TlsMaterial material) {
         TlsStatus status = new TlsStatus();
         String serverName = StringUtils.trimToNull(settings != null ? settings.getHttpsServerName() : null);
         String warning = null;
@@ -132,15 +140,16 @@ public class ProxyTlsService {
         if (material.certificateChain.length > 0) {
             try {
                 List<X509Certificate> certs = parseCertificates(material.certificateChain);
-                status.setValidCert(true);
                 X509Certificate leaf = certs.get(0);
                 status.setSubject(leaf.getSubjectX500Principal().getName());
                 status.setIssuer(leaf.getIssuerX500Principal().getName());
                 status.setNotBefore(leaf.getNotBefore().toInstant());
                 status.setNotAfter(leaf.getNotAfter().toInstant());
                 status.setDnsNames(collectNames(leaf));
+                leaf.checkValidity();
+                status.setValidCert(true);
 
-                String chainWarning = validatePublicTrust(certs);
+                String chainWarning = validateChain(certs);
                 if (chainWarning == null) {
                     status.setValidChain(true);
                 } else {
@@ -167,21 +176,21 @@ public class ProxyTlsService {
             }
         }
 
+        SslContext context = null;
         if (status.isValidCert() && status.isValidKey()) {
             try {
-                SslContextBuilder.forServer(
+                context = SslContextBuilder.forServer(
                         new ByteArrayInputStream(material.certificateChain),
                         new ByteArrayInputStream(material.privateKey)).build();
                 status.setValidPair(true);
             } catch (Exception ex) {
-                status.setValidPair(false);
                 String pairWarn = "certificate-key pair: " + ex.getMessage();
                 warning = warning == null ? pairWarn : warning + "; " + pairWarn;
             }
         }
 
         status.setWarningValidation(warning);
-        return status;
+        return new ValidatedTls(status, context);
     }
 
     private static TlsMaterial loadMaterial(AppSettings settings) throws Exception {
@@ -245,18 +254,13 @@ public class ProxyTlsService {
                 PrivateKey key = toPrivateKey(object);
                 if (key != null) {
                     String algorithm = key.getAlgorithm();
-                    if ("RSA".equalsIgnoreCase(algorithm)) {
-                        return "RSA";
-                    }
-                    if ("EC".equalsIgnoreCase(algorithm) || "ECDSA".equalsIgnoreCase(algorithm)) {
-                        return "ECDSA";
-                    }
-                    if ("Ed25519".equalsIgnoreCase(algorithm) || "EdDSA".equalsIgnoreCase(algorithm)) {
-                        throw new IllegalArgumentException(
-                                "ED25519 keys are not supported by browsers; "
-                                        + "did you mean to use X25519 for key exchange?");
-                    }
-                    return algorithm;
+                    return switch (algorithm.toUpperCase(Locale.ROOT)) {
+                        case "RSA" -> "RSA";
+                        case "EC", "ECDSA" -> "ECDSA";
+                        case "ED25519", "EDDSA" -> throw new IllegalArgumentException(
+                                "ED25519 keys are not supported by browsers; did you mean to use X25519 for key exchange?");
+                        default -> algorithm;
+                    };
                 }
                 object = parser.readObject();
             }
@@ -265,41 +269,38 @@ public class ProxyTlsService {
     }
 
     private static PrivateKey toPrivateKey(Object object) throws Exception {
-        // Prefer the platform KeyFactory in native images; BC SPI classes are easy to strip.
-        // Fall back to BC (with native reflection hints) when the JDK provider cannot decode the key.
-        Exception platformFailure = null;
-        try {
-            return convertPrivateKey(object, new JcaPEMKeyConverter());
-        } catch (Exception ex) {
-            platformFailure = ex;
+        JcaPEMKeyConverter converter = new JcaPEMKeyConverter().setProvider(BouncyCastleProvider.PROVIDER_NAME);
+        if (object instanceof PEMKeyPair pemKeyPair) {
+            return converter.getKeyPair(pemKeyPair).getPrivate();
         }
-        try {
-            return convertPrivateKey(object, new JcaPEMKeyConverter().setProvider(BouncyCastleProvider.PROVIDER_NAME));
-        } catch (Exception bcFailure) {
-            bcFailure.addSuppressed(platformFailure);
-            throw bcFailure;
-        }
-    }
-
-    private static PrivateKey convertPrivateKey(Object object, JcaPEMKeyConverter converter) throws Exception {
-        if (object instanceof PEMKeyPair) {
-            return converter.getKeyPair((PEMKeyPair) object).getPrivate();
-        }
-        if (object instanceof PrivateKeyInfo) {
-            return converter.getPrivateKey((PrivateKeyInfo) object);
+        if (object instanceof PrivateKeyInfo privateKeyInfo) {
+            return converter.getPrivateKey(privateKeyInfo);
         }
         return null;
     }
 
-    private static String validatePublicTrust(List<X509Certificate> certs) {
+    /**
+     * The chain is valid when the leaf links to a trust anchor: a JVM root, or a
+     * self-signed CA included in the uploaded PEM (an internal root is enough).
+     */
+    private static String validateChain(List<X509Certificate> certs) {
         try {
-            X509Certificate leaf = certs.get(0);
-            Set<TrustAnchor> anchors = systemTrustAnchors();
+            Set<TrustAnchor> anchors = new HashSet<>();
+            try {
+                anchors.addAll(systemTrustAnchors());
+            } catch (Exception ignored) {
+                // A chain that carries its own root does not need the system store.
+            }
+            for (X509Certificate cert : certs) {
+                if (isSelfSigned(cert)) {
+                    anchors.add(new TrustAnchor(cert, null));
+                }
+            }
             if (anchors.isEmpty()) {
-                return "could not load system trust store";
+                return "certificate chain has no trust anchor";
             }
             X509CertSelector selector = new X509CertSelector();
-            selector.setCertificate(leaf);
+            selector.setCertificate(certs.get(0));
             PKIXBuilderParameters params = new PKIXBuilderParameters(anchors, selector);
             params.addCertStore(java.security.cert.CertStore.getInstance(
                     "Collection",
@@ -309,7 +310,19 @@ public class ProxyTlsService {
             return null;
         } catch (Exception ex) {
             String detail = ex.getMessage() != null ? ex.getMessage() : ex.getClass().getSimpleName();
-            return "certificate chain is not trusted by system roots: " + detail;
+            return "certificate chain is not valid: " + detail;
+        }
+    }
+
+    private static boolean isSelfSigned(X509Certificate cert) {
+        if (!cert.getSubjectX500Principal().equals(cert.getIssuerX500Principal())) {
+            return false;
+        }
+        try {
+            cert.verify(cert.getPublicKey());
+            return true;
+        } catch (Exception ex) {
+            return false;
         }
     }
 
@@ -338,8 +351,8 @@ public class ProxyTlsService {
                 String alias = aliases.nextElement();
                 if (ks.isCertificateEntry(alias)) {
                     java.security.cert.Certificate cert = ks.getCertificate(alias);
-                    if (cert instanceof X509Certificate) {
-                        anchors.add(new TrustAnchor((X509Certificate) cert, null));
+                    if (cert instanceof X509Certificate x509Cert) {
+                        anchors.add(new TrustAnchor(x509Cert, null));
                     }
                 }
             }
@@ -376,12 +389,9 @@ public class ProxyTlsService {
         Collection<List<?>> sans = cert.getSubjectAlternativeNames();
         if (sans != null) {
             for (List<?> san : sans) {
-                if (san == null || san.size() < 2) {
-                    continue;
-                }
-                Object value = san.get(1);
-                if (value != null) {
-                    names.add(String.valueOf(value));
+                String presented = presentedName(san);
+                if (presented != null) {
+                    names.add(presented);
                 }
             }
         }
@@ -393,25 +403,49 @@ public class ProxyTlsService {
     }
 
     private static boolean nameMatches(X509Certificate cert, String serverName) {
-        String expected = serverName.trim().toLowerCase(Locale.ROOT);
         try {
-            for (String name : collectNames(cert)) {
-                if (name == null) {
-                    continue;
-                }
-                String candidate = name.trim().toLowerCase(Locale.ROOT);
-                if (candidate.equals(expected)) {
-                    return true;
-                }
-                if (candidate.startsWith("*.") && expected.endsWith(candidate.substring(1))
-                        && expected.indexOf('.') == expected.length() - candidate.length() + 1) {
-                    return true;
-                }
-            }
-        } catch (Exception ignored) {
+            HOSTNAME_VERIFIER.verify(serverName, cert);
+            return true;
+        } catch (SSLException ex) {
             return false;
         }
-        return false;
+    }
+
+    private static String presentedName(List<?> san) {
+        if (san == null || san.size() < 2 || !(san.get(0) instanceof Number) || san.get(1) == null) {
+            return null;
+        }
+        int type = ((Number) san.get(0)).intValue();
+        Object value = san.get(1);
+        if (type == SAN_DNS && value instanceof String dns) {
+            return dns.isBlank() ? null : dns.trim();
+        }
+        if (type == SAN_IP) {
+            if (value instanceof String text && !text.isBlank()) {
+                return text.trim();
+            }
+            return ipText(value);
+        }
+        return null;
+    }
+
+    private static byte[] ipBytes(Object value) {
+        if (value instanceof byte[] raw && (raw.length == 4 || raw.length == 16)) {
+            return raw;
+        }
+        return null;
+    }
+
+    private static String ipText(Object value) {
+        byte[] bytes = ipBytes(value);
+        if (bytes == null) {
+            return null;
+        }
+        try {
+            return InetAddress.getByAddress(bytes).getHostAddress();
+        } catch (Exception ex) {
+            return null;
+        }
     }
 
     private static String commonName(X509Certificate cert) {
@@ -437,6 +471,9 @@ public class ProxyTlsService {
 
     private static boolean hasInlinePrivateKey(AppSettings settings) {
         return settings != null && StringUtils.isNotBlank(settings.getHttpsPrivateKey());
+    }
+
+    private record ValidatedTls(TlsStatus status, SslContext context) {
     }
 
     private record TlsMaterial(byte[] certificateChain, byte[] privateKey) {

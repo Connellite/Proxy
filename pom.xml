@@ -46,6 +46,7 @@
         <guava.version>33.6.0-jre</guava.version>
         <bouncycastle.version>1.80</bouncycastle.version>
         <sshd.version>2.18.0</sshd.version>
+        <httpclient.version>4.5.14</httpclient.version>
         <native-build-tools.version>0.10.6</native-build-tools.version>
 
         <gwt.version>2.10.0</gwt.version>
@@ -142,6 +143,11 @@
                 <groupId>org.apache.sshd</groupId>
                 <artifactId>sshd-core</artifactId>
                 <version>${sshd.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.httpcomponents</groupId>
+                <artifactId>httpclient</artifactId>
+                <version>${httpclient.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

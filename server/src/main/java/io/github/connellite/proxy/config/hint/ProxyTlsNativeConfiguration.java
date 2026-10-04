@@ -58,6 +58,7 @@ public class ProxyTlsNativeConfiguration {
             }
 
             hints.resources().registerPattern("org/bouncycastle/x509/CertPathReviewerMessages*.properties");
+            hints.resources().registerPattern("mozilla/public-suffix-list.txt");
         }
 
         private static void registerTypeName(RuntimeHints hints, ClassLoader classLoader, String className) {
