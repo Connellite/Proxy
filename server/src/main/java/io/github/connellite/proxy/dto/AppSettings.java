@@ -10,7 +10,7 @@ import lombok.Setter;
 @Setter
 public class AppSettings {
 
-    private boolean httpEnabled = true;
+    private boolean httpEnabled = false;
 
     private String httpBindHost = "0.0.0.0";
 
@@ -37,7 +37,7 @@ public class AppSettings {
     /** Path to PEM private key file. */
     private String httpsPrivateKeyPath;
 
-    private boolean socksEnabled = true;
+    private boolean socksEnabled = false;
 
     private String socksBindHost = "0.0.0.0";
 

@@ -43,7 +43,7 @@ proxy:
     admin-username: admin
     admin-password: admin
   http:
-    enabled: true
+    enabled: false
     bind-host: 0.0.0.0
     port: 3128
   https:
@@ -56,7 +56,7 @@ proxy:
     certificate-path:
     private-key-path:
   socks5:
-    enabled: true
+    enabled: false
     bind-host: 0.0.0.0
     port: 1080
   ssh:

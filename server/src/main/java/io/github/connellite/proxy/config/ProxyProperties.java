@@ -25,9 +25,9 @@ public class ProxyProperties {
     private String timezone = "";
     private final Tls tls = new Tls();
     private final Bootstrap bootstrap = new Bootstrap();
-    private final Listener http = new Listener(true, "0.0.0.0", 3128);
+    private final Listener http = new Listener(false, "0.0.0.0", 3128);
     private final Listener https = new Listener(false, "0.0.0.0", 3129);
-    private final Listener socks5 = new Listener(true, "0.0.0.0", 1080);
+    private final Listener socks5 = new Listener(false, "0.0.0.0", 1080);
     private final Listener ssh = new Listener(false, "0.0.0.0", 2222);
 
     @Getter
