@@ -2,6 +2,7 @@ package io.github.connellite.proxy.proxy.ssh;
 
 import io.github.connellite.proxy.config.ProxyProperties;
 import io.github.connellite.proxy.dto.UpstreamSnapshot;
+import io.github.connellite.proxy.proxy.QuietCloseHandlerAdapter;
 import io.github.connellite.proxy.proxy.outbound.TunnelCallback;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
@@ -148,6 +149,7 @@ public class SshUpstreamClient {
                 .handler(new ChannelInitializer<SocketChannel>() {
                     @Override
                     protected void initChannel(SocketChannel ch) {
+                        ch.pipeline().addLast(new QuietCloseHandlerAdapter());
                         AtomicBoolean stopped = new AtomicBoolean();
                         ch.closeFuture().addListener(future -> stopForward(session, bound, stopped));
                     }
@@ -180,6 +182,7 @@ public class SshUpstreamClient {
         }
     }
 
+    @SuppressWarnings("resource")
     private SessionEntry connectSession(UpstreamSnapshot upstream) throws IOException {
         if (StringUtils.isBlank(upstream.username())) {
             throw new IllegalStateException("Upstream SSH requires a username");

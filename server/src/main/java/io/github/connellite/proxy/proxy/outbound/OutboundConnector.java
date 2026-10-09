@@ -2,6 +2,7 @@ package io.github.connellite.proxy.proxy.outbound;
 
 import io.github.connellite.proxy.config.ProxyProperties;
 import io.github.connellite.proxy.dto.UpstreamSnapshot;
+import io.github.connellite.proxy.proxy.QuietCloseHandlerAdapter;
 import io.github.connellite.proxy.proxy.ssh.SshUpstreamClient;
 import io.github.connellite.proxy.service.SettingsService;
 import io.github.connellite.proxy.service.UpstreamProxyService;
@@ -59,7 +60,7 @@ public class OutboundConnector {
             @Override
             protected void initChannel(SocketChannel ch) {
                 applyOutboundTtl(ch);
-                // caller installs handlers after success
+                ch.pipeline().addLast(new QuietCloseHandlerAdapter());
             }
         });
         bootstrap.connect(host, port).addListener((ChannelFutureListener) future -> {
