@@ -149,7 +149,7 @@ public class SshUpstreamClient {
                 .handler(new ChannelInitializer<SocketChannel>() {
                     @Override
                     protected void initChannel(SocketChannel ch) {
-                        ch.pipeline().addLast(new QuietCloseHandlerAdapter());
+                        QuietCloseHandlerAdapter.installLast(ch.pipeline());
                         AtomicBoolean stopped = new AtomicBoolean();
                         ch.closeFuture().addListener(future -> stopForward(session, bound, stopped));
                     }

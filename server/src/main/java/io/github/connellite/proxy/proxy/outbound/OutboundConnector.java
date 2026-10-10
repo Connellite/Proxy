@@ -60,7 +60,7 @@ public class OutboundConnector {
             @Override
             protected void initChannel(SocketChannel ch) {
                 applyOutboundTtl(ch);
-                ch.pipeline().addLast(new QuietCloseHandlerAdapter());
+                QuietCloseHandlerAdapter.installLast(ch.pipeline());
             }
         });
         bootstrap.connect(host, port).addListener((ChannelFutureListener) future -> {
@@ -113,6 +113,7 @@ public class OutboundConnector {
                 ch.pipeline().addLast(Socks5ClientEncoder.DEFAULT);
                 ch.pipeline().addLast(new Socks5InitialResponseDecoder());
                 ch.pipeline().addLast(new Socks5UpstreamHandler(upstream, targetHost, targetPort, wantAuth, callback));
+                QuietCloseHandlerAdapter.installLast(ch.pipeline());
             }
         });
         bootstrap.connect(upstream.host(), upstream.port()).addListener((ChannelFutureListener) future -> {

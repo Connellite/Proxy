@@ -1,6 +1,7 @@
 package io.github.connellite.proxy.proxy.outbound;
 
 import io.github.connellite.proxy.dto.UpstreamSnapshot;
+import io.github.connellite.proxy.proxy.QuietCloseHandlerAdapter;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
@@ -41,6 +42,7 @@ class HttpConnectUpstreamHandler extends ChannelInitializer<SocketChannel> {
         ch.pipeline().addLast(new HttpClientCodec());
         ch.pipeline().addLast(new HttpObjectAggregator(8192));
         ch.pipeline().addLast(new ConnectResponseHandler());
+        QuietCloseHandlerAdapter.installLast(ch.pipeline());
     }
 
     /**

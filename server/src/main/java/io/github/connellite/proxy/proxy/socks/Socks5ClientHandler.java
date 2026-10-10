@@ -1,6 +1,7 @@
 package io.github.connellite.proxy.proxy.socks;
 
 import io.github.connellite.proxy.dto.AuthenticatedSession;
+import io.github.connellite.proxy.proxy.QuietCloseHandlerAdapter;
 import io.github.connellite.proxy.proxy.UserTrafficShaping;
 import io.github.connellite.proxy.proxy.outbound.OutboundConnector;
 import io.github.connellite.proxy.proxy.outbound.OutboundIpTtl;
@@ -121,6 +122,7 @@ final class Socks5ClientHandler extends AbstractSocksClientHandler {
                     protected void initChannel(NioDatagramChannel ch) {
                         OutboundIpTtl.apply(ch, settingsService.get().getOutboundTtl());
                         ch.pipeline().addLast(new Socks5UdpRelayHandler(inbound, session, metrics));
+                        QuietCloseHandlerAdapter.installLast(ch.pipeline());
                     }
                 });
 
@@ -157,6 +159,7 @@ final class Socks5ClientHandler extends AbstractSocksClientHandler {
                                 c.close();
                             }
                         });
+                        QuietCloseHandlerAdapter.installLast(inbound.pipeline());
                     });
         });
     }

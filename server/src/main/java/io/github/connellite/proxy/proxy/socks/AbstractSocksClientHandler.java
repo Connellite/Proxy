@@ -1,6 +1,7 @@
 package io.github.connellite.proxy.proxy.socks;
 
 import io.github.connellite.proxy.dto.AuthenticatedSession;
+import io.github.connellite.proxy.proxy.QuietCloseHandlerAdapter;
 import io.github.connellite.proxy.proxy.RelayHandler;
 import io.github.connellite.proxy.proxy.UserTrafficShaping;
 import io.github.connellite.proxy.proxy.outbound.OutboundConnector;
@@ -58,6 +59,7 @@ abstract class AbstractSocksClientHandler extends SimpleChannelInboundHandler<So
                 outbound.pipeline().addLast(new RelayHandler(inbound,
                         bytes -> metrics.recordTraffic(userId, 0, bytes),
                         () -> metrics.allowMoreTraffic(session)));
+                QuietCloseHandlerAdapter.installLast(outbound.pipeline());
                 Object success = socks4
                         ? new DefaultSocks4CommandResponse(Socks4CommandStatus.SUCCESS)
                         : new DefaultSocks5CommandResponse(
@@ -72,6 +74,7 @@ abstract class AbstractSocksClientHandler extends SimpleChannelInboundHandler<So
                     inbound.pipeline().addLast(new RelayHandler(outbound,
                             bytes -> metrics.recordTraffic(userId, bytes, 0),
                             () -> metrics.allowMoreTraffic(session)));
+                    QuietCloseHandlerAdapter.installLast(inbound.pipeline());
                     inbound.config().setAutoRead(true);
                     outbound.config().setAutoRead(true);
                 });

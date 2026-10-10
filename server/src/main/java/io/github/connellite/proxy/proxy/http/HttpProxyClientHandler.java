@@ -4,6 +4,7 @@ import com.google.common.net.HostAndPort;
 import io.github.connellite.proxy.dto.AuthenticatedSession;
 import io.github.connellite.proxy.proxy.outbound.OutboundConnector;
 import io.github.connellite.proxy.proxy.outbound.TunnelCallback;
+import io.github.connellite.proxy.proxy.QuietCloseHandlerAdapter;
 import io.github.connellite.proxy.proxy.RelayHandler;
 import io.github.connellite.proxy.proxy.UserTrafficShaping;
 import io.github.connellite.proxy.service.HttpStripHeaderService;
@@ -133,6 +134,7 @@ public class HttpProxyClientHandler extends SimpleChannelInboundHandler<FullHttp
                 outbound.pipeline().addLast(new RelayHandler(inbound,
                         bytes -> metrics.recordTraffic(userId, 0, bytes),
                         () -> metrics.allowMoreTraffic(session)));
+                QuietCloseHandlerAdapter.installLast(outbound.pipeline());
                 DefaultFullHttpResponse response = new DefaultFullHttpResponse(
                         HttpVersion.HTTP_1_1,
                         new HttpResponseStatus(200, "Connection Established"),
@@ -153,6 +155,7 @@ public class HttpProxyClientHandler extends SimpleChannelInboundHandler<FullHttp
                     inbound.pipeline().addLast(new RelayHandler(outbound,
                             bytes -> metrics.recordTraffic(userId, bytes, 0),
                             () -> metrics.allowMoreTraffic(session)));
+                    QuietCloseHandlerAdapter.installLast(inbound.pipeline());
                     inbound.config().setAutoRead(true);
                     outbound.config().setAutoRead(true);
                 });
@@ -254,6 +257,7 @@ public class HttpProxyClientHandler extends SimpleChannelInboundHandler<FullHttp
                         RelayHandler.closeOnFlush(c.channel());
                     }
                 });
+                QuietCloseHandlerAdapter.installLast(outbound.pipeline());
                 metrics.recordTraffic(userId, outboundRequest.content().readableBytes(), 0);
                 if (!metrics.allowMoreTraffic(session)) {
                     outboundRequest.release();

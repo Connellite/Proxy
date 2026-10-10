@@ -2,6 +2,7 @@ package io.github.connellite.proxy.proxy.http;
 
 import io.github.connellite.proxy.config.ProxyProperties;
 import io.github.connellite.proxy.proxy.IdleCloseHandler;
+import io.github.connellite.proxy.proxy.QuietCloseHandlerAdapter;
 import io.github.connellite.proxy.proxy.outbound.OutboundConnector;
 import io.github.connellite.proxy.service.HttpStripHeaderService;
 import io.github.connellite.proxy.service.ProxyAuthService;
@@ -75,6 +76,7 @@ public class HttpProxyServerInstance implements AutoCloseable {
                         ch.pipeline().addLast(new HttpServerCodec());
                         ch.pipeline().addLast(new HttpObjectAggregator(properties.getHttpMaxContentLengthBytes()));
                         ch.pipeline().addLast(newClientHandler());
+                        QuietCloseHandlerAdapter.installLast(ch.pipeline());
                     }
                 });
         serverChannel = bootstrap.bind(new InetSocketAddress(bindHost, port)).sync().channel();

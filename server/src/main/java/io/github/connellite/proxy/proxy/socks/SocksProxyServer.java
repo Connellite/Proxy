@@ -2,6 +2,7 @@ package io.github.connellite.proxy.proxy.socks;
 
 import io.github.connellite.proxy.config.ProxyProperties;
 import io.github.connellite.proxy.proxy.IdleCloseHandler;
+import io.github.connellite.proxy.proxy.QuietCloseHandlerAdapter;
 import io.github.connellite.proxy.proxy.outbound.OutboundConnector;
 import io.github.connellite.proxy.service.ProxyAuthService;
 import io.github.connellite.proxy.service.ProxyMetrics;
@@ -56,6 +57,7 @@ public final class SocksProxyServer implements AutoCloseable {
                         ch.pipeline().addLast(new SocksPortUnificationServerHandler());
                         ch.pipeline().addLast(new SocksClientHandler(
                                 authService, metrics, settingsService, outboundConnector));
+                        QuietCloseHandlerAdapter.installLast(ch.pipeline());
                     }
                 });
         serverChannel = bootstrap.bind(new InetSocketAddress(bindHost, port)).sync().channel();

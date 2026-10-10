@@ -1,5 +1,6 @@
 package io.github.connellite.proxy.proxy.socks;
 
+import io.github.connellite.proxy.proxy.QuietCloseHandlerAdapter;
 import io.github.connellite.proxy.proxy.outbound.OutboundConnector;
 import io.github.connellite.proxy.service.ProxyAuthService;
 import io.github.connellite.proxy.service.ProxyMetrics;
@@ -41,5 +42,10 @@ final class SocksClientHandler extends SimpleChannelInboundHandler<SocksMessage>
         }
         ctx.pipeline().replace(this, null, next);
         ctx.fireChannelRead(ReferenceCountUtil.retain(msg));
+    }
+
+    @Override
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
+        QuietCloseHandlerAdapter.handle(ctx, cause);
     }
 }
