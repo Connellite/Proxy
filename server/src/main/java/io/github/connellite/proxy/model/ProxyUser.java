@@ -1,6 +1,7 @@
 package io.github.connellite.proxy.model;
 
 #if SPRING_BOOT_3
+import jakarta.persistence.Cacheable;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
@@ -14,6 +15,7 @@ import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import org.hibernate.type.TrueFalseConverter;
 #else
+import javax.persistence.Cacheable;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
@@ -28,6 +30,8 @@ import org.hibernate.annotations.Type;
 #endif
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.Cache;
+import org.hibernate.annotations.CacheConcurrencyStrategy;
 import org.hibernate.annotations.ColumnDefault;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -42,6 +46,8 @@ import java.util.stream.Collectors;
 @Setter
 @Entity
 @Table(name = "PROXY_USERS")
+@Cacheable
+@Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
 public class ProxyUser implements UserDetails {
 
     @Id
@@ -124,6 +130,7 @@ public class ProxyUser implements UserDetails {
     @Column(name = "LAST_USED_AT")
     private Instant lastUsedAt;
 
+    @Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
             name = "USER_ROLE",

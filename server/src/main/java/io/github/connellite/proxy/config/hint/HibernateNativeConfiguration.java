@@ -1,6 +1,8 @@
 package io.github.connellite.proxy.config.hint;
 
 #if SPRING_BOOT_3
+import com.github.benmanes.caffeine.jcache.spi.CaffeineCachingProvider;
+import io.github.connellite.proxy.config.ReferenceJCacheRegionFactory;
 import io.github.connellite.proxy.config.SqliteDialectResolver;
 import org.hibernate.community.dialect.SQLiteDialect;
 import org.springframework.aot.hint.MemberCategory;
@@ -30,6 +32,10 @@ public class HibernateNativeConfiguration {
             };
             hints.reflection().registerType(SQLiteDialect.class, categories);
             hints.reflection().registerType(SqliteDialectResolver.class, categories);
+            hints.reflection().registerType(ReferenceJCacheRegionFactory.class, categories);
+            hints.reflection().registerType(CaffeineCachingProvider.class, categories);
+            hints.resources().registerPattern("reference.conf");
+            hints.resources().registerPattern("application.conf");
         }
     }
 }

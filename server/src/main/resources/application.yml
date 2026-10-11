@@ -32,6 +32,18 @@ spring:
       hibernate:
         jdbc:
           time_zone: UTC
+        cache:
+          use_second_level_cache: true
+          use_query_cache: true
+          region:
+            factory_class: io.github.connellite.proxy.config.ReferenceJCacheRegionFactory
+        javax:
+          cache:
+            provider: com.github.benmanes.caffeine.jcache.spi.CaffeineCachingProvider
+            # Hibernate creates regions (entities, query, update-timestamps) at startup.
+            missing_cache_strategy: create
+      "[javax.persistence.sharedCache.mode]": ENABLE_SELECTIVE
+      "[jakarta.persistence.sharedCache.mode]": ENABLE_SELECTIVE
   thymeleaf:
     cache: false
 

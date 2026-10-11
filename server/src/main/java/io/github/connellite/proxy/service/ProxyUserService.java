@@ -28,6 +28,7 @@ public class ProxyUserService {
 
     private final ProxyUserRepository repository;
     private final SshUserKeyRepository sshUserKeyRepository;
+    private final CacheService cacheService;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final ProxyAuthService authService;
@@ -75,6 +76,7 @@ public class ProxyUserService {
         ensureNotBootstrapAdmin(id);
         sshUserKeyRepository.deleteByUser_Id(id);
         sshUserKeyRepository.flush();
+        cacheService.evictSshKeysAfterCommit();
         repository.deleteById(id);
         trafficStatsService.clearLiveTotal(id);
     }
@@ -93,13 +95,8 @@ public class ProxyUserService {
         repository.save(user);
     }
 
-    @Transactional
     public void resetTraffic(String id) {
-        ProxyUser user = getRequired(id);
-        user.setBytesUp(0);
-        user.setBytesDown(0);
-        repository.save(user);
-        trafficStatsService.clearLiveTotal(id);
+        trafficStatsService.resetUserTraffic(id);
     }
 
     public int activeConnections(String userId) {

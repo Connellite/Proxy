@@ -1,6 +1,7 @@
 package io.github.connellite.proxy.model;
 
 #if SPRING_BOOT_3
+import jakarta.persistence.Cacheable;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -13,6 +14,7 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 #else
+import javax.persistence.Cacheable;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
@@ -28,6 +30,8 @@ import javax.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.Cache;
+import org.hibernate.annotations.CacheConcurrencyStrategy;
 import org.hibernate.annotations.ColumnDefault;
 
 import java.time.Instant;
@@ -42,6 +46,8 @@ import java.time.Instant;
 @Table(name = "SSH_USER_KEY", uniqueConstraints = @UniqueConstraint(
         name = "UK_SSH_USER_KEY_USER_FP",
         columnNames = {"USR_ID", "FINGERPRINT"}))
+@Cacheable
+@Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
 public class SshUserKey {
 
     @Id

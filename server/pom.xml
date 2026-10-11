@@ -323,6 +323,18 @@
                     <artifactId>sqlite-dialect</artifactId>
                     <version>0.1.4</version>
                 </dependency>
+                <dependency>
+                    <groupId>org.hibernate</groupId>
+                    <artifactId>hibernate-jcache</artifactId>
+                </dependency>
+                <dependency>
+                    <groupId>com.github.ben-manes.caffeine</groupId>
+                    <artifactId>caffeine</artifactId>
+                </dependency>
+                <dependency>
+                    <groupId>com.github.ben-manes.caffeine</groupId>
+                    <artifactId>jcache</artifactId>
+                </dependency>
             </dependencies>
         </profile>
 
@@ -332,6 +344,18 @@
                 <dependency>
                     <groupId>org.hibernate.orm</groupId>
                     <artifactId>hibernate-community-dialects</artifactId>
+                </dependency>
+                <dependency>
+                    <groupId>org.hibernate.orm</groupId>
+                    <artifactId>hibernate-jcache</artifactId>
+                </dependency>
+                <dependency>
+                    <groupId>com.github.ben-manes.caffeine</groupId>
+                    <artifactId>caffeine</artifactId>
+                </dependency>
+                <dependency>
+                    <groupId>com.github.ben-manes.caffeine</groupId>
+                    <artifactId>jcache</artifactId>
                 </dependency>
             </dependencies>
             <build>
@@ -345,6 +369,18 @@
                 <dependency>
                     <groupId>org.hibernate.orm</groupId>
                     <artifactId>hibernate-community-dialects</artifactId>
+                </dependency>
+                <dependency>
+                    <groupId>org.hibernate.orm</groupId>
+                    <artifactId>hibernate-jcache</artifactId>
+                </dependency>
+                <dependency>
+                    <groupId>com.github.ben-manes.caffeine</groupId>
+                    <artifactId>caffeine</artifactId>
+                </dependency>
+                <dependency>
+                    <groupId>com.github.ben-manes.caffeine</groupId>
+                    <artifactId>jcache</artifactId>
                 </dependency>
             </dependencies>
             <build>
