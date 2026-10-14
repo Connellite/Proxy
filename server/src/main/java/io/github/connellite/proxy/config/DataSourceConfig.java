@@ -5,6 +5,7 @@ import io.github.connellite.proxy.util.RuntimeEnvironment;
 import io.github.connellite.proxy.util.SqliteDatabase;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.sqlite.SQLiteDataSource;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.boot.context.properties.bind.Bindable;
@@ -96,7 +97,7 @@ public class DataSourceConfig {
                 .type(HikariDataSource.class)
                 .build();
         Binder.get(environment).bind("spring.datasource.hikari", Bindable.ofInstance(dataSource));
-        dataSource.setDataSourceProperties(SqliteDatabase.config().toProperties());
+        applySqliteDataSource(dataSource);
         return dataSource;
     }
 
@@ -107,9 +108,24 @@ public class DataSourceConfig {
                 .build();
         Binder.get(environment).bind("spring.datasource.hikari", Bindable.ofInstance(dataSource));
         if (DatabaseDriver.fromJdbcUrl(dataSourceProperties.getUrl()) == DatabaseDriver.SQLITE) {
-            dataSource.setDataSourceProperties(SqliteDatabase.config().toProperties());
+            applySqliteDataSource(dataSource);
         }
         return dataSource;
+    }
+
+    /**
+     * Hikari must not receive {@link SqliteDatabase#config()} as driver properties. It applies them,
+     * then calls {@code setAutoCommit} when borrowing and returning a connection. sqlite-jdbc runs
+     * that as {@code BEGIN IMMEDIATE} and {@code COMMIT}: returning an already committed connection
+     * failed with "cannot commit - no transaction is active", and disabling pool auto-commit made
+     * every new connection take the write lock ({@code SQLITE_BUSY}).
+     * {@link SQLiteDataSource} applies the same settings itself on open: WAL, foreign keys,
+     * busy timeout, and immediate transactions.
+     */
+    private static void applySqliteDataSource(HikariDataSource dataSource) {
+        SQLiteDataSource sqlite = new SQLiteDataSource(SqliteDatabase.config());
+        sqlite.setUrl(dataSource.getJdbcUrl());
+        dataSource.setDataSource(sqlite);
     }
 
     public record DataSourceSelection(DataSource dataSource) {
