@@ -40,6 +40,7 @@ public class UpstreamProxyFormPage extends Composite {
         this.editId = id;
 
         type.addItem("HTTP", "HTTP");
+        type.addItem("HTTPS", "HTTPS");
         type.addItem("SOCKS5", "SOCKS5");
         type.addItem("SSH", "SSH");
         name.getElement().setAttribute("maxlength", "128");
@@ -111,7 +112,7 @@ public class UpstreamProxyFormPage extends Composite {
                 name.setText(nullToEmpty(form.getName()));
                 selectType(form.getType());
                 host.setText(nullToEmpty(form.getHost()));
-                int defaultPort = "SSH".equalsIgnoreCase(form.getType()) ? 22 : 8080;
+                int defaultPort = defaultPort(form.getType());
                 port.setIntValue(form.getPort() > 0 ? form.getPort() : defaultPort);
                 username.setText(nullToEmpty(form.getUsername()));
                 password.setText("");
@@ -159,23 +160,30 @@ public class UpstreamProxyFormPage extends Composite {
             passwordHint.setText(passwordSaved
                     ? "Password is saved. Leave blank to keep the current value."
                     : "Username is required for SSH. Password is sent to the upstream SSH server.");
-            if (suggestDefaultPort) {
-                Integer current = port.getIntValue();
-                if (current == null || current == 8080 || current == 1080 || current == 3128) {
-                    port.setIntValue(22);
-                }
-            }
         } else {
             passwordHint.setText(passwordSaved
                     ? "Password is saved. Leave blank to keep the current value."
                     : "Leave username empty for no authentication.");
-            if (suggestDefaultPort) {
-                Integer current = port.getIntValue();
-                if (current == null || current == 22) {
-                    port.setIntValue("SOCKS5".equalsIgnoreCase(type.getSelectedValue()) ? 1080 : 8080);
-                }
+        }
+        if (suggestDefaultPort) {
+            Integer current = port.getIntValue();
+            if (current == null || current == 22 || current == 443 || current == 1080 || current == 8080 || current == 3128) {
+                port.setIntValue(defaultPort(type.getSelectedValue()));
             }
         }
+    }
+
+    private static int defaultPort(String selectedType) {
+        if ("SSH".equalsIgnoreCase(selectedType)) {
+            return 22;
+        }
+        if ("HTTPS".equalsIgnoreCase(selectedType)) {
+            return 443;
+        }
+        if ("SOCKS5".equalsIgnoreCase(selectedType)) {
+            return 1080;
+        }
+        return 8080;
     }
 
     private void selectType(String value) {

@@ -8,8 +8,10 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-public class AdminRowDto implements IsSerializable {
+public class SshUserKeyRowDto implements IsSerializable {
 
-    private String username;
-    private String updatedAt;
+    private long id;
+    private String comment;
+    private String fingerprint;
+    private String createdAt;
 }

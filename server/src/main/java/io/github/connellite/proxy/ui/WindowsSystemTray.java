@@ -1,5 +1,6 @@
 package io.github.connellite.proxy.ui;
 
+import io.github.connellite.proxy.util.RuntimeEnvironment;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
@@ -11,7 +12,6 @@ import org.springframework.stereotype.Component;
 
 import javax.imageio.ImageIO;
 import java.awt.Desktop;
-import java.awt.GraphicsEnvironment;
 import java.awt.Image;
 import java.awt.MenuItem;
 import java.awt.PopupMenu;
@@ -45,10 +45,10 @@ public class WindowsSystemTray implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        if (!isWindows()) {
+        if (!RuntimeEnvironment.isWindows()) {
             return;
         }
-        if (isNativeImage()) {
+        if (RuntimeEnvironment.isNativeImage()) {
             log.info("System tray skipped under GraalVM native image (use the JVM build for tray support)");
             return;
         }
@@ -56,14 +56,14 @@ public class WindowsSystemTray implements ApplicationRunner {
             return;
         }
         try {
-            if (isHeadless() || !SystemTray.isSupported()) {
+            if (RuntimeEnvironment.isHeadless() || !SystemTray.isSupported()) {
                 installed.set(false);
                 log.info("System tray is not available on this Windows session");
                 return;
             }
             install();
         } catch (Throwable ex) {
-            // Same as isHeadless(): AWT may throw Error (e.g. NoSuchMethodError), not Exception.
+            // Same as RuntimeEnvironment.isHeadless(): AWT may throw Error (e.g. NoSuchMethodError), not Exception.
             installed.set(false);
             log.warn("Failed to install Windows system tray icon: {}", ex.toString());
         }
@@ -107,25 +107,6 @@ public class WindowsSystemTray implements ApplicationRunner {
             System.exit(code);
         } catch (Exception ex) {
             System.exit(0);
-        }
-    }
-
-    private static boolean isWindows() {
-        return System.getProperty("os.name", "").toLowerCase().contains("win");
-    }
-
-    private static boolean isNativeImage() {
-        return "runtime".equals(System.getProperty("org.graalvm.nativeimage.imagecode"));
-    }
-
-    private static boolean isHeadless() {
-        try {
-            return GraphicsEnvironment.isHeadless();
-        } catch (Throwable ex) {
-            // Catch Throwable (not Exception): AWT/JNI can throw Error subclasses
-            // like NoSuchMethodError under GraalVM native — those would bypass catch (Exception)
-            // and abort Spring Boot startup. Treat any AWT probe failure as headless.
-            return true;
         }
     }
 

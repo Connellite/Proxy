@@ -15,6 +15,7 @@ import java.util.List;
 public class EncryptionDto implements IsSerializable {
 
     private boolean httpsEnabled;
+    private boolean httpsAuthRequired;
     private String httpsBindHost;
     private String serverName;
     private String certificateChain;

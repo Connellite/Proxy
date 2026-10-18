@@ -2,6 +2,7 @@ package io.github.connellite.proxy.model;
 
 #if SPRING_BOOT_3
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -11,6 +12,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import org.hibernate.type.TrueFalseConverter;
 #else
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -22,6 +24,7 @@ import javax.persistence.Id;
 import javax.persistence.PrePersist;
 import javax.persistence.PreUpdate;
 import javax.persistence.Table;
+import org.hibernate.annotations.Type;
 #endif
 import lombok.Getter;
 import lombok.Setter;
@@ -33,42 +36,48 @@ import java.time.Instant;
 @Getter
 @Setter
 @Entity
-@Table(name = "upstream_proxies")
+@Table(name = "UPSTREAM_PROXIES")
 public class UpstreamProxy {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "ID")
     private Long id;
 
-    @Column(nullable = false, length = 128)
+    @Column(name = "NAME", nullable = false, length = 128)
     private String name;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 16)
+    @Column(name = "TYPE", nullable = false, length = 16)
     @ColumnDefault("'HTTP'")
     private UpstreamProxyType type = UpstreamProxyType.HTTP;
 
-    @Column(nullable = false, length = 255)
+    @Column(name = "HOST", nullable = false, length = 255)
     private String host;
 
-    @Column(nullable = false)
+    @Column(name = "PORT", nullable = false)
     private int port;
 
-    @Column(length = 128)
+    @Column(name = "USERNAME", length = 128)
     private String username;
 
-    @Column(length = 256)
+    @Column(name = "PASSWORD", length = 256)
     private String password;
 
-    @Column(nullable = false)
-    @ColumnDefault("false")
+    @Column(name = "SELECTED", nullable = false)
+    @ColumnDefault("'F'")
+#if SPRING_BOOT_3
+    @Convert(converter = TrueFalseConverter.class)
+#else
+    @Type(type = "true_false")
+#endif
     private boolean selected = false;
 
-    @Column(name = "created_at", nullable = false)
+    @Column(name = "CREATED_AT", nullable = false)
     @ColumnDefault("CURRENT_TIMESTAMP")
     private Instant createdAt;
 
-    @Column(name = "updated_at", nullable = false)
+    @Column(name = "UPDATED_AT", nullable = false)
     @ColumnDefault("CURRENT_TIMESTAMP")
     private Instant updatedAt;
 

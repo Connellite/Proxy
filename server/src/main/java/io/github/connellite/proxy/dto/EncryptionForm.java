@@ -9,6 +9,8 @@ public class EncryptionForm {
 
     private boolean httpsEnabled = false;
 
+    private boolean httpsAuthRequired = false;
+
     private String httpsBindHost = "0.0.0.0";
 
     private int httpsPort = 3129;

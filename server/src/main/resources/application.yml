@@ -7,21 +7,43 @@ spring:
   application:
     name: proxy
   datasource:
-    # URL is overridden by AppConfig DataSource bean after path resolution.
-    url: jdbc:sqlite:proxy.db
-    driver-class-name: org.sqlite.JDBC
+    # Native images always use SQLite at {data-dir}/proxy.db and ignore url.
+    # Any other build uses spring.datasource.url when it is set, including jdbc:sqlite.
+    # With no URL, the SQLite file is {data-dir}/proxy.db.
+    # WAR on Tomcat: the driver is in Tomcat lib, not inside the WAR.
+    # Executable JAR: PostgreSQL, SQL Server and Oracle drivers are inside the JAR.
+    # The driver class is taken from the URL. Set driver-class-name only to override that.
+    # jndi-name: java:comp/env/jdbc/proxy
+    # url: jdbc:postgresql://localhost:5432/proxy
+    # username: proxy
+    # password: secret
     hikari:
-      maximum-pool-size: 1
-      connection-init-sql: PRAGMA foreign_keys=ON
+      # Applied to the SQLite pool and to a JDBC URL pool. JNDI uses the Tomcat Resource pool.
+      maximum-pool-size: 4
   jpa:
     hibernate:
       ddl-auto: update
     open-in-view: false
-    database-platform: @sqlite.dialect@
+    # Optional. When unset, Hibernate resolves the dialect from JDBC metadata.
+    # Boot 2: org.hibernate.dialect.PostgreSQL10Dialect, SQLServer2012Dialect, Oracle12cDialect
+    # Boot 3: org.hibernate.dialect.PostgreSQLDialect, SQLServerDialect, OracleDialect
+    # database-platform:
     properties:
       hibernate:
         jdbc:
           time_zone: UTC
+        cache:
+          use_second_level_cache: true
+          use_query_cache: true
+          region:
+            factory_class: io.github.connellite.proxy.config.ReferenceJCacheRegionFactory
+        javax:
+          cache:
+            provider: com.github.benmanes.caffeine.jcache.spi.CaffeineCachingProvider
+            # Hibernate creates regions (entities, query, update-timestamps) at startup.
+            missing_cache_strategy: create
+      "[javax.persistence.sharedCache.mode]": ENABLE_SELECTIVE
+      "[jakarta.persistence.sharedCache.mode]": ENABLE_SELECTIVE
   thymeleaf:
     cache: false
 
@@ -33,7 +55,7 @@ proxy:
     admin-username: admin
     admin-password: admin
   http:
-    enabled: true
+    enabled: false
     bind-host: 0.0.0.0
     port: 3128
   https:
@@ -46,7 +68,7 @@ proxy:
     certificate-path:
     private-key-path:
   socks5:
-    enabled: true
+    enabled: false
     bind-host: 0.0.0.0
     port: 1080
   ssh:
@@ -54,6 +76,7 @@ proxy:
     bind-host: 0.0.0.0
     port: 2222
   http-auth-required: false
+  https-auth-required: false
   socks-auth-required: false
   socks-udp-enabled: false
   connect-timeout-ms: 15000
@@ -70,3 +93,5 @@ logging:
     io.github.connellite.proxy: INFO
     # SSHD local-forward race can WARN/NPE while the tunnel still works (SSHD-849/961).
     org.apache.sshd.common.forward.DefaultForwarder: ERROR
+    # fix: Invalid character found in method name [...]. HTTP method names must be tokens
+    org.apache.coyote.http11.Http11Processor: WARN

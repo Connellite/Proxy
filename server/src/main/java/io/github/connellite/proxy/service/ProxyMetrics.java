@@ -117,7 +117,7 @@ public class ProxyMetrics {
         return trafficStatsService.sessionBytesDown();
     }
 
-    public void recordTraffic(Long userId, long up, long down) {
+    public void recordTraffic(String userId, long up, long down) {
         trafficStatsService.record(userId, up, down);
     }
 

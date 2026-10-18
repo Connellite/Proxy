@@ -2,7 +2,9 @@ package io.github.connellite.proxy.proxy.http;
 
 import com.google.common.net.HostAndPort;
 import io.github.connellite.proxy.dto.AuthenticatedSession;
-import io.github.connellite.proxy.proxy.OutboundConnector;
+import io.github.connellite.proxy.proxy.outbound.OutboundConnector;
+import io.github.connellite.proxy.proxy.outbound.TunnelCallback;
+import io.github.connellite.proxy.proxy.QuietCloseHandlerAdapter;
 import io.github.connellite.proxy.proxy.RelayHandler;
 import io.github.connellite.proxy.proxy.UserTrafficShaping;
 import io.github.connellite.proxy.service.HttpStripHeaderService;
@@ -45,11 +47,11 @@ import java.util.Set;
 
 @Slf4j
 @RequiredArgsConstructor
-public final class HttpProxyClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
+public class HttpProxyClientHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
 
     static final AttributeKey<AuthenticatedSession> SESSION_KEY = AttributeKey.valueOf("proxySession");
 
-    private final ProxyAuthService authService;
+    protected final ProxyAuthService authService;
     private final ProxyMetrics metrics;
     private final OutboundConnector outboundConnector;
     private final HttpStripHeaderService stripHeaderService;
@@ -59,7 +61,7 @@ public final class HttpProxyClientHandler extends SimpleChannelInboundHandler<Fu
         AuthenticatedSession session = ctx.channel().attr(SESSION_KEY).get();
         if (session == null) {
             Optional<AuthenticatedSession> authenticated = authenticate(request);
-            if (authService.isHttpAuthRequired()) {
+            if (authRequired()) {
                 if (authenticated.isEmpty()) {
                     sendProxyAuthRequired(ctx);
                     return;
@@ -91,6 +93,10 @@ public final class HttpProxyClientHandler extends SimpleChannelInboundHandler<Fu
         }
     }
 
+    protected boolean authRequired() {
+        return authService.isHttpAuthRequired();
+    }
+
     private Optional<AuthenticatedSession> authenticate(FullHttpRequest request) {
         String header = request.headers().get(HttpHeaderNames.PROXY_AUTHORIZATION);
         if (header == null || !header.regionMatches(true, 0, "Basic ", 0, 6)) {
@@ -120,14 +126,15 @@ public final class HttpProxyClientHandler extends SimpleChannelInboundHandler<Fu
         int port = target.port();
 
         Channel inbound = ctx.channel();
-        Long userId = session == null ? null : session.userId();
+        String userId = session == null ? null : session.userId();
 
-        outboundConnector.openTunnel(inbound, host, port, new OutboundConnector.TunnelCallback() {
+        outboundConnector.openTunnel(inbound, host, port, new TunnelCallback() {
             @Override
             public void onSuccess(Channel outbound) {
                 outbound.pipeline().addLast(new RelayHandler(inbound,
                         bytes -> metrics.recordTraffic(userId, 0, bytes),
                         () -> metrics.allowMoreTraffic(session)));
+                QuietCloseHandlerAdapter.installLast(outbound.pipeline());
                 DefaultFullHttpResponse response = new DefaultFullHttpResponse(
                         HttpVersion.HTTP_1_1,
                         new HttpResponseStatus(200, "Connection Established"),
@@ -141,13 +148,14 @@ public final class HttpProxyClientHandler extends SimpleChannelInboundHandler<Fu
                         return;
                     }
                     inbound.pipeline().remove(HttpObjectAggregator.class);
-                    inbound.pipeline().remove(HttpProxyClientHandler.class);
+                    inbound.pipeline().remove(HttpProxyClientHandler.this);
                     if (inbound.pipeline().get(HttpServerCodec.class) != null) {
                         inbound.pipeline().remove(HttpServerCodec.class);
                     }
                     inbound.pipeline().addLast(new RelayHandler(outbound,
                             bytes -> metrics.recordTraffic(userId, bytes, 0),
                             () -> metrics.allowMoreTraffic(session)));
+                    QuietCloseHandlerAdapter.installLast(inbound.pipeline());
                     inbound.config().setAutoRead(true);
                     outbound.config().setAutoRead(true);
                 });
@@ -204,9 +212,9 @@ public final class HttpProxyClientHandler extends SimpleChannelInboundHandler<Fu
         }
 
         Channel inbound = ctx.channel();
-        Long userId = session == null ? null : session.userId();
+        String userId = session == null ? null : session.userId();
 
-        outboundConnector.openTunnel(inbound, host, port, new OutboundConnector.TunnelCallback() {
+        outboundConnector.openTunnel(inbound, host, port, new TunnelCallback() {
             @Override
             public void onSuccess(Channel outbound) {
                 outbound.pipeline().addLast(new HttpRequestEncoder());
@@ -249,6 +257,7 @@ public final class HttpProxyClientHandler extends SimpleChannelInboundHandler<Fu
                         RelayHandler.closeOnFlush(c.channel());
                     }
                 });
+                QuietCloseHandlerAdapter.installLast(outbound.pipeline());
                 metrics.recordTraffic(userId, outboundRequest.content().readableBytes(), 0);
                 if (!metrics.allowMoreTraffic(session)) {
                     outboundRequest.release();

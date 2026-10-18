@@ -2,7 +2,8 @@ package io.github.connellite.proxy.proxy.http;
 
 import io.github.connellite.proxy.config.ProxyProperties;
 import io.github.connellite.proxy.proxy.IdleCloseHandler;
-import io.github.connellite.proxy.proxy.OutboundConnector;
+import io.github.connellite.proxy.proxy.QuietCloseHandlerAdapter;
+import io.github.connellite.proxy.proxy.outbound.OutboundConnector;
 import io.github.connellite.proxy.service.HttpStripHeaderService;
 import io.github.connellite.proxy.service.ProxyAuthService;
 import io.github.connellite.proxy.service.ProxyMetrics;
@@ -11,12 +12,12 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
-import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.MultiThreadIoEventLoopGroup;
+import io.netty.channel.nio.NioIoHandler;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpServerCodec;
-import io.netty.handler.ssl.SslContext;
 import io.netty.handler.timeout.IdleStateHandler;
 import lombok.extern.slf4j.Slf4j;
 
@@ -24,14 +25,13 @@ import java.net.InetSocketAddress;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
-public final class HttpProxyServerInstance implements AutoCloseable {
+public class HttpProxyServerInstance implements AutoCloseable {
 
-    private final ProxyAuthService authService;
-    private final ProxyMetrics metrics;
+    protected final ProxyAuthService authService;
+    protected final ProxyMetrics metrics;
     private final ProxyProperties properties;
-    private final OutboundConnector outboundConnector;
-    private final HttpStripHeaderService stripHeaderService;
-    private final String label;
+    protected final OutboundConnector outboundConnector;
+    protected final HttpStripHeaderService stripHeaderService;
 
     private EventLoopGroup bossGroup;
     private EventLoopGroup workerGroup;
@@ -41,20 +41,26 @@ public final class HttpProxyServerInstance implements AutoCloseable {
                             ProxyMetrics metrics,
                             ProxyProperties properties,
                             OutboundConnector outboundConnector,
-                            HttpStripHeaderService stripHeaderService,
-                            String label) {
+                            HttpStripHeaderService stripHeaderService) {
         this.authService = authService;
         this.metrics = metrics;
         this.properties = properties;
         this.outboundConnector = outboundConnector;
         this.stripHeaderService = stripHeaderService;
-        this.label = label;
     }
 
-    public synchronized void start(String bindHost, int port, SslContext sslContext) throws InterruptedException {
+    protected String scheme() {
+        return "HTTP proxy";
+    }
+
+    protected HttpProxyClientHandler newClientHandler() {
+        return new HttpProxyClientHandler(authService, metrics, outboundConnector, stripHeaderService);
+    }
+
+    public synchronized void start(String bindHost, int port) throws InterruptedException {
         stop();
-        bossGroup = new NioEventLoopGroup(1);
-        workerGroup = new NioEventLoopGroup();
+        bossGroup = new MultiThreadIoEventLoopGroup(1, NioIoHandler.newFactory());
+        workerGroup = new MultiThreadIoEventLoopGroup(NioIoHandler.newFactory());
         ServerBootstrap bootstrap = new ServerBootstrap();
         bootstrap.group(bossGroup, workerGroup)
                 .channel(NioServerSocketChannel.class)
@@ -64,19 +70,23 @@ public final class HttpProxyServerInstance implements AutoCloseable {
                 .childHandler(new ChannelInitializer<SocketChannel>() {
                     @Override
                     protected void initChannel(SocketChannel ch) {
-                        if (sslContext != null) {
-                            ch.pipeline().addLast(sslContext.newHandler(ch.alloc()));
-                        }
+                        configureTransport(ch);
                         ch.pipeline().addLast(new IdleStateHandler(0, 0, properties.getIdleTimeoutSeconds(), TimeUnit.SECONDS));
                         ch.pipeline().addLast(new IdleCloseHandler());
                         ch.pipeline().addLast(new HttpServerCodec());
                         ch.pipeline().addLast(new HttpObjectAggregator(properties.getHttpMaxContentLengthBytes()));
-                        ch.pipeline().addLast(new HttpProxyClientHandler(
-                                authService, metrics, outboundConnector, stripHeaderService));
+                        ch.pipeline().addLast(newClientHandler());
+                        QuietCloseHandlerAdapter.installLast(ch.pipeline());
                     }
                 });
         serverChannel = bootstrap.bind(new InetSocketAddress(bindHost, port)).sync().channel();
-        log.info("{} listening on {}:{}", label, bindHost, port);
+        log.info("{} listening on {}:{}", scheme(), bindHost, port);
+    }
+
+    /**
+     * Plain HTTP adds nothing. HTTPS overrides this and inserts TLS first.
+     */
+    protected void configureTransport(SocketChannel ch) {
     }
 
     public synchronized boolean isRunning() {

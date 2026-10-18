@@ -13,6 +13,5 @@ import java.util.List;
 @NoArgsConstructor
 public class UsersPageDto implements IsSerializable {
 
-    private List<AdminRowDto> admins = new ArrayList<>();
     private List<UserRowDto> users = new ArrayList<>();
 }

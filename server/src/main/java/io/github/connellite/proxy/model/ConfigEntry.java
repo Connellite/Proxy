@@ -24,7 +24,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @Entity
-@Table(name = "config")
+@Table(name = "CONFIG")
 public class ConfigEntry {
 
     public static final String HTTP_ENABLED = "http_enabled";
@@ -42,6 +42,7 @@ public class ConfigEntry {
     public static final String SOCKS_BIND_HOST = "socks_bind_host";
     public static final String SOCKS_PORT = "socks_port";
     public static final String HTTP_AUTH_REQUIRED = "http_auth_required";
+    public static final String HTTPS_AUTH_REQUIRED = "https_auth_required";
     public static final String SOCKS_AUTH_REQUIRED = "socks_auth_required";
     public static final String SOCKS_UDP_ENABLED = "socks_udp_enabled";
     public static final String SSH_ENABLED = "ssh_enabled";
@@ -54,7 +55,7 @@ public class ConfigEntry {
     public static final String BYTES_DOWN_TOTAL = "bytes_down_total";
 
     @Id
-    @Column(name = "key", nullable = false, length = 256)
+    @Column(name = "CFG_KEY", nullable = false, length = 256)
     private String key;
 
     @Lob
@@ -63,7 +64,7 @@ public class ConfigEntry {
 #else
     @Type(type = "org.hibernate.type.TextType")
 #endif
-    @Column(name = "value")
+    @Column(name = "CFG_VALUE")
     private String value;
 
     public ConfigEntry(String key, String value) {

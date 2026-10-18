@@ -95,7 +95,7 @@ public class DashboardPage extends Composite {
                         + "<p>SOCKS5 / SOCKS4 → same host, port <strong>" + dto.getSocksPort() + "</strong>. "
                         + "SOCKS4 only when SOCKS auth is <em>off</em>. Chrome often lacks SOCKS password auth.</p>"
                         + "<p>SSH tunnels → host + port <strong>" + dto.getSshPort()
-                        + "</strong> (enable in Settings). Password = proxy user. "
+                        + "</strong> (enable in Settings). Password or a key from the user SSH page. "
                         + "Use PuTTY/OpenSSH local/remote port forward; shell is disabled.</p>");
     }
 

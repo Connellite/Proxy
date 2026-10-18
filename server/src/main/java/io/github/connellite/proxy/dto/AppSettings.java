@@ -10,7 +10,7 @@ import lombok.Setter;
 @Setter
 public class AppSettings {
 
-    private boolean httpEnabled = true;
+    private boolean httpEnabled = false;
 
     private String httpBindHost = "0.0.0.0";
 
@@ -37,7 +37,7 @@ public class AppSettings {
     /** Path to PEM private key file. */
     private String httpsPrivateKeyPath;
 
-    private boolean socksEnabled = true;
+    private boolean socksEnabled = false;
 
     private String socksBindHost = "0.0.0.0";
 
@@ -45,12 +45,14 @@ public class AppSettings {
 
     private boolean httpAuthRequired = false;
 
+    private boolean httpsAuthRequired = false;
+
     private boolean socksAuthRequired = false;
 
     /** When true, SOCKS5 accepts UDP ASSOCIATE in addition to TCP CONNECT. */
     private boolean socksUdpEnabled = false;
 
-    /** SSH tunnel / port-forward listener (Apache Mina SSHD). Always password-auth via ProxyUser. */
+    /** SSH tunnel / port-forward listener (Apache Mina SSHD). Password and user public keys via ProxyUser. */
     private boolean sshEnabled = false;
 
     private String sshBindHost = "0.0.0.0";

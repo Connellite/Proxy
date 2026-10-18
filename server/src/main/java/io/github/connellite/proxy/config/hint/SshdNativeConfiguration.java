@@ -94,7 +94,41 @@ public class SshdNativeConfiguration {
                 registerJcaGetInstance(hints, type);
             }
 
+            // ECCurves.<clinit> loads named curves (nistp256/384/521) via AlgorithmParameters "EC".
+            // SunEC and BouncyCastle both resolve the implementation by class name.
+            for (String typeName : new String[] {
+                    "sun.security.util.ECParameters",
+                    "sun.security.util.CurveDB",
+                    "sun.security.util.NamedCurve",
+                    "sun.security.ec.SunEC",
+                    "org.bouncycastle.jcajce.provider.asymmetric.ec.AlgorithmParametersSpi",
+                    "org.bouncycastle.jcajce.provider.asymmetric.edec.KeyPairGeneratorSpi",
+                    "org.bouncycastle.jcajce.provider.asymmetric.edec.KeyPairGeneratorSpi$Ed25519",
+                    "org.bouncycastle.jcajce.provider.asymmetric.edec.KeyPairGeneratorSpi$EdDSA",
+                    // SUN and BouncyCastle SHA-256. SSHD asks its own provider chain for MessageDigest.
+                    "sun.security.provider.DigestBase",
+                    "sun.security.provider.SHA2",
+                    "sun.security.provider.SHA2$SHA256",
+                    "org.bouncycastle.jcajce.provider.digest.SHA256",
+                    "org.bouncycastle.jcajce.provider.digest.SHA256$Digest",
+                    "org.bouncycastle.jcajce.provider.digest.SHA256$Mappings",
+                    "org.bouncycastle.jcajce.provider.asymmetric.edec.KeyAgreementSpi",
+                    "org.bouncycastle.jcajce.provider.asymmetric.edec.KeyAgreementSpi$X25519",
+                    "org.bouncycastle.jcajce.provider.asymmetric.edec.KeyAgreementSpi$X448"
+            }) {
+                registerTypeName(hints, classLoader, typeName);
+            }
+
             hints.resources().registerPattern("org/apache/sshd/sshd-version.properties");
+        }
+
+        private static void registerTypeName(RuntimeHints hints, ClassLoader classLoader, String className) {
+            try {
+                Class<?> type = Class.forName(className, false, classLoader);
+                hints.reflection().registerType(type, TYPE_CATEGORIES);
+            } catch (ClassNotFoundException | LinkageError ignored) {
+                // Optional on this JDK — the other provider's class still covers named curves.
+            }
         }
 
         private static void registerJcaGetInstance(RuntimeHints hints, Class<?> type) {

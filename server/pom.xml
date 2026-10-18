@@ -12,7 +12,7 @@
 
     <artifactId>proxy</artifactId>
     <packaging>jar</packaging>
-    <name>proxy</name>
+    <name>proxy-server</name>
     <description>HTTP, SOCKS5 and SSH tunnel proxy with SQLite and admin UI</description>
 
     <dependencies>
@@ -48,8 +48,24 @@
             <artifactId>sqlite-jdbc</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>${jdbc-drivers.scope}</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.microsoft.sqlserver</groupId>
+            <artifactId>mssql-jdbc</artifactId>
+            <scope>${jdbc-drivers.scope}</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.oracle.database.jdbc</groupId>
+            <artifactId>ojdbc11</artifactId>
+            <scope>${jdbc-drivers.scope}</scope>
+        </dependency>
+        <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty-all</artifactId>
+            <version>${netty.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.sshd</groupId>
@@ -60,12 +76,22 @@
             <artifactId>bcpkix-jdk18on</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.graalvm.sdk</groupId>
+            <artifactId>nativeimage</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
+            <version>${commons-lang3.version}</version>
         </dependency>
         <dependency>
             <groupId>org.gwtproject</groupId>
@@ -85,11 +111,16 @@
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-core</artifactId>
+            <version>${micrometer.version}</version>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mapstruct</groupId>
+            <artifactId>mapstruct</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -201,6 +232,16 @@
                             <version>${lombok.version}</version>
                         </path>
                         <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok-mapstruct-binding</artifactId>
+                            <version>${lombok-mapstruct-binding.version}</version>
+                        </path>
+                        <path>
+                            <groupId>org.mapstruct</groupId>
+                            <artifactId>mapstruct-processor</artifactId>
+                            <version>${mapstruct.version}</version>
+                        </path>
+                        <path>
                             <groupId>systems.manifold</groupId>
                             <artifactId>manifold-preprocessor</artifactId>
                             <version>${manifold.version}</version>
@@ -262,6 +303,8 @@
                 <configuration>
                     <attachClasses>false</attachClasses>
                     <failOnMissingWebXml>false</failOnMissingWebXml>
+                    <!-- PostgreSQL, SQL Server and Oracle drivers ship only in the executable JAR. -->
+                    <packagingExcludes>WEB-INF/lib/postgresql-*.jar,WEB-INF/lib/mssql-jdbc-*.jar,WEB-INF/lib/ojdbc11-*.jar</packagingExcludes>
                 </configuration>
             </plugin>
         </plugins>
@@ -280,6 +323,18 @@
                     <artifactId>sqlite-dialect</artifactId>
                     <version>0.1.4</version>
                 </dependency>
+                <dependency>
+                    <groupId>org.hibernate</groupId>
+                    <artifactId>hibernate-jcache</artifactId>
+                </dependency>
+                <dependency>
+                    <groupId>com.github.ben-manes.caffeine</groupId>
+                    <artifactId>caffeine</artifactId>
+                </dependency>
+                <dependency>
+                    <groupId>com.github.ben-manes.caffeine</groupId>
+                    <artifactId>jcache</artifactId>
+                </dependency>
             </dependencies>
         </profile>
 
@@ -289,6 +344,18 @@
                 <dependency>
                     <groupId>org.hibernate.orm</groupId>
                     <artifactId>hibernate-community-dialects</artifactId>
+                </dependency>
+                <dependency>
+                    <groupId>org.hibernate.orm</groupId>
+                    <artifactId>hibernate-jcache</artifactId>
+                </dependency>
+                <dependency>
+                    <groupId>com.github.ben-manes.caffeine</groupId>
+                    <artifactId>caffeine</artifactId>
+                </dependency>
+                <dependency>
+                    <groupId>com.github.ben-manes.caffeine</groupId>
+                    <artifactId>jcache</artifactId>
                 </dependency>
             </dependencies>
             <build>
@@ -302,6 +369,18 @@
                 <dependency>
                     <groupId>org.hibernate.orm</groupId>
                     <artifactId>hibernate-community-dialects</artifactId>
+                </dependency>
+                <dependency>
+                    <groupId>org.hibernate.orm</groupId>
+                    <artifactId>hibernate-jcache</artifactId>
+                </dependency>
+                <dependency>
+                    <groupId>com.github.ben-manes.caffeine</groupId>
+                    <artifactId>caffeine</artifactId>
+                </dependency>
+                <dependency>
+                    <groupId>com.github.ben-manes.caffeine</groupId>
+                    <artifactId>jcache</artifactId>
                 </dependency>
             </dependencies>
             <build>
@@ -369,10 +448,11 @@
                                 <buildArg>--add-opens=java.base/java.lang=ALL-UNNAMED</buildArg>
                                 <buildArg>--add-opens=java.base/java.util=ALL-UNNAMED</buildArg>
                                 <buildArg>--add-opens=java.base/sun.nio.ch=ALL-UNNAMED</buildArg>
-                                <buildArg>--initialize-at-run-time=java.awt,sun.awt,sun.java2d,sun.font,sun.swing</buildArg>
+                                <buildArg>--initialize-at-run-time=java.awt,sun.awt,sun.java2d,sun.font,sun.swing,org.apache.sshd.common.digest.BuiltinDigests,org.bouncycastle.jcajce.provider.drbg</buildArg>
                                 <buildArg>-H:+UnlockExperimentalVMOptions</buildArg>
                                 <buildArg>-H:-AddAllFileSystemProviders</buildArg>
-                                <buildArg>--strict-image-heap</buildArg>
+                                <buildArg>--features=io.github.connellite.proxy.config.feature.BouncyCastleFeature</buildArg>
+                                <buildArg>--initialize-at-build-time=org.bouncycastle</buildArg>
                                 <buildArg>-H:+ReportExceptionStackTraces</buildArg>
                             </buildArgs>
                         </configuration>

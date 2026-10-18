@@ -143,10 +143,16 @@ public class AppShell extends Composite {
         content.setWidget(new UsersPage(this));
     }
 
-    public void showUserForm(Long id) {
+    public void showUserForm(String id) {
         stopRefresh();
         clearFlash();
         content.setWidget(new UserFormPage(this, id));
+    }
+
+    public void showSshAccess(String userId) {
+        stopRefresh();
+        clearFlash();
+        content.setWidget(new SshAccessPage(this, userId));
     }
 
     public void showSettings() {

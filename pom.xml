@@ -34,14 +34,26 @@
         <maven.compiler.release>17</maven.compiler.release>
 
         <lombok.version>1.18.42</lombok.version>
+        <lombok-mapstruct-binding.version>0.2.0</lombok-mapstruct-binding.version>
+        <mapstruct.version>1.6.3</mapstruct.version>
         <manifold.version>2026.1.6</manifold.version>
         <sqlite-jdbc.version>3.53.2.0</sqlite-jdbc.version>
+        <postgresql.version>42.7.13</postgresql.version>
+        <mssql-jdbc.version>12.8.2.jre11</mssql-jdbc.version>
+        <oracle-jdbc.version>23.6.0.24.10</oracle-jdbc.version>
+        <!-- runtime in the executable JAR; the WAR omits them (Tomcat lib). Native sets provided. -->
+        <jdbc-drivers.scope>runtime</jdbc-drivers.scope>
         <guava.version>33.6.0-jre</guava.version>
-        <bouncycastle.version>1.80</bouncycastle.version>
-        <sshd.version>2.18.0</sshd.version>
+        <bouncycastle.version>1.86</bouncycastle.version>
+        <micrometer.version>1.16.7</micrometer.version>
+        <sshd.version>2.20.0</sshd.version>
+        <commons-lang3.version>3.21.0</commons-lang3.version>
+        <httpclient.version>4.5.14</httpclient.version>
         <native-build-tools.version>0.10.6</native-build-tools.version>
+        <nativeimage.version>23.1.2</nativeimage.version>
 
         <gwt.version>2.10.0</gwt.version>
+        <gson.version>2.14.0</gson.version>
         <gwt.maven.plugin.version>1.0.1</gwt.maven.plugin.version>
         <!-- Boot 2 uses javax servlet GWT; Boot 3 / native use jakarta -->
         <gwt.servlet.artifactId>gwt-servlet</gwt.servlet.artifactId>
@@ -51,19 +63,32 @@
         <manifold.spring.symbol>SPRING_BOOT_2</manifold.spring.symbol>
         <spring.boot.compat.version>2.7.18</spring.boot.compat.version>
         <sqlite.dialect>org.sqlite.hibernate.dialect.SQLiteDialect</sqlite.dialect>
-        <netty.version>4.2.16.Final</netty.version>
+        <netty.version>4.2.18.Final</netty.version>
         <!-- provided for WAR; compile for standalone / native -->
         <tomcat.scope>provided</tomcat.scope>
     </properties>
 
     <dependencyManagement>
         <dependencies>
+            <!-- Before the Spring Boot BOM so its older Netty modules do not win. -->
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-bom</artifactId>
+                <version>${netty.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
             <dependency>
                 <groupId>org.gwtproject</groupId>
                 <artifactId>gwt</artifactId>
                 <version>${gwt.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.google.code.gson</groupId>
+                <artifactId>gson</artifactId>
+                <version>${gson.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.github.connellite</groupId>
@@ -82,14 +107,39 @@
                 <version>${lombok.version}</version>
             </dependency>
             <dependency>
+                <groupId>org.mapstruct</groupId>
+                <artifactId>mapstruct</artifactId>
+                <version>${mapstruct.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.mapstruct</groupId>
+                <artifactId>mapstruct-processor</artifactId>
+                <version>${mapstruct.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok-mapstruct-binding</artifactId>
+                <version>${lombok-mapstruct-binding.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>org.xerial</groupId>
                 <artifactId>sqlite-jdbc</artifactId>
                 <version>${sqlite-jdbc.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.netty</groupId>
-                <artifactId>netty-all</artifactId>
-                <version>${netty.version}</version>
+                <groupId>org.postgresql</groupId>
+                <artifactId>postgresql</artifactId>
+                <version>${postgresql.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.microsoft.sqlserver</groupId>
+                <artifactId>mssql-jdbc</artifactId>
+                <version>${mssql-jdbc.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.oracle.database.jdbc</groupId>
+                <artifactId>ojdbc11</artifactId>
+                <version>${oracle-jdbc.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.google.guava</groupId>
@@ -102,9 +152,29 @@
                 <version>${bouncycastle.version}</version>
             </dependency>
             <dependency>
+                <groupId>io.micrometer</groupId>
+                <artifactId>micrometer-core</artifactId>
+                <version>${micrometer.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>org.apache.sshd</groupId>
                 <artifactId>sshd-core</artifactId>
                 <version>${sshd.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-lang3</artifactId>
+                <version>${commons-lang3.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.graalvm.sdk</groupId>
+                <artifactId>nativeimage</artifactId>
+                <version>${nativeimage.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.httpcomponents</groupId>
+                <artifactId>httpclient</artifactId>
+                <version>${httpclient.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -145,6 +215,22 @@
                     <artifactId>maven-jar-plugin</artifactId>
                     <version>3.4.2</version>
                 </plugin>
+                <!-- Pin to 3.x: Maven 3.9 resolves "latest" to 4.0 betas that require Maven 4 -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-install-plugin</artifactId>
+                    <version>3.2.0</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-deploy-plugin</artifactId>
+                    <version>3.2.0</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-clean-plugin</artifactId>
+                    <version>3.4.1</version>
+                </plugin>
                 <plugin>
                     <groupId>net.ltgt.gwt.maven</groupId>
                     <artifactId>gwt-maven-plugin</artifactId>
@@ -178,7 +264,6 @@
                 <manifold.spring.symbol>SPRING_BOOT_2</manifold.spring.symbol>
                 <spring.boot.compat.version>2.7.18</spring.boot.compat.version>
                 <sqlite.dialect>org.sqlite.hibernate.dialect.SQLiteDialect</sqlite.dialect>
-                <netty.version>4.1.118.Final</netty.version>
                 <gwt.servlet.artifactId>gwt-servlet</gwt.servlet.artifactId>
                 <gwt.servlet.version>2.10.0</gwt.servlet.version>
                 <tomcat.scope>provided</tomcat.scope>
@@ -202,7 +287,6 @@
                 <manifold.spring.symbol>SPRING_BOOT_3</manifold.spring.symbol>
                 <spring.boot.compat.version>3.5.13</spring.boot.compat.version>
                 <sqlite.dialect>org.hibernate.community.dialect.SQLiteDialect</sqlite.dialect>
-                <netty.version>4.1.121.Final</netty.version>
                 <gwt.servlet.artifactId>gwt-servlet-jakarta</gwt.servlet.artifactId>
                 <gwt.servlet.version>2.11.0</gwt.servlet.version>
                 <tomcat.scope>provided</tomcat.scope>
@@ -235,6 +319,7 @@
                 <gwt.servlet.artifactId>gwt-servlet-jakarta</gwt.servlet.artifactId>
                 <gwt.servlet.version>2.11.0</gwt.servlet.version>
                 <tomcat.scope>compile</tomcat.scope>
+                <jdbc-drivers.scope>provided</jdbc-drivers.scope>
             </properties>
             <dependencyManagement>
                 <dependencies>

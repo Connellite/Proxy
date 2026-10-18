@@ -21,13 +21,15 @@ import com.google.gwt.user.server.rpc.core.java.util.LinkedList_ServerCustomFiel
 import com.google.gwt.user.server.rpc.core.java.util.Vector_ServerCustomFieldSerializer;
 import io.github.connellite.proxy.client.rpc.AdminRpcException;
 import io.github.connellite.proxy.client.rpc.AdminService;
-import io.github.connellite.proxy.client.rpc.dto.AdminRowDto;
 import io.github.connellite.proxy.client.rpc.dto.DashboardDto;
 import io.github.connellite.proxy.client.rpc.dto.EncryptionDto;
 import io.github.connellite.proxy.client.rpc.dto.HttpStripHeaderRowDto;
 import io.github.connellite.proxy.client.rpc.dto.HttpStripHeadersPageDto;
 import io.github.connellite.proxy.client.rpc.dto.PasswordChangeDto;
 import io.github.connellite.proxy.client.rpc.dto.SettingsDto;
+import io.github.connellite.proxy.client.rpc.dto.SshAccessDto;
+import io.github.connellite.proxy.client.rpc.dto.SshIssuedKeyDto;
+import io.github.connellite.proxy.client.rpc.dto.SshUserKeyRowDto;
 import io.github.connellite.proxy.client.rpc.dto.TlsStatusDto;
 import io.github.connellite.proxy.client.rpc.dto.UpstreamProxiesPageDto;
 import io.github.connellite.proxy.client.rpc.dto.UpstreamProxyFormDto;
@@ -80,7 +82,6 @@ public class GwtRpcNativeConfiguration {
                 DashboardDto.class,
                 UsersPageDto.class,
                 UserRowDto.class,
-                AdminRowDto.class,
                 UserFormDto.class,
                 SettingsDto.class,
                 PasswordChangeDto.class,
@@ -91,6 +92,9 @@ public class GwtRpcNativeConfiguration {
                 UpstreamProxyFormDto.class,
                 HttpStripHeadersPageDto.class,
                 HttpStripHeaderRowDto.class,
+                SshAccessDto.class,
+                SshUserKeyRowDto.class,
+                SshIssuedKeyDto.class,
                 ArrayList.class,
                 LinkedList.class,
                 Vector.class,

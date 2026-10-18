@@ -2,7 +2,8 @@ package io.github.connellite.proxy.proxy.ssh;
 
 import io.github.connellite.proxy.config.ProxyProperties;
 import io.github.connellite.proxy.dto.UpstreamSnapshot;
-import io.github.connellite.proxy.proxy.OutboundConnector;
+import io.github.connellite.proxy.proxy.QuietCloseHandlerAdapter;
+import io.github.connellite.proxy.proxy.outbound.TunnelCallback;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
@@ -62,12 +63,11 @@ public class SshUpstreamClient {
         });
     }
 
-    @SuppressWarnings("resource")
     public void openTunnel(Channel inbound,
                            UpstreamSnapshot upstream,
                            String targetHost,
                            int targetPort,
-                           OutboundConnector.TunnelCallback callback) {
+                           TunnelCallback callback) {
         executor.execute(() -> {
             SshdSocketAddress bound = null;
             ClientSession session = null;
@@ -139,7 +139,7 @@ public class SshUpstreamClient {
     private void connectLoopback(Channel inbound,
                                  ClientSession session,
                                  SshdSocketAddress bound,
-                                 OutboundConnector.TunnelCallback callback) {
+                                 TunnelCallback callback) {
         Bootstrap bootstrap = new Bootstrap()
                 .group(inbound.eventLoop())
                 .channel(NioSocketChannel.class)
@@ -149,6 +149,7 @@ public class SshUpstreamClient {
                 .handler(new ChannelInitializer<SocketChannel>() {
                     @Override
                     protected void initChannel(SocketChannel ch) {
+                        QuietCloseHandlerAdapter.installLast(ch.pipeline());
                         AtomicBoolean stopped = new AtomicBoolean();
                         ch.closeFuture().addListener(future -> stopForward(session, bound, stopped));
                     }
@@ -181,6 +182,7 @@ public class SshUpstreamClient {
         }
     }
 
+    @SuppressWarnings("resource")
     private SessionEntry connectSession(UpstreamSnapshot upstream) throws IOException {
         if (StringUtils.isBlank(upstream.username())) {
             throw new IllegalStateException("Upstream SSH requires a username");

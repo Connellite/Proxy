@@ -40,6 +40,11 @@
             <groupId>org.gwtproject</groupId>
             <artifactId>gwt-dev</artifactId>
         </dependency>
+        <!-- gwt-dev 2.10.0 pins Gson 2.6.2 (CVE-2022-25647, WS-2021-0419). -->
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
@@ -98,6 +103,11 @@
                     <sourceLevel>11</sourceLevel>
                     <failOnError>true</failOnError>
                     <localWorkers>1C</localWorkers>
+
+                    <!-- OBF for the release script. Switch to DETAILED to read stack traces. -->
+                    <style>OBF</style>
+                    <!-- <style>DETAILED</style> -->
+
                     <jvmArgs>
                         <jvmArg>-javaagent:${project.build.directory}/lombok.jar=ECJ</jvmArg>
                     </jvmArgs>

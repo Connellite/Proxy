@@ -1,19 +1,26 @@
 package io.github.connellite.proxy.repository;
 
 import io.github.connellite.proxy.model.ProxyUser;
+#if SPRING_BOOT_3
+import jakarta.persistence.QueryHint;
+#else
+import javax.persistence.QueryHint;
+#endif
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.QueryHints;
 import org.springframework.data.repository.query.Param;
 
 import java.time.Instant;
 import java.util.Optional;
 
-public interface ProxyUserRepository extends JpaRepository<ProxyUser, Long> {
+public interface ProxyUserRepository extends JpaRepository<ProxyUser, String> {
 
-    Optional<ProxyUser> findByUsernameIgnoreCase(String username);
+    @QueryHints(@QueryHint(name = "org.hibernate.cacheable", value = "true"))
+    Optional<ProxyUser> findByIdIgnoreCase(String id);
 
-    boolean existsByUsernameIgnoreCase(String username);
+    boolean existsByIdIgnoreCase(String id);
 
     @Modifying
     @Query("""
@@ -23,7 +30,7 @@ public interface ProxyUserRepository extends JpaRepository<ProxyUser, Long> {
                    u.lastUsedAt = :usedAt
              where u.id = :id
             """)
-    int addTraffic(@Param("id") Long id,
+    int addTraffic(@Param("id") String id,
                    @Param("up") long up,
                    @Param("down") long down,
                    @Param("usedAt") Instant usedAt);

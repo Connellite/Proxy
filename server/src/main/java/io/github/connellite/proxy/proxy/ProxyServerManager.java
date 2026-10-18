@@ -3,6 +3,8 @@ package io.github.connellite.proxy.proxy;
 import io.github.connellite.proxy.config.ProxyProperties;
 import io.github.connellite.proxy.dto.AppSettings;
 import io.github.connellite.proxy.proxy.http.HttpProxyServerInstance;
+import io.github.connellite.proxy.proxy.http.HttpsProxyServerInstance;
+import io.github.connellite.proxy.proxy.outbound.OutboundConnector;
 import io.github.connellite.proxy.proxy.http.ProxyTlsService;
 import io.github.connellite.proxy.proxy.socks.SocksProxyServer;
 import io.github.connellite.proxy.proxy.ssh.SshProxyServer;
@@ -23,6 +25,8 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
+import java.util.StringJoiner;
+
 @Slf4j
 @Component
 @Order(10)
@@ -34,7 +38,7 @@ public class ProxyServerManager implements ApplicationRunner {
     private final SocksProxyServer socksProxyServer;
     private final SshProxyServer sshProxyServer;
     private final HttpProxyServerInstance httpServer;
-    private final HttpProxyServerInstance httpsServer;
+    private final HttpsProxyServerInstance httpsServer;
 
     @Getter
     private volatile String lastError;
@@ -54,9 +58,9 @@ public class ProxyServerManager implements ApplicationRunner {
         this.socksProxyServer = socksProxyServer;
         this.sshProxyServer = sshProxyServer;
         this.httpServer = new HttpProxyServerInstance(
-                authService, metrics, properties, outboundConnector, stripHeaderService, "HTTP proxy");
-        this.httpsServer = new HttpProxyServerInstance(
-                authService, metrics, properties, outboundConnector, stripHeaderService, "HTTPS proxy");
+                authService, metrics, properties, outboundConnector, stripHeaderService);
+        this.httpsServer = new HttpsProxyServerInstance(
+                authService, metrics, properties, outboundConnector, stripHeaderService);
     }
 
     @Override
@@ -67,42 +71,49 @@ public class ProxyServerManager implements ApplicationRunner {
     public synchronized void restart() {
         lastError = null;
         AppSettings settings = settingsService.get();
-        httpServer.stop();
-        httpsServer.stop();
-        socksProxyServer.stop();
-        sshProxyServer.stop();
-        metrics.resetActiveConnections();
-        try {
-            if (settings.isHttpEnabled()) {
-                httpServer.start(settings.getHttpBindHost(), settings.getHttpPort(), null);
-            } else {
-                log.info("HTTP proxy disabled");
-            }
-            if (settings.isHttpsEnabled()) {
-                SslContext ssl = tlsService.serverContext(settings);
-                httpsServer.start(settings.getHttpsBindHost(), settings.getHttpsPort(), ssl);
-            } else {
-                log.info("HTTPS proxy disabled");
-            }
-            if (settings.isSocksEnabled()) {
-                socksProxyServer.start(settings.getSocksBindHost(), settings.getSocksPort());
-            } else {
-                log.info("SOCKS4/5 proxy disabled");
-            }
-            if (settings.isSshEnabled()) {
-                sshProxyServer.start(settings.getSshBindHost(), settings.getSshPort());
-            } else {
-                log.info("SSH tunnel proxy disabled");
-            }
-        } catch (Exception ex) {
-            lastError = ex.getMessage();
-            log.error("Failed to start proxy listeners", ex);
-            httpServer.stop();
-            httpsServer.stop();
-            socksProxyServer.stop();
-            sshProxyServer.stop();
-            metrics.resetActiveConnections();
+        shutdown();
+
+        StringJoiner errors = new StringJoiner("; ");
+        startListener("HTTP proxy", settings.isHttpEnabled(), errors, () ->
+                httpServer.start(settings.getHttpBindHost(), settings.getHttpPort())
+        );
+        startListener("HTTPS proxy", settings.isHttpsEnabled(), errors, () -> {
+            SslContext ssl = tlsService.serverContext(settings);
+            httpsServer.start(settings.getHttpsBindHost(), settings.getHttpsPort(), ssl);
+        });
+        startListener("SOCKS4/5 proxy", settings.isSocksEnabled(), errors, () ->
+                socksProxyServer.start(settings.getSocksBindHost(), settings.getSocksPort())
+        );
+        startListener("SSH tunnel proxy", settings.isSshEnabled(), errors, () ->
+                sshProxyServer.start(settings.getSshBindHost(), settings.getSshPort())
+        );
+        if (errors.length() > 0) {
+            lastError = errors.toString();
         }
+    }
+
+    private void startListener(String name, boolean enabled, StringJoiner errors, ListenerStart start) {
+        if (!enabled) {
+            log.info("{} disabled", name);
+            return;
+        }
+        try {
+            start.run();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        } catch (Exception ex) {
+            String message = ex.getMessage();
+            if (message == null || message.isBlank()) {
+                message = ex.getClass().getSimpleName();
+            }
+            log.error("Failed to start {}", name, ex);
+            errors.add(name + ": " + message);
+        }
+    }
+
+    @FunctionalInterface
+    private interface ListenerStart {
+        void run() throws Exception;
     }
 
     public boolean isHttpRunning() {

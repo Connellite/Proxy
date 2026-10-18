@@ -1,6 +1,9 @@
 package io.github.connellite.proxy.config.hint;
 
 #if SPRING_BOOT_3
+import com.github.benmanes.caffeine.jcache.spi.CaffeineCachingProvider;
+import io.github.connellite.proxy.config.ReferenceJCacheRegionFactory;
+import io.github.connellite.proxy.config.SqliteDialectResolver;
 import org.hibernate.community.dialect.SQLiteDialect;
 import org.springframework.aot.hint.MemberCategory;
 import org.springframework.aot.hint.RuntimeHints;
@@ -10,8 +13,7 @@ import org.springframework.context.annotation.ImportRuntimeHints;
 
 /**
  * Keep Hibernate SQLite dialect reachable for GraalVM native images.
- * The dialect is selected by a filtered string in {@code application.yml},
- * so AOT/native analysis would otherwise drop the class.
+ * Hibernate resolves it from JDBC metadata, so AOT/native analysis would otherwise drop the class.
  */
 @Configuration
 @ImportRuntimeHints(HibernateNativeConfiguration.Hints.class)
@@ -29,6 +31,11 @@ public class HibernateNativeConfiguration {
                     MemberCategory.DECLARED_FIELDS
             };
             hints.reflection().registerType(SQLiteDialect.class, categories);
+            hints.reflection().registerType(SqliteDialectResolver.class, categories);
+            hints.reflection().registerType(ReferenceJCacheRegionFactory.class, categories);
+            hints.reflection().registerType(CaffeineCachingProvider.class, categories);
+            hints.resources().registerPattern("reference.conf");
+            hints.resources().registerPattern("application.conf");
         }
     }
 }
