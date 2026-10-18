@@ -29,7 +29,7 @@ Native prerequisites: GraalVM / Liberica NIK with `native-image`. On Windows use
 ## Run (embedded)
 
 ```bash
-java -jar server/target/proxy-1.0.0.jar
+java -jar server/target/proxy-*.jar
 ```
 
 - Admin UI: http://localhost:8080/ (`admin` / `admin`)

@@ -6,7 +6,7 @@
 
     <groupId>io.github.connellite</groupId>
     <artifactId>proxy-parent</artifactId>
-    <version>1.0.0</version>
+    <version>1.1.0</version>
     <packaging>pom</packaging>
     <name>proxy-parent</name>
     <description>HTTP and SOCKS5 authenticated proxy — multi-module build</description>
