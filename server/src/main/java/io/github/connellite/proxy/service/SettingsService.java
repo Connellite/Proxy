@@ -2,6 +2,7 @@ package io.github.connellite.proxy.service;
 
 import io.github.connellite.proxy.config.ProxyProperties;
 import io.github.connellite.proxy.dto.AppSettings;
+import io.github.connellite.proxy.mapper.AppSettingsMapper;
 import io.github.connellite.proxy.model.ConfigEntry;
 import io.github.connellite.proxy.repository.ConfigRepository;
 import io.github.connellite.proxy.util.ParseUtils;
@@ -9,6 +10,8 @@ import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -21,14 +24,26 @@ public class SettingsService {
 
     private final ConfigRepository repository;
     private final ProxyProperties properties;
+    private final AppSettingsMapper appSettingsMapper;
 
-    @Transactional(readOnly = true)
+    /** Last committed settings; {@code null} until loaded or after a save. */
+    private volatile AppSettings cached;
+    /** Bumped after each save so a load that read the old rows does not repopulate the cache. */
+    private volatile long generation;
+
+    /**
+     * Returns a copy of the cached settings. Netty event loops call this for every connection,
+     * so only a cache miss reaches the database. Byte totals are not kept current here;
+     * {@link TrafficStatsService} reads them from the repository.
+     */
     public AppSettings get() {
-        List<ConfigEntry> entries = repository.findAll();
-        if (entries.isEmpty()) {
-            return defaultsFromProperties();
+        AppSettings current = cached;
+        if (current == null) {
+            long loadedGeneration = generation;
+            current = load();
+            store(loadedGeneration, current);
         }
-        return fromEntries(entries);
+        return appSettingsMapper.copy(current);
     }
 
     @Transactional
@@ -45,6 +60,7 @@ public class SettingsService {
             throw new IllegalArgumentException("Outbound TTL must be between 0 and 255 (0 = OS default)");
         }
         repository.saveAll(toEntries(settings));
+        invalidateAfterCompletion();
         return settings;
     }
 
@@ -55,6 +71,7 @@ public class SettingsService {
         }
         AppSettings defaults = defaultsFromProperties();
         repository.saveAll(toEntries(defaults));
+        invalidateAfterCompletion();
         return defaults;
     }
 
@@ -64,6 +81,34 @@ public class SettingsService {
         long current = ParseUtils.parseLong(entry.getValue(), 0L);
         entry.setValue(Long.toString(current + delta));
         repository.save(entry);
+    }
+
+    private AppSettings load() {
+        List<ConfigEntry> entries = repository.findAll();
+        if (entries.isEmpty()) {
+            return defaultsFromProperties();
+        }
+        return fromEntries(entries);
+    }
+
+    private synchronized void store(long loadedGeneration, AppSettings settings) {
+        if (generation == loadedGeneration) {
+            cached = settings;
+        }
+    }
+
+    private synchronized void invalidate() {
+        generation++;
+        cached = null;
+    }
+
+    private void invalidateAfterCompletion() {
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCompletion(int status) {
+                invalidate();
+            }
+        });
     }
 
     private AppSettings defaultsFromProperties() {
