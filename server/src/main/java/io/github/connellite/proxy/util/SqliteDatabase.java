@@ -20,9 +20,12 @@ public final class SqliteDatabase {
         config.setSynchronous(SQLiteConfig.SynchronousMode.NORMAL);
         config.enforceForeignKeys(true);
         config.setBusyTimeout(10_000);
-        // BEGIN IMMEDIATE takes the write lock up front, so pooled writers wait on busy_timeout
-        // instead of failing with SQLITE_BUSY_SNAPSHOT when upgrading a read snapshot.
-        config.setTransactionMode(SQLiteConfig.TransactionMode.IMMEDIATE);
+        // Explicit read-only lets setReadOnly(true) from @Transactional(readOnly = true) work:
+        // those transactions stay DEFERRED with query_only and never take the write lock.
+        // Any other transaction is upgraded to BEGIN IMMEDIATE before its first statement, so
+        // writers wait on busy_timeout instead of failing with SQLITE_BUSY_SNAPSHOT.
+        config.setTransactionMode(SQLiteConfig.TransactionMode.DEFERRED);
+        config.setExplicitReadOnly(true);
         return config;
     }
 }
