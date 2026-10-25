@@ -16,8 +16,18 @@ import java.sql.SQLException;
  * "cannot commit - no transaction is active" once Hibernate has already committed.
  * {@link SQLiteDataSource} has no setting for this. The driver reports it as generic
  * {@code SQLITE_ERROR}, so the message is the only way to tell this commit from a real failure.
+ * <p>
+ * sqlite-jdbc flips its auto-commit flag before it runs {@code BEGIN IMMEDIATE} or {@code COMMIT},
+ * and {@code commit()}/{@code rollback()} run {@code BEGIN IMMEDIATE} right after. When that SQL
+ * fails (usually {@code SQLITE_BUSY} after the busy timeout), the flag no longer matches the
+ * database: the next borrower runs without a transaction and fails with the same message.
+ * Hikari does not evict on {@link org.sqlite.SQLiteException} because it has no SQLState, so
+ * these failures are rethrown with SQLState {@value #CONNECTION_BROKEN} and the pool drops the
+ * connection.
  */
 public final class SqlitePoolDataSource implements DataSource {
+
+    private static final String CONNECTION_BROKEN = "08003";
 
     @Delegate
     private final SQLiteDataSource source;
@@ -48,14 +58,36 @@ public final class SqlitePoolDataSource implements DataSource {
                 delegate.setAutoCommit(autoCommit);
             } catch (SQLException ex) {
                 if (!(autoCommit && noActiveTransaction(ex))) {
-                    throw ex;
+                    throw broken(ex);
                 }
+            }
+        }
+
+        @Override
+        public void commit() throws SQLException {
+            try {
+                delegate.commit();
+            } catch (SQLException ex) {
+                throw broken(ex);
+            }
+        }
+
+        @Override
+        public void rollback() throws SQLException {
+            try {
+                delegate.rollback();
+            } catch (SQLException ex) {
+                throw broken(ex);
             }
         }
 
         private static boolean noActiveTransaction(SQLException ex) {
             String message = ex.getMessage();
             return message != null && message.contains("cannot commit - no transaction is active");
+        }
+
+        private static SQLException broken(SQLException ex) {
+            return new SQLException(ex.getMessage(), CONNECTION_BROKEN, ex.getErrorCode(), ex);
         }
     }
 }
