@@ -8,6 +8,7 @@ import org.sqlite.SQLiteDataSource;
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.sql.Statement;
 
 /**
  * Pooled SQLite connections. {@link SQLiteDataSource} applies {@link SqliteDatabase#config()}
@@ -24,6 +25,10 @@ import java.sql.SQLException;
  * Hikari does not evict on {@link org.sqlite.SQLiteException} because it has no SQLState, so
  * these failures are rethrown with SQLState {@value #CONNECTION_BROKEN} and the pool drops the
  * connection.
+ * <p>
+ * {@code commit()} and {@code rollback()} here run only {@code COMMIT} and {@code ROLLBACK}. The
+ * driver's {@code BEGIN IMMEDIATE} after them would retake the write lock, and fail a commit that
+ * is already durable. The connection stays in auto-commit until the next {@code setAutoCommit(false)}.
  */
 public final class SqlitePoolDataSource implements DataSource {
 
@@ -66,7 +71,7 @@ public final class SqlitePoolDataSource implements DataSource {
         @Override
         public void commit() throws SQLException {
             try {
-                delegate.commit();
+                delegate.setAutoCommit(true);
             } catch (SQLException ex) {
                 throw broken(ex);
             }
@@ -74,11 +79,12 @@ public final class SqlitePoolDataSource implements DataSource {
 
         @Override
         public void rollback() throws SQLException {
-            try {
-                delegate.rollback();
+            try (Statement statement = delegate.createStatement()) {
+                statement.execute("ROLLBACK");
             } catch (SQLException ex) {
                 throw broken(ex);
             }
+            setAutoCommit(true);
         }
 
         private static boolean noActiveTransaction(SQLException ex) {

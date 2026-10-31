@@ -81,17 +81,12 @@ public class TrafficStatsService {
         if (user == null || user.getId() == null) {
             return;
         }
-        mutationLock.lock();
-        try {
-            UserSlot slot = slot(user.getId());
-            int epoch = slot.epoch();
-            long base = userRepository.findById(user.getId())
-                    .map(loaded -> loaded.getBytesUp() + loaded.getBytesDown())
-                    .orElse(0L);
-            slot.raiseLiveTo(base, epoch);
-        } finally {
-            mutationLock.unlock();
-        }
+        UserSlot slot = slot(user.getId());
+        int epoch = slot.epoch();
+        long base = userRepository.findById(user.getId())
+                .map(loaded -> loaded.getBytesUp() + loaded.getBytesDown())
+                .orElse(0L);
+        slot.raiseLiveTo(base, epoch);
     }
 
     public boolean isOverTrafficLimit(String userId, long trafficLimitBytes) {
