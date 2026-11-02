@@ -441,6 +441,14 @@
                             <imageName>${project.artifactId}-${project.version}-native</imageName>
                             <metadataRepository>
                                 <enabled>true</enabled>
+                                <dependencies>
+<!--                                 fix: java.lang.NoClassDefFoundError: Could not initialize class io.netty.buffer.ByteBufAllocator-->
+                                    <dependency>
+                                        <groupId>io.netty</groupId>
+                                        <artifactId>netty-buffer</artifactId>
+                                        <excluded>true</excluded>
+                                    </dependency>
+                                </dependencies>
                             </metadataRepository>
                             <buildArgs>
                                 <buildArg>--enable-url-protocols=http,https</buildArg>
