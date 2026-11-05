@@ -160,7 +160,6 @@ public class SettingsService {
         settings.setSshEnabled(ParseUtils.parseBoolean(map.get(ConfigEntry.SSH_ENABLED), settings.isSshEnabled()));
         settings.setSshBindHost(ParseUtils.parseString(map.get(ConfigEntry.SSH_BIND_HOST), settings.getSshBindHost()));
         settings.setSshPort(ParseUtils.parseInt(map.get(ConfigEntry.SSH_PORT), settings.getSshPort()));
-        settings.setAdminServerPort(ParseUtils.parseInt(map.get(ConfigEntry.ADMIN_SERVER_PORT), settings.getAdminServerPort()));
         settings.setOutboundTtl(ParseUtils.parseInt(map.get(ConfigEntry.OUTBOUND_TTL), settings.getOutboundTtl()));
         settings.setBytesUpTotal(ParseUtils.parseLong(map.get(ConfigEntry.BYTES_UP_TOTAL), 0L));
         settings.setBytesDownTotal(ParseUtils.parseLong(map.get(ConfigEntry.BYTES_DOWN_TOTAL), 0L));
@@ -190,7 +189,6 @@ public class SettingsService {
         entries.add(new ConfigEntry(ConfigEntry.SSH_ENABLED, Boolean.toString(settings.isSshEnabled())));
         entries.add(new ConfigEntry(ConfigEntry.SSH_BIND_HOST, settings.getSshBindHost()));
         entries.add(new ConfigEntry(ConfigEntry.SSH_PORT, Integer.toString(settings.getSshPort())));
-        entries.add(new ConfigEntry(ConfigEntry.ADMIN_SERVER_PORT, Integer.toString(settings.getAdminServerPort())));
         entries.add(new ConfigEntry(ConfigEntry.OUTBOUND_TTL, Integer.toString(settings.getOutboundTtl())));
         entries.add(new ConfigEntry(ConfigEntry.BYTES_UP_TOTAL, Long.toString(settings.getBytesUpTotal())));
         entries.add(new ConfigEntry(ConfigEntry.BYTES_DOWN_TOTAL, Long.toString(settings.getBytesDownTotal())));
