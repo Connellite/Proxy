@@ -2,13 +2,16 @@ package io.github.connellite.proxy.ui;
 
 import io.github.connellite.proxy.util.RuntimeEnvironment;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.SpringApplication;
-import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.boot.web.context.WebServerApplicationContext;
+import org.springframework.boot.web.context.WebServerInitializedEvent;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.event.EventListener;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
+import org.springframework.web.context.WebApplicationContext;
 
 import javax.imageio.ImageIO;
 import java.awt.Desktop;
@@ -33,13 +36,13 @@ public class WindowsSystemTray implements ApplicationRunner {
 
     private static final String ICON_RESOURCE = "/static/icons/tray-icon.png";
 
-    @Value("${server.port}")
-    private Integer port;
+    private static final String MANAGEMENT_NAMESPACE = "management";
 
-    private final ConfigurableApplicationContext context;
+    private final ApplicationContext context;
     private final AtomicBoolean installed = new AtomicBoolean(false);
+    private volatile String adminUrl;
 
-    public WindowsSystemTray(ConfigurableApplicationContext context) {
+    public WindowsSystemTray(ApplicationContext context) {
         this.context = context;
     }
 
@@ -52,6 +55,11 @@ public class WindowsSystemTray implements ApplicationRunner {
             log.info("System tray skipped under GraalVM native image (use the JVM build for tray support)");
             return;
         }
+        String adminUrl = this.adminUrl;
+        if (adminUrl == null) {
+            log.info("System tray skipped: no embedded web server (WAR deployment)");
+            return;
+        }
         if (!installed.compareAndSet(false, true)) {
             return;
         }
@@ -61,7 +69,7 @@ public class WindowsSystemTray implements ApplicationRunner {
                 log.info("System tray is not available on this Windows session");
                 return;
             }
-            install();
+            install(adminUrl);
         } catch (Throwable ex) {
             // Same as RuntimeEnvironment.isHeadless(): AWT may throw Error (e.g. NoSuchMethodError), not Exception.
             installed.set(false);
@@ -69,9 +77,23 @@ public class WindowsSystemTray implements ApplicationRunner {
         }
     }
 
-    private void install() throws Exception {
-        String adminUrl = "http://127.0.0.1:" + port + "/admin.html";
+    /**
+     * Port the embedded server
+     */
+    @EventListener
+    public void onWebServerInitialized(WebServerInitializedEvent event) {
+        WebServerApplicationContext webContext = event.getApplicationContext();
+        if (MANAGEMENT_NAMESPACE.equals(webContext.getServerNamespace())) {
+            return;
+        }
+        String contextPath = "";
+        if (webContext instanceof WebApplicationContext servletContext && servletContext.getServletContext() != null) {
+            contextPath = servletContext.getServletContext().getContextPath();
+        }
+        adminUrl = "http://127.0.0.1:" + event.getWebServer().getPort() + contextPath + "/admin.html";
+    }
 
+    private void install(String adminUrl) throws Exception {
         PopupMenu menu = new PopupMenu();
         MenuItem open = new MenuItem("Open admin");
         open.addActionListener(e -> openBrowser(adminUrl));
