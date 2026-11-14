@@ -35,12 +35,13 @@ import java.nio.file.Path;
 import java.security.PublicKey;
 import java.time.Duration;
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * SSH listener for authenticated TCP tunnels / port forwards (Apache Mina SSHD).
- * Interactive shell and exec are rejected with a GitHub-style notice.
+ * Interactive shell, exec and SFTP are rejected with a GitHub-style notice.
  * Auth and connection/traffic limits reuse {@link io.github.connellite.proxy.model.ProxyUser}
  * via {@link ProxyAuthService}.
  */
@@ -78,7 +79,7 @@ public final class SshProxyServer implements AutoCloseable {
         sshd.setKeyboardInteractiveAuthenticator(DefaultKeyboardInteractiveAuthenticator.INSTANCE);
         sshd.setShellFactory(channel -> new SshAuthMessageCommand());
         sshd.setCommandFactory((channel, command) -> new SshAuthMessageCommand());
-        sshd.setSubsystemFactories(Collections.emptyList());
+        sshd.setSubsystemFactories(List.of(SshAuthMessageCommand.sftpSubsystemFactory()));
         sshd.setForwardingFilter(ForwardingFilter.asForwardingFilter(
                 AgentForwardingFilter.of(false),
                 X11ForwardingFilter.of(false),

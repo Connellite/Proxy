@@ -8,6 +8,7 @@ import io.github.connellite.proxy.proxy.ssh.SshKeyMaterial;
 import io.github.connellite.proxy.repository.ProxyUserRepository;
 import io.github.connellite.proxy.repository.SshUserKeyRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -20,6 +21,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ProxyAuthService {
@@ -71,10 +73,16 @@ public class ProxyAuthService {
             return Optional.empty();
         }
         Optional<ProxyUser> user = usableProxyUser(username);
-        if (user.isEmpty() || !user.get().isSshPasswordEnabled()) {
+        if (user.isEmpty()) {
+            log.info("SSH password auth rejected for '{}': unknown user, no active ROLE_USER, disabled, expired or over traffic limit", username);
+            return Optional.empty();
+        }
+        if (!user.get().isSshPasswordEnabled()) {
+            log.info("SSH password auth rejected for '{}': SSH password login is disabled for this user", username);
             return Optional.empty();
         }
         if (!passwordEncoder.matches(password, user.get().getPasswordHash())) {
+            log.info("SSH password auth rejected for '{}': wrong password", username);
             return Optional.empty();
         }
         return Optional.of(new AuthenticatedSession(user.get()));
