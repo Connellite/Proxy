@@ -1,17 +1,14 @@
 package io.github.connellite.proxy.ui;
 
+import io.github.connellite.proxy.config.ServerPort;
 import io.github.connellite.proxy.util.RuntimeEnvironment;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.SpringApplication;
-import org.springframework.boot.web.context.WebServerApplicationContext;
-import org.springframework.boot.web.context.WebServerInitializedEvent;
 import org.springframework.context.ApplicationContext;
-import org.springframework.context.event.EventListener;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
-import org.springframework.web.context.WebApplicationContext;
 
 import javax.imageio.ImageIO;
 import java.awt.Desktop;
@@ -36,14 +33,13 @@ public class WindowsSystemTray implements ApplicationRunner {
 
     private static final String ICON_RESOURCE = "/static/icons/tray-icon.png";
 
-    private static final String MANAGEMENT_NAMESPACE = "management";
-
     private final ApplicationContext context;
+    private final ServerPort serverPort;
     private final AtomicBoolean installed = new AtomicBoolean(false);
-    private volatile String adminUrl;
 
-    public WindowsSystemTray(ApplicationContext context) {
+    public WindowsSystemTray(ApplicationContext context, ServerPort serverPort) {
         this.context = context;
+        this.serverPort = serverPort;
     }
 
     @Override
@@ -55,11 +51,11 @@ public class WindowsSystemTray implements ApplicationRunner {
             log.info("System tray skipped under GraalVM native image (use the JVM build for tray support)");
             return;
         }
-        String adminUrl = this.adminUrl;
-        if (adminUrl == null) {
+        if (serverPort.getPort() <= 0) {
             log.info("System tray skipped: no embedded web server (WAR deployment)");
             return;
         }
+        String adminUrl = "http://127.0.0.1:" + serverPort.getPort() + serverPort.getContextPath() + "/admin.html";
         if (!installed.compareAndSet(false, true)) {
             return;
         }
@@ -75,22 +71,6 @@ public class WindowsSystemTray implements ApplicationRunner {
             installed.set(false);
             log.warn("Failed to install Windows system tray icon: {}", ex.toString());
         }
-    }
-
-    /**
-     * Port the embedded server
-     */
-    @EventListener
-    public void onWebServerInitialized(WebServerInitializedEvent event) {
-        WebServerApplicationContext webContext = event.getApplicationContext();
-        if (MANAGEMENT_NAMESPACE.equals(webContext.getServerNamespace())) {
-            return;
-        }
-        String contextPath = "";
-        if (webContext instanceof WebApplicationContext servletContext && servletContext.getServletContext() != null) {
-            contextPath = servletContext.getServletContext().getContextPath();
-        }
-        adminUrl = "http://127.0.0.1:" + event.getWebServer().getPort() + contextPath + "/admin.html";
     }
 
     private void install(String adminUrl) throws Exception {
