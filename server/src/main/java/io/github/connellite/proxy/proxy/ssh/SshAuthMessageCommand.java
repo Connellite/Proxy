@@ -6,7 +6,6 @@ import org.apache.sshd.server.channel.ChannelSession;
 import org.apache.sshd.server.channel.ChannelSessionAware;
 import org.apache.sshd.server.command.Command;
 import org.apache.sshd.server.session.ServerSession;
-import org.apache.sshd.server.subsystem.SubsystemFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -15,12 +14,11 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 /**
- * Shell/exec/subsystem handler that prints a GitHub-style notice to stderr and exits with
- * status 1 (no interactive shell, no SFTP). Only reachable after successful authentication.
+ * Shell/exec handler that prints a GitHub-style notice to stderr and exits with status 1
+ * (no interactive shell). Only reachable after successful authentication. SFTP is answered by
+ * {@link SftpNoticeSubsystem}.
  */
 final class SshAuthMessageCommand implements Command, ChannelSessionAware, Runnable {
-
-    static final String SFTP_SUBSYSTEM = "sftp";
 
     private final String service;
 
@@ -39,21 +37,6 @@ final class SshAuthMessageCommand implements Command, ChannelSessionAware, Runna
 
     SshAuthMessageCommand(String service) {
         this.service = service;
-    }
-
-    /** Answers {@code sftp} (and modern {@code scp}, which runs over SFTP) with the notice instead of a bare failure. */
-    static SubsystemFactory sftpSubsystemFactory() {
-        return new SubsystemFactory() {
-            @Override
-            public String getName() {
-                return SFTP_SUBSYSTEM;
-            }
-
-            @Override
-            public Command createSubsystem(ChannelSession channel) {
-                return new SshAuthMessageCommand("SFTP");
-            }
-        };
     }
 
     static String messageFor(String username) {

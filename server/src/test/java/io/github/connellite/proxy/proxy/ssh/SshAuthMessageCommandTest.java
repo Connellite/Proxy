@@ -13,6 +13,8 @@ import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.EnumSet;
@@ -36,7 +38,7 @@ class SshAuthMessageCommandTest {
         sshd.setPasswordAuthenticator((user, password, session) -> "secret".equals(password));
         sshd.setShellFactory(channel -> new SshAuthMessageCommand());
         sshd.setCommandFactory((channel, command) -> new SshAuthMessageCommand());
-        sshd.setSubsystemFactories(List.of(SshAuthMessageCommand.sftpSubsystemFactory()));
+        sshd.setSubsystemFactories(List.of(SftpNoticeSubsystem.factory()));
         sshd.start();
 
         client = SshClient.setUpDefaultClient();
@@ -86,12 +88,43 @@ class SshAuthMessageCommandTest {
     }
 
     @Test
-    void sftpSubsystemPrintsNoticeAndExits() throws IOException {
+    void sftpSubsystemAnswersHandshakeThenDeniesWithNotice() throws IOException {
+        String notice = SshAuthMessageCommand.messageFor("carol", "SFTP");
         try (ClientSession session = login("carol");
              ClientChannel channel = session.createSubsystemChannel("sftp")) {
-            Result result = run(channel);
-            assertThat(result.err).isEqualTo(SshAuthMessageCommand.messageFor("carol", "SFTP") + "\n");
-            assertThat(result.exit).isEqualTo(1);
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            ByteArrayOutputStream err = new ByteArrayOutputStream();
+            channel.setOut(out);
+            channel.setErr(err);
+            channel.open().verify(TIMEOUT);
+
+            ByteBuffer init = ByteBuffer.allocate(9).putInt(5).put((byte) 1).putInt(3);
+            byte[] dot = ".".getBytes(StandardCharsets.US_ASCII);
+            ByteBuffer realpath = ByteBuffer.allocate(4 + 1 + 4 + 4 + dot.length)
+                    .putInt(1 + 4 + 4 + dot.length).put((byte) 16).putInt(42).putInt(dot.length).put(dot);
+            OutputStream requests = channel.getInvertedIn();
+            requests.write(init.array());
+            requests.write(realpath.array());
+            requests.flush();
+            requests.close();
+            channel.waitFor(EnumSet.of(ClientChannelEvent.CLOSED), TIMEOUT);
+
+            ByteBuffer replies = ByteBuffer.wrap(out.toByteArray());
+            assertThat(replies.getInt()).isEqualTo(5);
+            assertThat(replies.get()).isEqualTo((byte) 2);
+            assertThat(replies.getInt()).isEqualTo(3);
+
+            int length = replies.getInt();
+            assertThat(replies.remaining()).isEqualTo(length);
+            assertThat(replies.get()).isEqualTo((byte) 101);
+            assertThat(replies.getInt()).isEqualTo(42);
+            assertThat(replies.getInt()).isEqualTo(3);
+            byte[] text = new byte[replies.getInt()];
+            replies.get(text);
+            assertThat(new String(text, StandardCharsets.UTF_8)).isEqualTo(notice);
+
+            assertThat(err.toString(StandardCharsets.UTF_8)).isEqualTo(notice + "\n");
+            assertThat(channel.getExitStatus()).isEqualTo(1);
         }
     }
 

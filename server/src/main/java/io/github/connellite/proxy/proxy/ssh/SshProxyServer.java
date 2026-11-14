@@ -79,7 +79,7 @@ public final class SshProxyServer implements AutoCloseable {
         sshd.setKeyboardInteractiveAuthenticator(DefaultKeyboardInteractiveAuthenticator.INSTANCE);
         sshd.setShellFactory(channel -> new SshAuthMessageCommand());
         sshd.setCommandFactory((channel, command) -> new SshAuthMessageCommand());
-        sshd.setSubsystemFactories(List.of(SshAuthMessageCommand.sftpSubsystemFactory()));
+        sshd.setSubsystemFactories(List.of(SftpNoticeSubsystem.factory()));
         sshd.setForwardingFilter(ForwardingFilter.asForwardingFilter(
                 AgentForwardingFilter.of(false),
                 X11ForwardingFilter.of(false),
