@@ -5,6 +5,7 @@ import org.apache.sshd.server.ExitCallback;
 import org.apache.sshd.server.channel.ChannelSession;
 import org.apache.sshd.server.command.Command;
 import org.apache.sshd.server.subsystem.SubsystemFactory;
+import org.apache.sshd.sftp.common.SftpConstants;
 
 import java.io.DataInputStream;
 import java.io.EOFException;
@@ -22,15 +23,7 @@ import java.nio.charset.StandardCharsets;
  */
 final class SftpNoticeSubsystem implements Command, Runnable {
 
-    static final String NAME = "sftp";
-
-    private static final int SSH_FXP_INIT = 1;
-    private static final int SSH_FXP_VERSION = 2;
-    private static final int SSH_FXP_STATUS = 101;
-    private static final int SSH_FX_PERMISSION_DENIED = 3;
-    private static final int SFTP_VERSION = 3;
-    /** Requests from a refused client are tiny; anything larger is not worth reading. */
-    private static final int MAX_PACKET = 256 * 1024;
+    static final String NAME = SftpConstants.SFTP_SUBSYSTEM_NAME;
 
     private ChannelSession channel;
     private InputStream in;
@@ -118,14 +111,14 @@ final class SftpNoticeSubsystem implements Command, Runnable {
             } catch (EOFException eof) {
                 return;
             }
-            if (length < 1 || length > MAX_PACKET) {
+            if (length < 1 || length > SftpConstants.MAX_SFTP_MESSAGE_LENGTH) {
                 return;
             }
             byte[] packet = new byte[length];
             input.readFully(packet);
             ByteBuffer body = ByteBuffer.wrap(packet);
             int type = body.get() & 0xFF;
-            if (type == SSH_FXP_INIT) {
+            if (type == SftpConstants.SSH_FXP_INIT) {
                 writeVersion();
                 continue;
             }
@@ -139,7 +132,7 @@ final class SftpNoticeSubsystem implements Command, Runnable {
 
     private void writeVersion() throws IOException {
         ByteBuffer reply = ByteBuffer.allocate(4 + 1 + 4);
-        reply.putInt(1 + 4).put((byte) SSH_FXP_VERSION).putInt(SFTP_VERSION);
+        reply.putInt(1 + 4).put((byte) SftpConstants.SSH_FXP_VERSION).putInt(SftpConstants.SFTP_V3);
         send(reply);
     }
 
@@ -149,9 +142,9 @@ final class SftpNoticeSubsystem implements Command, Runnable {
         int payload = 1 + 4 + 4 + 4 + text.length + 4 + lang.length;
         ByteBuffer reply = ByteBuffer.allocate(4 + payload);
         reply.putInt(payload)
-                .put((byte) SSH_FXP_STATUS)
+                .put((byte) SftpConstants.SSH_FXP_STATUS)
                 .putInt(requestId)
-                .putInt(SSH_FX_PERMISSION_DENIED)
+                .putInt(SftpConstants.SSH_FX_PERMISSION_DENIED)
                 .putInt(text.length).put(text)
                 .putInt(lang.length).put(lang);
         send(reply);
