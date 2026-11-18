@@ -370,6 +370,15 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
     }
 
     @Override
+    public String createServerDirectory(String parentPath, String name) throws AdminRpcException {
+        try {
+            return serverDirectoryService.create(parentPath, name);
+        } catch (RuntimeException ex) {
+            throw toRpcException("Failed to create folder", ex);
+        }
+    }
+
+    @Override
     public UpstreamProxiesPageDto getUpstreamProxies() {
         UpstreamProxiesPageDto page = new UpstreamProxiesPageDto();
         page.setProxies(new ArrayList<>());

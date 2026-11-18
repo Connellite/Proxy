@@ -89,6 +89,9 @@ public class SftpAccessService {
         if (!Files.isDirectory(path)) {
             throw new IllegalArgumentException("SFTP folder does not exist or is not a directory: " + trimmed);
         }
+        if (!ServerDirectoryService.isBrowsable(path)) {
+            throw new IllegalArgumentException("The server process has no read access to the SFTP folder: " + trimmed);
+        }
         String real;
         try {
             real = path.toRealPath().toString();

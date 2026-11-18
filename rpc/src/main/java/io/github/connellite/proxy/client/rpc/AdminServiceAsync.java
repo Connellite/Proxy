@@ -50,6 +50,8 @@ public interface AdminServiceAsync {
 
     void listServerDirectories(String path, AsyncCallback<DirectoryListingDto> callback);
 
+    void createServerDirectory(String parentPath, String name, AsyncCallback<String> callback);
+
     void getUpstreamProxies(AsyncCallback<UpstreamProxiesPageDto> callback);
 
     void getUpstreamProxyForm(Long id, AsyncCallback<UpstreamProxyFormDto> callback);

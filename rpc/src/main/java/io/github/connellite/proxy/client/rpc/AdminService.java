@@ -54,6 +54,9 @@ public interface AdminService extends RemoteService {
     /** {@code null} path lists file system roots. */
     DirectoryListingDto listServerDirectories(String path) throws AdminRpcException;
 
+    /** Creates a subfolder {@code name} in {@code parentPath}; returns its absolute path. */
+    String createServerDirectory(String parentPath, String name) throws AdminRpcException;
+
     UpstreamProxiesPageDto getUpstreamProxies();
 
     UpstreamProxyFormDto getUpstreamProxyForm(Long id);
