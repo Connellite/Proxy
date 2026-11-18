@@ -1,4 +1,4 @@
-package io.github.connellite.proxy.proxy.sftp;
+package io.github.connellite.proxy.proxy.ssh.sftp;
 
 import org.apache.sshd.common.file.root.RootedFileSystemProvider;
 import org.apache.sshd.common.file.root.RootedPath;
@@ -34,7 +34,7 @@ import java.util.concurrent.ExecutorService;
  *       Listing a folder that contains such a link still works; the link just cannot be used.</li>
  * </ul>
  */
-final class ConfinedRootedFileSystemProvider extends RootedFileSystemProvider {
+public final class ConfinedRootedFileSystemProvider extends RootedFileSystemProvider {
 
     @Override
     protected Path resolveLocalPath(RootedPath path) {

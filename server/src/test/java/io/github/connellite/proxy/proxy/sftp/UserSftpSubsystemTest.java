@@ -1,5 +1,9 @@
 package io.github.connellite.proxy.proxy.sftp;
 
+import io.github.connellite.proxy.proxy.ssh.sftp.SftpGrant;
+import io.github.connellite.proxy.proxy.ssh.sftp.SftpNoticeSubsystem;
+import io.github.connellite.proxy.proxy.ssh.sftp.SftpRootFileSystemFactory;
+import io.github.connellite.proxy.proxy.ssh.sftp.UserSftpSubsystemFactory;
 import org.apache.sshd.client.SshClient;
 import org.apache.sshd.client.keyverifier.AcceptAllServerKeyVerifier;
 import org.apache.sshd.client.session.ClientSession;

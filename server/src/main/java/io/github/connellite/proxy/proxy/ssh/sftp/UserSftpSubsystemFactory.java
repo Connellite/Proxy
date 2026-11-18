@@ -1,4 +1,4 @@
-package io.github.connellite.proxy.proxy.sftp;
+package io.github.connellite.proxy.proxy.ssh.sftp;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.sshd.common.AttributeRepository;
@@ -23,7 +23,7 @@ import java.util.function.Function;
 public final class UserSftpSubsystemFactory implements SubsystemFactory {
 
     /** Grant resolved for the session's latest SFTP channel; read by the file system factory and accessor. */
-    static final AttributeRepository.AttributeKey<SftpGrant> SFTP_GRANT_KEY = new AttributeRepository.AttributeKey<>();
+    public static final AttributeRepository.AttributeKey<SftpGrant> SFTP_GRANT_KEY = new AttributeRepository.AttributeKey<>();
 
     private final Function<ServerSession, Optional<SftpGrant>> grantResolver;
     private final SftpSubsystemFactory delegate = new SftpSubsystemFactory.Builder()

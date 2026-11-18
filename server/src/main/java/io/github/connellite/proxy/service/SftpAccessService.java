@@ -2,7 +2,7 @@ package io.github.connellite.proxy.service;
 
 import io.github.connellite.proxy.model.ProxyUser;
 import io.github.connellite.proxy.model.SftpAccess;
-import io.github.connellite.proxy.proxy.sftp.SftpGrant;
+import io.github.connellite.proxy.proxy.ssh.sftp.SftpGrant;
 import io.github.connellite.proxy.repository.ProxyUserRepository;
 import io.github.connellite.proxy.repository.SftpAccessRepository;
 import lombok.RequiredArgsConstructor;

@@ -1,5 +1,6 @@
 package io.github.connellite.proxy.proxy.sftp;
 
+import io.github.connellite.proxy.proxy.ssh.sftp.SftpNoticeSubsystem;
 import org.apache.sshd.client.SshClient;
 import org.apache.sshd.client.channel.ClientChannel;
 import org.apache.sshd.client.channel.ClientChannelEvent;

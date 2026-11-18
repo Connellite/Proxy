@@ -1,4 +1,4 @@
-package io.github.connellite.proxy.proxy.sftp;
+package io.github.connellite.proxy.proxy.ssh.sftp;
 
 import org.apache.sshd.server.Environment;
 import org.apache.sshd.server.ExitCallback;
@@ -21,9 +21,9 @@ import java.nio.charset.StandardCharsets;
  * "Cannot initialize SFTP protocol" when the channel closes; a status reply is shown to the user verbatim.
  * The notice is also written to stderr for the OpenSSH {@code sftp} client, which prints it directly.
  */
-final class SftpNoticeSubsystem implements Command, Runnable {
+public final class SftpNoticeSubsystem implements Command, Runnable {
 
-    static final String NAME = SftpConstants.SFTP_SUBSYSTEM_NAME;
+    public static final String NAME = SftpConstants.SFTP_SUBSYSTEM_NAME;
 
     private ChannelSession channel;
     private InputStream in;
@@ -31,12 +31,12 @@ final class SftpNoticeSubsystem implements Command, Runnable {
     private OutputStream err;
     private ExitCallback callback;
 
-    static String messageFor(String username) {
+    public static String messageFor(String username) {
         String user = username == null || username.isBlank() ? "user" : username.trim();
         return "Hi " + user + "! You've successfully authenticated, but SFTP is not enabled for this account.";
     }
 
-    static SubsystemFactory factory() {
+    public static SubsystemFactory factory() {
         return new SubsystemFactory() {
             @Override
             public String getName() {

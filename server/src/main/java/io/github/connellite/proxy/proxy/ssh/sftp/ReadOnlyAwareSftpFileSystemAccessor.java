@@ -1,4 +1,4 @@
-package io.github.connellite.proxy.proxy.sftp;
+package io.github.connellite.proxy.proxy.ssh.sftp;
 
 import org.apache.sshd.server.session.ServerSession;
 import org.apache.sshd.sftp.server.FileHandle;
@@ -28,9 +28,9 @@ import java.util.Set;
  * {@link SftpFileSystemAccessor}; this one refuses them with {@code SSH_FX_PERMISSION_DENIED} when the
  * session's {@link SftpGrant} is read-only. Reads use the stock implementation.
  */
-final class ReadOnlyAwareSftpFileSystemAccessor implements SftpFileSystemAccessor {
+public final class ReadOnlyAwareSftpFileSystemAccessor implements SftpFileSystemAccessor {
 
-    static final ReadOnlyAwareSftpFileSystemAccessor INSTANCE = new ReadOnlyAwareSftpFileSystemAccessor();
+    public static final ReadOnlyAwareSftpFileSystemAccessor INSTANCE = new ReadOnlyAwareSftpFileSystemAccessor();
 
     private static final Set<StandardOpenOption> WRITE_OPTIONS = EnumSet.of(
             StandardOpenOption.WRITE,

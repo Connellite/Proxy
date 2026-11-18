@@ -1,4 +1,4 @@
-package io.github.connellite.proxy.proxy.sftp;
+package io.github.connellite.proxy.proxy.ssh.sftp;
 
 import org.apache.sshd.common.file.FileSystemFactory;
 import org.apache.sshd.common.session.SessionContext;

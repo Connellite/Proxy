@@ -1,5 +1,6 @@
 package io.github.connellite.proxy.proxy.ssh;
 
+import io.github.connellite.proxy.proxy.ssh.sftp.UserSftpSubsystemFactory;
 import org.apache.sshd.server.Environment;
 import org.apache.sshd.server.ExitCallback;
 import org.apache.sshd.server.channel.ChannelSession;
@@ -16,9 +17,9 @@ import java.util.Map;
 /**
  * Shell/exec handler that prints a GitHub-style notice to stderr and exits with status 1
  * (no interactive shell). Only reachable after successful authentication. SFTP is handled by
- * {@link io.github.connellite.proxy.proxy.sftp.UserSftpSubsystemFactory}.
+ * {@link UserSftpSubsystemFactory}.
  */
-final class SshAuthMessageCommand implements Command, ChannelSessionAware, Runnable {
+public final class SshAuthMessageCommand implements Command, ChannelSessionAware, Runnable {
 
     private final String service;
 
@@ -31,19 +32,19 @@ final class SshAuthMessageCommand implements Command, ChannelSessionAware, Runna
     private ExitCallback callback;
     private boolean pty;
 
-    SshAuthMessageCommand() {
+    public SshAuthMessageCommand() {
         this("shell");
     }
 
-    SshAuthMessageCommand(String service) {
+    public SshAuthMessageCommand(String service) {
         this.service = service;
     }
 
-    static String messageFor(String username) {
+    public static String messageFor(String username) {
         return messageFor(username, "shell");
     }
 
-    static String messageFor(String username, String service) {
+    public static String messageFor(String username, String service) {
         String user = username == null || username.isBlank() ? "user" : username.trim();
         return "Hi " + user + "! You've successfully authenticated, but this proxy does not provide " + service + " access.";
     }

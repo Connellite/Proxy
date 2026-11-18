@@ -3,9 +3,9 @@ package io.github.connellite.proxy.proxy.ssh;
 import io.github.connellite.proxy.config.ProxyProperties;
 import io.github.connellite.proxy.dto.AuthenticatedSession;
 import io.github.connellite.proxy.proxy.QuietCloseHandlerAdapter;
-import io.github.connellite.proxy.proxy.sftp.SftpGrant;
-import io.github.connellite.proxy.proxy.sftp.SftpRootFileSystemFactory;
-import io.github.connellite.proxy.proxy.sftp.UserSftpSubsystemFactory;
+import io.github.connellite.proxy.proxy.ssh.sftp.SftpGrant;
+import io.github.connellite.proxy.proxy.ssh.sftp.SftpRootFileSystemFactory;
+import io.github.connellite.proxy.proxy.ssh.sftp.UserSftpSubsystemFactory;
 import io.github.connellite.proxy.service.ProxyAuthService;
 import io.github.connellite.proxy.service.ProxyMetrics;
 import io.github.connellite.proxy.service.SftpAccessService;
@@ -40,7 +40,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.PublicKey;
 import java.time.Duration;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
@@ -58,9 +57,9 @@ import java.util.concurrent.atomic.AtomicLong;
 @RequiredArgsConstructor
 public final class SshProxyServer implements AutoCloseable {
 
-    static final AttributeRepository.AttributeKey<AuthenticatedSession> AUTH_KEY =
+    public static final AttributeRepository.AttributeKey<AuthenticatedSession> AUTH_KEY =
             new AttributeRepository.AttributeKey<>();
-    static final AttributeRepository.AttributeKey<ProxyMetrics.TrackedSession> TRACKED_KEY =
+    public static final AttributeRepository.AttributeKey<ProxyMetrics.TrackedSession> TRACKED_KEY =
             new AttributeRepository.AttributeKey<>();
 
     private static final long TRAFFIC_FLUSH_BYTES = 64 * 1024L;
