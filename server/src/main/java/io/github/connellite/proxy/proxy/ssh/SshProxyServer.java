@@ -2,8 +2,12 @@ package io.github.connellite.proxy.proxy.ssh;
 
 import io.github.connellite.proxy.config.ProxyProperties;
 import io.github.connellite.proxy.dto.AuthenticatedSession;
+import io.github.connellite.proxy.proxy.sftp.SftpGrant;
+import io.github.connellite.proxy.proxy.sftp.SftpRootFileSystemFactory;
+import io.github.connellite.proxy.proxy.sftp.UserSftpSubsystemFactory;
 import io.github.connellite.proxy.service.ProxyAuthService;
 import io.github.connellite.proxy.service.ProxyMetrics;
+import io.github.connellite.proxy.service.SftpAccessService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.sshd.common.AttributeRepository;
@@ -41,7 +45,9 @@ import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * SSH listener for authenticated TCP tunnels / port forwards (Apache Mina SSHD).
- * Interactive shell, exec and SFTP are rejected with a GitHub-style notice.
+ * Interactive shell and exec are rejected with a GitHub-style notice. SFTP is served from the
+ * user's SFTP folder (chrooted as {@code /}, read-only or read/write) when the user has
+ * {@link io.github.connellite.proxy.model.SftpAccess}, otherwise rejected the same way.
  * Auth and connection/traffic limits reuse {@link io.github.connellite.proxy.model.ProxyUser}
  * via {@link ProxyAuthService}.
  */
@@ -60,6 +66,7 @@ public final class SshProxyServer implements AutoCloseable {
     private final ProxyAuthService authService;
     private final ProxyMetrics metrics;
     private final ProxyProperties properties;
+    private final SftpAccessService sftpAccessService;
 
     private SshServer server;
 
@@ -79,7 +86,8 @@ public final class SshProxyServer implements AutoCloseable {
         sshd.setKeyboardInteractiveAuthenticator(DefaultKeyboardInteractiveAuthenticator.INSTANCE);
         sshd.setShellFactory(channel -> new SshAuthMessageCommand());
         sshd.setCommandFactory((channel, command) -> new SshAuthMessageCommand());
-        sshd.setSubsystemFactories(List.of(SftpNoticeSubsystem.factory()));
+        sshd.setSubsystemFactories(List.of(new UserSftpSubsystemFactory(this::sftpGrant)));
+        sshd.setFileSystemFactory(new SftpRootFileSystemFactory());
         sshd.setForwardingFilter(ForwardingFilter.asForwardingFilter(
                 AgentForwardingFilter.of(false),
                 X11ForwardingFilter.of(false),
@@ -135,6 +143,11 @@ public final class SshProxyServer implements AutoCloseable {
         }
         session.setAttribute(AUTH_KEY, authenticated.get());
         return true;
+    }
+
+    private Optional<SftpGrant> sftpGrant(ServerSession session) {
+        AuthenticatedSession auth = session.getAttribute(AUTH_KEY);
+        return auth == null ? Optional.empty() : sftpAccessService.findGrant(auth.userId());
     }
 
     private boolean allowForward(Session session) {

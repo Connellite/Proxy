@@ -15,8 +15,8 @@ import java.util.Map;
 
 /**
  * Shell/exec handler that prints a GitHub-style notice to stderr and exits with status 1
- * (no interactive shell). Only reachable after successful authentication. SFTP is answered by
- * {@link SftpNoticeSubsystem}.
+ * (no interactive shell). Only reachable after successful authentication. SFTP is handled by
+ * {@link io.github.connellite.proxy.proxy.sftp.UserSftpSubsystemFactory}.
  */
 final class SshAuthMessageCommand implements Command, ChannelSessionAware, Runnable {
 

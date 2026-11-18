@@ -48,6 +48,8 @@ code { background: #efe8dc; padding: 0.1rem 0.35rem; border-radius: 4px; }
 .topbar nav { display: flex; gap: 1rem; flex: 1; }
 .topbar nav a { color: var(--muted); font-weight: 600; }
 .topbar nav a:hover { color: var(--ink); }
+.topbar nav a.nav-disabled { opacity: 0.45; }
+.topbar nav a.nav-disabled:hover { color: var(--muted); text-decoration: none; }
 .logout { margin-left: auto; }
 .logout button, button, .button {
   border: 1px solid var(--line);
@@ -419,3 +421,56 @@ input[type="date"].date-input::-webkit-calendar-picker-indicator {
   .topbar { flex-wrap: wrap; }
   .logout { margin-left: 0; }
 }
+
+/* SFTP page */
+.sftp-table { min-width: 760px; }
+.sftp-table td:nth-child(1) { width: 22%; }
+.sftp-table td:nth-child(3) { width: 12%; white-space: nowrap; }
+.sftp-table td:nth-child(4) { width: 26%; }
+.sftp-table tr.sftp-head td {
+  background: #efe8dc;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  font-weight: 700;
+}
+.sftp-table td:nth-child(1) .badge { margin-left: 0.4rem; min-width: 0; }
+.sftp-table .actions { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+.sftp-table input[type="text"] { font: inherit; padding: 0.4rem 0.55rem; border: 1px solid var(--line); border-radius: 6px; }
+
+/* Server folder picker */
+.gwt-PopupPanelGlass { background: rgba(28, 26, 22, 0.35); z-index: 20; }
+.dir-picker {
+  z-index: 21;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  width: min(560px, calc(100vw - 32px));
+}
+.dir-picker .Caption {
+  padding: 0.85rem 1rem;
+  font-weight: 700;
+  border-bottom: 1px solid var(--line);
+  cursor: move;
+}
+.dir-picker-body { padding: 1rem; }
+.dir-picker-path { font-family: Consolas, monospace; font-size: 0.9rem; word-break: break-all; }
+.dir-picker-list {
+  margin: 0.75rem 0;
+  max-height: 50vh;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+.dir-picker-item {
+  display: block;
+  padding: 0.45rem 0.75rem;
+  color: var(--ink);
+  border-bottom: 1px solid var(--line);
+}
+.dir-picker-item:last-child { border-bottom: none; }
+.dir-picker-item:hover { background: #faf7f1; text-decoration: none; }
+.dir-picker-list .hint { padding: 0.75rem; margin: 0; }

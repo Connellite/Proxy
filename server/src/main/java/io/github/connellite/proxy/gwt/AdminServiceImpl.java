@@ -13,11 +13,14 @@ import com.google.gwt.user.server.rpc.SerializationPolicyLoader;
 import io.github.connellite.proxy.client.rpc.AdminRpcException;
 import io.github.connellite.proxy.client.rpc.AdminService;
 import io.github.connellite.proxy.client.rpc.dto.DashboardDto;
+import io.github.connellite.proxy.client.rpc.dto.DirectoryListingDto;
 import io.github.connellite.proxy.client.rpc.dto.EncryptionDto;
 import io.github.connellite.proxy.client.rpc.dto.HttpStripHeaderRowDto;
 import io.github.connellite.proxy.client.rpc.dto.HttpStripHeadersPageDto;
 import io.github.connellite.proxy.client.rpc.dto.PasswordChangeDto;
 import io.github.connellite.proxy.client.rpc.dto.SettingsDto;
+import io.github.connellite.proxy.client.rpc.dto.SftpPageDto;
+import io.github.connellite.proxy.client.rpc.dto.SftpUserRowDto;
 import io.github.connellite.proxy.client.rpc.dto.SshAccessDto;
 import io.github.connellite.proxy.client.rpc.dto.SshIssuedKeyDto;
 import io.github.connellite.proxy.client.rpc.dto.SshUserKeyRowDto;
@@ -29,6 +32,7 @@ import io.github.connellite.proxy.client.rpc.dto.UserFormDto;
 import io.github.connellite.proxy.client.rpc.dto.UserRowDto;
 import io.github.connellite.proxy.client.rpc.dto.UsersPageDto;
 import io.github.connellite.proxy.dto.AppSettings;
+import io.github.connellite.proxy.dto.DirectoryListing;
 import io.github.connellite.proxy.dto.IssuedSshKey;
 import io.github.connellite.proxy.dto.UserThroughput;
 import io.github.connellite.proxy.mapper.AdminRpcManualMapper;
@@ -38,6 +42,7 @@ import io.github.connellite.proxy.mapper.ProxyUserFormMapper;
 import io.github.connellite.proxy.mapper.TlsStatusMapper;
 import io.github.connellite.proxy.mapper.UpstreamProxyFormMapper;
 import io.github.connellite.proxy.model.HttpStripHeader;
+import io.github.connellite.proxy.model.SftpAccess;
 import io.github.connellite.proxy.model.ProxyUser;
 import io.github.connellite.proxy.model.SshUserKey;
 import io.github.connellite.proxy.model.UpstreamProxy;
@@ -47,6 +52,8 @@ import io.github.connellite.proxy.proxy.http.ProxyTlsService;
 import io.github.connellite.proxy.service.HttpStripHeaderService;
 import io.github.connellite.proxy.service.ProxyMetrics;
 import io.github.connellite.proxy.service.ProxyUserService;
+import io.github.connellite.proxy.service.ServerDirectoryService;
+import io.github.connellite.proxy.service.SftpAccessService;
 import io.github.connellite.proxy.service.SshUserKeyService;
 import io.github.connellite.proxy.service.SettingsService;
 import io.github.connellite.proxy.service.TrafficStatsService;
@@ -64,7 +71,9 @@ import java.text.ParseException;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Component
@@ -76,6 +85,8 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
 
     private final ProxyUserService userService;
     private final SshUserKeyService sshUserKeyService;
+    private final ServerDirectoryService serverDirectoryService;
+    private final SftpAccessService sftpAccessService;
     private final UpstreamProxyService upstreamProxyService;
     private final HttpStripHeaderService stripHeaderService;
     private final SettingsService settingsService;
@@ -299,6 +310,62 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
             sshUserKeyService.revoke(userId, keyId);
         } catch (RuntimeException ex) {
             throw toRpcException("Failed to revoke SSH key", ex);
+        }
+    }
+
+    @Override
+    public SftpPageDto getSftpAccess() {
+        AppSettings settings = settingsService.get();
+        SftpPageDto page = new SftpPageDto();
+        page.setSshEnabled(settings.isSshEnabled());
+        page.setSshRunning(proxyServerManager.isSshRunning());
+        page.setSshPort(settings.getSshPort());
+        Map<String, SftpAccess> access = new HashMap<>();
+        for (SftpAccess row : sftpAccessService.findAll()) {
+            access.put(row.getUserId(), row);
+        }
+        for (ProxyUser user : userService.findAll()) {
+            SftpUserRowDto row = new SftpUserRowDto();
+            row.setUserId(user.getId());
+            boolean overQuota = trafficStatsService.isOverTrafficLimit(user.getId(), user.getTrafficLimitBytes());
+            row.setUsable(user.isUsable() && !overQuota && user.hasUserRole());
+            SftpAccess granted = access.get(user.getId());
+            row.setRoot(granted == null ? null : granted.getRootPath());
+            row.setReadOnly(granted != null && granted.isReadOnly());
+            page.getUsers().add(row);
+        }
+        return page;
+    }
+
+    @Override
+    public void saveSftpAccess(String userId, String path, boolean readOnly) throws AdminRpcException {
+        try {
+            sftpAccessService.save(userId, path, readOnly);
+        } catch (RuntimeException ex) {
+            throw toRpcException("Failed to save SFTP access", ex);
+        }
+    }
+
+    @Override
+    public void removeSftpAccess(String userId) throws AdminRpcException {
+        try {
+            sftpAccessService.remove(userId);
+        } catch (RuntimeException ex) {
+            throw toRpcException("Failed to remove SFTP access", ex);
+        }
+    }
+
+    @Override
+    public DirectoryListingDto listServerDirectories(String path) throws AdminRpcException {
+        try {
+            DirectoryListing listing = serverDirectoryService.list(path);
+            DirectoryListingDto dto = new DirectoryListingDto();
+            dto.setPath(listing.path());
+            dto.setParent(listing.parent());
+            dto.getDirectories().addAll(listing.directories());
+            return dto;
+        } catch (RuntimeException ex) {
+            throw toRpcException("Failed to list server folders", ex);
         }
     }
 

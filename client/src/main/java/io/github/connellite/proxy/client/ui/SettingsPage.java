@@ -127,6 +127,7 @@ public class SettingsPage extends Composite {
         Label sshHint = new Label("Password and public keys use proxy users. "
                 + "Keys and the SSH password switch are on the user SSH page. Shell/exec are disabled "
                 + "(GitHub-style notice in PuTTY). Use local/remote port forwarding for tunnels. "
+                + "SFTP folders per user are set in the SFTP section. "
                 + "Host key is stored under the data directory.");
         sshHint.setStyleName("muted");
         sshPanel.add(sshHint);
@@ -218,6 +219,7 @@ public class SettingsPage extends Composite {
             @Override
             public void onSuccess(Void result) {
                 shell.showFlash("Settings saved and proxy listeners restarted", true);
+                shell.refreshNavState();
                 load();
             }
         });

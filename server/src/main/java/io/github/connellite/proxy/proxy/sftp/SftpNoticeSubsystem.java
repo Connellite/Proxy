@@ -1,4 +1,4 @@
-package io.github.connellite.proxy.proxy.ssh;
+package io.github.connellite.proxy.proxy.sftp;
 
 import org.apache.sshd.server.Environment;
 import org.apache.sshd.server.ExitCallback;
@@ -15,6 +15,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 
 /**
+ * Answers the {@code sftp} subsystem for users without an SFTP folder.
  * Clients such as WinSCP only log the subsystem's stderr and report a generic
  * "Cannot initialize SFTP protocol" when the channel closes; a status reply is shown to the user verbatim.
  * The notice is also written to stderr for the OpenSSH {@code sftp} client, which prints it directly.
@@ -36,6 +37,11 @@ final class SftpNoticeSubsystem implements Command, Runnable {
     private OutputStream out;
     private OutputStream err;
     private ExitCallback callback;
+
+    static String messageFor(String username) {
+        String user = username == null || username.isBlank() ? "user" : username.trim();
+        return "Hi " + user + "! You've successfully authenticated, but SFTP is not enabled for this account.";
+    }
 
     static SubsystemFactory factory() {
         return new SubsystemFactory() {
@@ -88,7 +94,7 @@ final class SftpNoticeSubsystem implements Command, Runnable {
     public void run() {
         String username = channel == null || channel.getServerSession() == null
                 ? null : channel.getServerSession().getUsername();
-        String message = SshAuthMessageCommand.messageFor(username, "SFTP");
+        String message = messageFor(username);
         try {
             if (err != null) {
                 err.write((message + "\n").getBytes(StandardCharsets.UTF_8));
