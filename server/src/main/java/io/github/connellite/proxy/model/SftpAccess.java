@@ -5,11 +5,7 @@ import jakarta.persistence.Cacheable;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.MapsId;
-import jakarta.persistence.OneToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
@@ -18,11 +14,7 @@ import org.hibernate.type.TrueFalseConverter;
 import javax.persistence.Cacheable;
 import javax.persistence.Column;
 import javax.persistence.Entity;
-import javax.persistence.FetchType;
 import javax.persistence.Id;
-import javax.persistence.JoinColumn;
-import javax.persistence.MapsId;
-import javax.persistence.OneToOne;
 import javax.persistence.PrePersist;
 import javax.persistence.PreUpdate;
 import javax.persistence.Table;
@@ -40,6 +32,10 @@ import java.time.Instant;
 /**
  * SFTP access of one proxy user: a server folder exposed as {@code /} over SFTP.
  * No row means SFTP is off for that user. Keyed by the user id ({@code USR_ID}).
+ * <p>
+ * The user id is a plain column, not a lazy {@code @OneToOne}. Loading such an association
+ * builds a Hibernate proxy, and a GraalVM native image sets BytecodeProvider to {@code none},
+ * which refuses runtime proxies.
  */
 @Getter
 @Setter
@@ -53,11 +49,6 @@ public class SftpAccess {
     @Id
     @Column(name = "USR_ID", length = 64)
     private String userId;
-
-    @MapsId
-    @OneToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "USR_ID")
-    private ProxyUser user;
 
     /** Absolute real path of the folder on the server. */
     @Column(name = "ROOT_PATH", nullable = false, length = 1024)

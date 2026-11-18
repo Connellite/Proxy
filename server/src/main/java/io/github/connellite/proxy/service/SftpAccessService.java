@@ -45,7 +45,7 @@ public class SftpAccessService {
         }
         SftpAccess access = repository.findById(user.getId()).orElseGet(() -> {
             SftpAccess created = new SftpAccess();
-            created.setUser(user);
+            created.setUserId(user.getId());
             return created;
         });
         access.setRootPath(root);
