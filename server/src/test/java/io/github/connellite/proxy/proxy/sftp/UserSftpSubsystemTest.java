@@ -5,6 +5,7 @@ import io.github.connellite.proxy.proxy.ssh.sftp.SftpNoticeSubsystem;
 import io.github.connellite.proxy.proxy.ssh.sftp.SftpRootFileSystemFactory;
 import io.github.connellite.proxy.proxy.ssh.sftp.UserSftpSubsystemFactory;
 import org.apache.sshd.client.SshClient;
+import org.apache.sshd.client.channel.ClientChannel;
 import org.apache.sshd.client.keyverifier.AcceptAllServerKeyVerifier;
 import org.apache.sshd.client.session.ClientSession;
 import org.apache.sshd.server.SshServer;
@@ -20,6 +21,7 @@ import org.junit.jupiter.api.io.TempDir;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -56,11 +58,13 @@ class UserSftpSubsystemTest {
         sshd.setPort(0);
         sshd.setKeyPairProvider(new SimpleGeneratorHostKeyProvider());
         sshd.setPasswordAuthenticator((user, password, session) -> "secret".equals(password));
-        sshd.setSubsystemFactories(List.of(new UserSftpSubsystemFactory(session -> switch (session.getUsername()) {
+        UserSftpSubsystemFactory sftp = new UserSftpSubsystemFactory(session -> switch (session.getUsername()) {
             case "dave" -> Optional.of(new SftpGrant(root, false));
             case "rita" -> Optional.of(new SftpGrant(root, true));
             default -> Optional.empty();
-        })));
+        });
+        sshd.setCommandFactory((channel, command) -> sftp.createSubsystem(channel));
+        sshd.setSubsystemFactories(List.of(sftp));
         sshd.setFileSystemFactory(new SftpRootFileSystemFactory());
         sshd.start();
 
@@ -103,6 +107,28 @@ class UserSftpSubsystemTest {
             sftp.remove("/sub/renamed.txt");
             sftp.rmdir("/sub");
             assertThat(Files.exists(root.resolve("sub"))).isFalse();
+        }
+    }
+
+    @Test
+    void configuredServerCommandStillServesSftp() throws IOException {
+        try (ClientSession session = login("dave")) {
+            assertSftpInit(session.createExecChannel("sudo /usr/lib/sftp-server"));
+        }
+    }
+
+    private static void assertSftpInit(ClientChannel channel) throws IOException {
+        try (ClientChannel open = channel) {
+            open.open().verify(TIMEOUT);
+            ByteBuffer init = ByteBuffer.allocate(9).putInt(5).put((byte) 1).putInt(3);
+            OutputStream requests = open.getInvertedIn();
+            requests.write(init.array());
+            requests.flush();
+            byte[] reply = open.getInvertedOut().readNBytes(9);
+            ByteBuffer response = ByteBuffer.wrap(reply);
+            assertThat(response.getInt()).isGreaterThanOrEqualTo(5);
+            assertThat(response.get()).isEqualTo((byte) 2);
+            assertThat(response.getInt()).isGreaterThanOrEqualTo(3);
         }
     }
 

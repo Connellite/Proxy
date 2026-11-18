@@ -46,8 +46,9 @@ import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * SSH listener for authenticated TCP tunnels / port forwards (Apache Mina SSHD).
- * Interactive shell and exec are rejected with a GitHub-style notice. SFTP is served from the
- * user's SFTP folder (chrooted as {@code /}, read-only or read/write) when the user has
+ * An interactive shell is rejected with a GitHub-style notice. An exec command is served as
+ * SFTP whatever the command text is, including a configured path such as {@code sudo /usr/lib/sftp-server}.
+ * SFTP is served from the user's SFTP folder (chrooted as {@code /}, read-only or read/write) when the user has
  * {@link io.github.connellite.proxy.model.SftpAccess}, otherwise rejected the same way.
  * Auth and connection/traffic limits reuse {@link io.github.connellite.proxy.model.ProxyUser}
  * via {@link ProxyAuthService}.
@@ -86,8 +87,9 @@ public final class SshProxyServer implements AutoCloseable {
         sshd.setPublickeyAuthenticator(this::authenticatePublicKey);
         sshd.setKeyboardInteractiveAuthenticator(DefaultKeyboardInteractiveAuthenticator.INSTANCE);
         sshd.setShellFactory(channel -> new SshAuthMessageCommand());
-        sshd.setCommandFactory((channel, command) -> new SshAuthMessageCommand());
-        sshd.setSubsystemFactories(List.of(new UserSftpSubsystemFactory(this::sftpGrant)));
+        UserSftpSubsystemFactory sftp = new UserSftpSubsystemFactory(this::sftpGrant);
+        sshd.setCommandFactory((channel, command) -> sftp.createSubsystem(channel));
+        sshd.setSubsystemFactories(List.of(sftp));
         sshd.setFileSystemFactory(new SftpRootFileSystemFactory());
         sshd.setForwardingFilter(ForwardingFilter.asForwardingFilter(
                 AgentForwardingFilter.of(false),
