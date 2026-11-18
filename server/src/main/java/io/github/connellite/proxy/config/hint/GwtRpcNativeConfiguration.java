@@ -22,11 +22,14 @@ import com.google.gwt.user.server.rpc.core.java.util.Vector_ServerCustomFieldSer
 import io.github.connellite.proxy.client.rpc.AdminRpcException;
 import io.github.connellite.proxy.client.rpc.AdminService;
 import io.github.connellite.proxy.client.rpc.dto.DashboardDto;
+import io.github.connellite.proxy.client.rpc.dto.DirectoryListingDto;
 import io.github.connellite.proxy.client.rpc.dto.EncryptionDto;
 import io.github.connellite.proxy.client.rpc.dto.HttpStripHeaderRowDto;
 import io.github.connellite.proxy.client.rpc.dto.HttpStripHeadersPageDto;
 import io.github.connellite.proxy.client.rpc.dto.PasswordChangeDto;
 import io.github.connellite.proxy.client.rpc.dto.SettingsDto;
+import io.github.connellite.proxy.client.rpc.dto.SftpPageDto;
+import io.github.connellite.proxy.client.rpc.dto.SftpUserRowDto;
 import io.github.connellite.proxy.client.rpc.dto.SshAccessDto;
 import io.github.connellite.proxy.client.rpc.dto.SshIssuedKeyDto;
 import io.github.connellite.proxy.client.rpc.dto.SshUserKeyRowDto;
@@ -95,6 +98,9 @@ public class GwtRpcNativeConfiguration {
                 SshAccessDto.class,
                 SshUserKeyRowDto.class,
                 SshIssuedKeyDto.class,
+                SftpPageDto.class,
+                SftpUserRowDto.class,
+                DirectoryListingDto.class,
                 ArrayList.class,
                 LinkedList.class,
                 Vector.class,
