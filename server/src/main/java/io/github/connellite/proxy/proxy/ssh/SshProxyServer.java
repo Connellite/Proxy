@@ -2,6 +2,7 @@ package io.github.connellite.proxy.proxy.ssh;
 
 import io.github.connellite.proxy.config.ProxyProperties;
 import io.github.connellite.proxy.dto.AuthenticatedSession;
+import io.github.connellite.proxy.proxy.QuietCloseHandlerAdapter;
 import io.github.connellite.proxy.proxy.sftp.SftpGrant;
 import io.github.connellite.proxy.proxy.sftp.SftpRootFileSystemFactory;
 import io.github.connellite.proxy.proxy.sftp.UserSftpSubsystemFactory;
@@ -12,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.sshd.common.AttributeRepository;
 import org.apache.sshd.common.SshConstants;
+import org.apache.sshd.common.SshException;
 import org.apache.sshd.common.io.IoSession;
 import org.apache.sshd.common.io.IoWriteFuture;
 import org.apache.sshd.common.session.Session;
@@ -206,6 +208,45 @@ public final class SshProxyServer implements AutoCloseable {
         private TrafficAwareServerSession(ServerFactoryManager server, IoSession ioSession)
                 throws Exception {
             super(server, ioSession);
+        }
+
+        /**
+         * SSHD logs every {@code exceptionCaught} on an open session at warn. A client that
+         * drops the socket is not a fault: the session is closed either way.
+         * Windows NIO.2 reports that drop as a plain {@link IOException}. The Win32 code is
+         * not kept on the exception, and subclasses such as {@code SshException} stay warnings.
+         */
+        @Override
+        public void exceptionCaught(Throwable t) {
+            if (isClientDisconnect(t)) {
+                debug("exceptionCaught({}) peer closed the connection: {}", this, t.toString(), t);
+                close(true);
+                return;
+            }
+            super.exceptionCaught(t);
+        }
+
+        private static boolean isClientDisconnect(Throwable cause) {
+            if (QuietCloseHandlerAdapter.isBenignClose(cause)) {
+                return true;
+            }
+            Throwable current = cause;
+            int depth = 0;
+            while (current != null && depth < 8) {
+                if (current instanceof SshException) {
+                    return false;
+                }
+                if (current.getClass() == IOException.class) {
+                    return true;
+                }
+                Throwable next = current.getCause();
+                if (next == current) {
+                    break;
+                }
+                current = next;
+                depth++;
+            }
+            return false;
         }
 
         @Override
