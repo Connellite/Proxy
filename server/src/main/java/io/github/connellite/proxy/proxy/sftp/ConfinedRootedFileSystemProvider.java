@@ -51,20 +51,20 @@ final class ConfinedRootedFileSystemProvider extends RootedFileSystemProvider {
 
     @Override
     public InputStream newInputStream(Path path, OpenOption... options) throws IOException {
-        ensureInside(path, options);
+        ensureInside(path, (Object[]) options);
         return super.newInputStream(path, options);
     }
 
     @Override
     public OutputStream newOutputStream(Path path, OpenOption... options) throws IOException {
-        ensureInside(path, options);
+        ensureInside(path, (Object[]) options);
         return super.newOutputStream(path, options);
     }
 
     @Override
     public FileChannel newFileChannel(Path path, Set<? extends OpenOption> options, FileAttribute<?>... attrs)
             throws IOException {
-        ensureInside(path, options.toArray(new OpenOption[0]));
+        ensureInside(path, (Object[]) options.toArray(new OpenOption[0]));
         return super.newFileChannel(path, options, attrs);
     }
 
@@ -72,33 +72,32 @@ final class ConfinedRootedFileSystemProvider extends RootedFileSystemProvider {
     public AsynchronousFileChannel newAsynchronousFileChannel(
             Path path, Set<? extends OpenOption> options, ExecutorService executor, FileAttribute<?>... attrs)
             throws IOException {
-        ensureInside(path, options.toArray(new OpenOption[0]));
+        ensureInside(path, (Object[]) options.toArray(new OpenOption[0]));
         return super.newAsynchronousFileChannel(path, options, executor, attrs);
     }
 
     @Override
     public SeekableByteChannel newByteChannel(Path path, Set<? extends OpenOption> options, FileAttribute<?>... attrs)
             throws IOException {
-        ensureInside(path, options.toArray(new OpenOption[0]));
+        ensureInside(path, (Object[]) options.toArray(new OpenOption[0]));
         return super.newByteChannel(path, options, attrs);
     }
 
     @Override
-    public DirectoryStream<Path> newDirectoryStream(Path dir, DirectoryStream.Filter<? super Path> filter)
-            throws IOException {
+    public DirectoryStream<Path> newDirectoryStream(Path dir, DirectoryStream.Filter<? super Path> filter) throws IOException {
         ensureInside(dir);
         return super.newDirectoryStream(dir, filter);
     }
 
     @Override
     public void setAttribute(Path path, String attribute, Object value, LinkOption... options) throws IOException {
-        ensureInside(path, options);
+        ensureInside(path, (Object[]) options);
         super.setAttribute(path, attribute, value, options);
     }
 
     @Override
     public void copy(Path source, Path target, CopyOption... options) throws IOException {
-        ensureInside(source, options);
+        ensureInside(source, (Object[]) options);
         super.copy(source, target, options);
     }
 
@@ -113,6 +112,7 @@ final class ConfinedRootedFileSystemProvider extends RootedFileSystemProvider {
         }
     }
 
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     private static boolean resolvesInside(Path local, Path root) {
         try {
             return local.toRealPath().startsWith(root.toRealPath());

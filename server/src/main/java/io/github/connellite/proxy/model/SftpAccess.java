@@ -32,10 +32,6 @@ import java.time.Instant;
 /**
  * SFTP access of one proxy user: a server folder exposed as {@code /} over SFTP.
  * No row means SFTP is off for that user. Keyed by the user id ({@code USR_ID}).
- * <p>
- * The user id is a plain column, not a lazy {@code @OneToOne}. Loading such an association
- * builds a Hibernate proxy, and a GraalVM native image sets BytecodeProvider to {@code none},
- * which refuses runtime proxies.
  */
 @Getter
 @Setter
