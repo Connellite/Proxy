@@ -1,6 +1,7 @@
 package io.github.connellite.proxy.util;
 
 import org.graalvm.nativeimage.Platform;
+import org.graalvm.nativeimage.Platforms;
 import org.graalvm.nativeimage.c.CContext;
 import org.graalvm.nativeimage.c.function.CFunction;
 import org.graalvm.nativeimage.c.function.CLibrary;
@@ -9,8 +10,9 @@ import java.util.List;
 
 /**
  * Switches the attached Windows console to UTF-8 (code page 65001), the same effect as
- * {@code chcp 65001}. Only linked into a Windows native image; the JVM never calls it.
+ * {@code chcp 65001}.
  */
+@Platforms(Platform.WINDOWS.class)
 @CLibrary("kernel32")
 @CContext(WindowsConsoleUtf8.Directives.class)
 public final class WindowsConsoleUtf8 {
