@@ -17,6 +17,7 @@ class RelayNamesTest {
         assertThat(RelayNames.normalizePattern("IP.Example.FR.")).isEqualTo("ip.example.fr");
         assertThat(RelayNames.matches("ip.example.ru", "ip.example.fr")).isFalse();
         assertThat(RelayNames.matches("ip.example.ru", "ip.example.ru")).isTrue();
+        assertThat(RelayNames.matches("ip.example.ru.", "ip.example.ru.")).isTrue();
     }
 
     @Test

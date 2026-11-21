@@ -109,7 +109,7 @@ public class AppShell extends Composite {
             }
         });
         nav.add(sftpLink);
-        nav.add(navLink("Relay", new ClickHandler() {
+        nav.add(navLink("DNS Relay", new ClickHandler() {
             @Override
             public void onClick(ClickEvent event) {
                 event.preventDefault();

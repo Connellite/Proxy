@@ -1,16 +1,19 @@
 package io.github.connellite.proxy.relay.tcp;
 
 import io.netty.buffer.ByteBuf;
+import lombok.experimental.UtilityClass;
 
 import java.nio.charset.StandardCharsets;
 
-/** Reads the host name from a TLS ClientHello. Does not move the reader index. */
+/**
+ * Reads the host name from a TLS ClientHello. Does not move the reader index.
+ */
+@UtilityClass
 public final class SniNames {
 
-    private SniNames() {
-    }
-
-    /** {@code null} when the hello is still incomplete. Empty when the hello has no SNI. */
+    /**
+     * {@code null} when the hello is still incomplete. Empty when the hello has no SNI.
+     */
     public static String read(ByteBuf buf) {
         int index = buf.readerIndex();
         int end = buf.writerIndex();
@@ -41,7 +44,9 @@ public final class SniNames {
         return body(buf, pos + 4, limit);
     }
 
-    /** ClientHello body as Netty's {@code SslClientHelloHandler} passes it: version, then random. */
+    /**
+     * ClientHello body as Netty's {@code SslClientHelloHandler} passes it: version, then random.
+     */
     private static String body(ByteBuf buf, int pos, int limit) {
         pos += 2 + 32;
         if (pos >= limit) {

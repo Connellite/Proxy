@@ -1,5 +1,6 @@
 package io.github.connellite.proxy.relay;
 
+import com.google.common.net.InetAddresses;
 import io.github.connellite.proxy.dto.AppSettings;
 import io.github.connellite.proxy.model.RelayRoute;
 import io.github.connellite.proxy.model.RelayRouteMode;
@@ -7,13 +8,11 @@ import io.github.connellite.proxy.repository.RelayRouteRepository;
 import io.github.connellite.proxy.service.SettingsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -60,7 +59,7 @@ public class RelayCatalog {
             routes.add(new RelaySnapshot.Route(row.getName(), row.getMode(), row.getUpstreamHost(),
                     row.getUpstreamPort(), answer));
         }
-        return new RelaySnapshot(routes, advertised, resolver.getHost(), resolver.getPort(),
+        return new RelaySnapshot(routes, advertised, resolver.host(), resolver.port(),
                 settings.isRelayDnsEnabled(), settings.getRelayDnsBindHost(), settings.getRelayDnsPort(),
                 settings.isRelayTcpEnabled(), settings.getRelayTcpBindHost(), settings.getRelayTcpPort());
     }
@@ -78,24 +77,13 @@ public class RelayCatalog {
     }
 
     static InetAddress parseAddress(String raw) {
-        if (raw == null || raw.isBlank()) {
+        if (raw == null || raw.isBlank() || !InetAddresses.isInetAddress(raw.trim())) {
             return null;
         }
-        String value = raw.trim();
-        boolean v4 = value.indexOf(':') < 0 && value.chars().allMatch(c -> c == '.' || (c >= '0' && c <= '9'));
-        boolean v6 = value.indexOf(':') >= 0 && value.indexOf('.') < 0
-                && value.chars().allMatch(c -> c == ':' || (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F'));
-        if (!v4 && !v6) {
+        InetAddress address = InetAddresses.forString(raw.trim());
+        if (address.isAnyLocalAddress()) {
             return null;
         }
-        try {
-            InetAddress address = InetAddress.getByName(value);
-            if (address.isAnyLocalAddress()) {
-                return null;
-            }
-            return address;
-        } catch (UnknownHostException ex) {
-            return null;
-        }
+        return address;
     }
 }

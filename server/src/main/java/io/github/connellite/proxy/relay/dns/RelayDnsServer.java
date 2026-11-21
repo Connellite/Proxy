@@ -140,7 +140,7 @@ public class RelayDnsServer {
             forward(snapshot, message, send);
             return;
         }
-        if (decision == RelayAnswers.SERVFAIL) {
+        if (decision == RelayAnswers.SERVFAIL || route == null) {
             send.accept(error(message, Rcode.SERVFAIL));
             return;
         }

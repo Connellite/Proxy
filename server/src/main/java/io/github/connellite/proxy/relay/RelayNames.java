@@ -1,110 +1,85 @@
 package io.github.connellite.proxy.relay;
 
+import com.google.common.net.InternetDomainName;
+import lombok.experimental.UtilityClass;
+import org.apache.commons.lang3.StringUtils;
+import org.xbill.DNS.Name;
+import org.xbill.DNS.TextParseException;
+
 import java.util.Locale;
 
-/** Normalizes and matches DNS names and the single leading-label mask. */
+/**
+ * Normalizes and matches DNS names and the single leading-label mask.
+ */
+@UtilityClass
 public final class RelayNames {
 
-    private RelayNames() {
-    }
-
-    /** Query name: trailing dots removed, lower case. Empty or illegal input yields {@code null}. */
+    /**
+     * Query name: trailing dots removed, lower case. Empty or illegal input yields {@code null}.
+     */
     public static String normalizeQuery(String raw) {
-        if (raw == null) {
+        String name = prepare(raw);
+        if (name == null || !InternetDomainName.isValid(name)) {
             return null;
         }
-        String name = stripDots(raw.trim().toLowerCase(Locale.ROOT));
-        if (name.isEmpty() || name.length() > 253 || !labelsOk(name, true)) {
-            return null;
-        }
-        return name;
+        return InternetDomainName.from(name).toString();
     }
 
-    /** Stored name. Rejects anything except a plain name or {@code *.example.com}. */
+    /**
+     * Stored name. Rejects anything except a plain name or {@code *.example.com}.
+     */
     public static String normalizePattern(String raw) {
-        if (raw == null || raw.isBlank()) {
+        String name = prepare(raw);
+        if (name == null) {
             throw new IllegalArgumentException("Name is required");
         }
-        String name = stripDots(raw.trim().toLowerCase(Locale.ROOT));
-        if (name.isEmpty() || name.length() > 253 || !labelsOk(name, false)) {
+        if (name.startsWith("*.")) {
+            String suffix = name.substring(2);
+            if (!InternetDomainName.isValid(suffix)) {
+                throw new IllegalArgumentException("Name must be a hostname or a mask like *.example.com");
+            }
+            return "*." + InternetDomainName.from(suffix);
+        }
+        if (!InternetDomainName.isValid(name)) {
             throw new IllegalArgumentException("Name must be a hostname or a mask like *.example.com");
         }
-        return name;
+        return InternetDomainName.from(name).toString();
     }
 
+    /**
+     * {@code *.example.com} matches any name under that suffix, including several labels,
+     * and does not match the suffix itself. An exact name matches only itself.
+     */
     public static boolean matches(String pattern, String query) {
-        String[] patternLabels = pattern.split("\\.", -1);
-        String[] queryLabels = query.split("\\.", -1);
-        if ("*".equals(patternLabels[0])) {
-            int suffix = patternLabels.length - 1;
-            if (queryLabels.length <= suffix) {
-                return false;
+        try {
+            Name patternName = Name.fromString(pattern.endsWith(".") ? pattern : pattern + ".");
+            Name queryName = Name.fromString(query.endsWith(".") ? query : query + ".");
+            if (!patternName.isWild()) {
+                return patternName.equals(queryName);
             }
-            int offset = queryLabels.length - suffix;
-            for (int i = 0; i < suffix; i++) {
-                if (!queryLabels[offset + i].equals(patternLabels[i + 1])) {
-                    return false;
-                }
-            }
-            return true;
-        }
-        if (patternLabels.length != queryLabels.length) {
+            Name suffix = new Name(patternName, 1);
+            return queryName.labels() > suffix.labels() && queryName.subdomain(suffix);
+        } catch (TextParseException ex) {
             return false;
         }
-        for (int i = 0; i < patternLabels.length; i++) {
-            if (!patternLabels[i].equals(queryLabels[i])) {
-                return false;
-            }
-        }
-        return true;
     }
 
     public static boolean wildcard(String pattern) {
-        return pattern.startsWith("*.");
-    }
-
-    private static String stripDots(String name) {
-        int end = name.length();
-        while (end > 0 && name.charAt(end - 1) == '.') {
-            end--;
-        }
-        return name.substring(0, end);
-    }
-
-    private static boolean labelsOk(String name, boolean query) {
-        String[] labels = name.split("\\.", -1);
-        if (labels.length == 0) {
+        try {
+            return Name.fromString(pattern + ".").isWild();
+        } catch (TextParseException ex) {
             return false;
         }
-        for (int i = 0; i < labels.length; i++) {
-            String label = labels[i];
-            if (label.isEmpty() || label.length() > 63) {
-                return false;
-            }
-            if ("*".equals(label)) {
-                if (query || i != 0 || labels.length < 2) {
-                    return false;
-                }
-                continue;
-            }
-            if (label.indexOf('*') >= 0) {
-                return false;
-            }
-            if (!hostnameLabel(label)) {
-                return false;
-            }
-        }
-        return true;
     }
 
-    private static boolean hostnameLabel(String label) {
-        for (int i = 0; i < label.length(); i++) {
-            char c = label.charAt(i);
-            boolean ok = (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '-';
-            if (!ok) {
-                return false;
-            }
+    private static String prepare(String raw) {
+        if (raw == null) {
+            return null;
         }
-        return label.charAt(0) != '-' && label.charAt(label.length() - 1) != '-';
+        String name = StringUtils.stripEnd(raw.trim().toLowerCase(Locale.ROOT), ".");
+        if (name.isEmpty() || name.length() > 253) {
+            return null;
+        }
+        return name;
     }
 }

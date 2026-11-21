@@ -22,5 +22,6 @@ public class RelayPageDto implements IsSerializable {
     /** Address returned for relay-mode names. */
     private String advertisedAddress;
     private String upstreamResolver;
+    private List<String> bindHostOptions = new ArrayList<>();
     private List<RelayRouteRowDto> routes = new ArrayList<>();
 }

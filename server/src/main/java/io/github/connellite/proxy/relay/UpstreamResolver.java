@@ -1,5 +1,6 @@
 package io.github.connellite.proxy.relay;
 
+import lombok.experimental.UtilityClass;
 import org.xbill.DNS.ARecord;
 import org.xbill.DNS.AAAARecord;
 import org.xbill.DNS.DClass;
@@ -15,11 +16,11 @@ import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
-/** Resolves a relay upstream through the configured resolver, never the system resolver. */
+/**
+ * Resolves a relay upstream through the configured resolver, never the system resolver.
+ */
+@UtilityClass
 public final class UpstreamResolver {
-
-    private UpstreamResolver() {
-    }
 
     public static CompletionStage<InetAddress> resolve(String host, String resolverHost, int resolverPort, int timeoutMs) {
         InetAddress literal = literal(host);

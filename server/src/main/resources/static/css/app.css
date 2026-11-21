@@ -158,6 +158,9 @@ h2 { margin: 0 0 1rem; font-size: 1.15rem; }
 .table-wrap + .panel {
   margin-top: 1.25rem;
 }
+.panel > .table-wrap {
+  margin-top: 1.25rem;
+}
 table { width: 100%; border-collapse: collapse; }
 table.users-table {
   table-layout: fixed;

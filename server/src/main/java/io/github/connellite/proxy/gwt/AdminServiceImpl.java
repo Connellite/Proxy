@@ -64,6 +64,7 @@ import io.github.connellite.proxy.service.SshUserKeyService;
 import io.github.connellite.proxy.service.SettingsService;
 import io.github.connellite.proxy.service.TrafficStatsService;
 import io.github.connellite.proxy.service.UpstreamProxyService;
+import io.github.connellite.proxy.util.LocalBindAddresses;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -578,6 +579,7 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
         page.setTcpPort(settings.getRelayTcpPort());
         page.setAdvertisedAddress(settings.getRelayAdvertisedAddress() == null ? "" : settings.getRelayAdvertisedAddress());
         page.setUpstreamResolver(settings.getRelayUpstreamResolver());
+        page.setBindHostOptions(new ArrayList<>(LocalBindAddresses.optionsIncluding(settings.getRelayDnsBindHost(), settings.getRelayTcpBindHost())));
         for (RelayRoute route : relayRouteService.findAll()) {
             page.getRoutes().add(toRow(route));
         }
