@@ -21,6 +21,10 @@ public class ProxyProperties {
     /** Outbound IP TTL; 0 = OS default. Overridable in Settings UI. */
     private int outboundTtl = 0;
     private int idleTimeoutSeconds = 300;
+    /** SSH server probes (OpenSSH ClientAlive). Dead peers still hit {@link #idleTimeoutSeconds}. */
+    private boolean sshKeepaliveEnabled = true;
+    /** How many probe intervals fit into {@link #idleTimeoutSeconds}. */
+    private int sshKeepaliveCount = 5;
     private int httpMaxContentLengthBytes = 8 * 1024 * 1024;
     /** IANA zone id for admin UI dates (e.g. UTC, America/New_York). */
     private String timezone = "";

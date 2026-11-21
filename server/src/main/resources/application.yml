@@ -83,6 +83,9 @@ proxy:
   # Outbound IP TTL (0 = OS default). Prefer Settings UI; applies to proxy→direct/upstream sockets.
   outbound-ttl: 0
   idle-timeout-seconds: 300
+  # SSH server asks the client this many times per idle window.
+  ssh-keepalive-enabled: true
+  ssh-keepalive-count: 5
   http-max-content-length-bytes: 8388608
   # IANA timezone for UI dates / expire-on (examples: UTC, America/New_York)
   # timezone: UTC
