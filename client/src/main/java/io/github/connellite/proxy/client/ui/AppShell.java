@@ -3,6 +3,7 @@ package io.github.connellite.proxy.client.ui;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.user.client.Window;
+import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.ui.Anchor;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.Composite;
@@ -11,6 +12,7 @@ import com.google.gwt.user.client.ui.HTMLPanel;
 import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.SimplePanel;
 import io.github.connellite.proxy.client.rpc.AdminServiceAsync;
+import io.github.connellite.proxy.client.rpc.dto.SettingsDto;
 import io.github.connellite.proxy.client.util.AutoRefresh;
 import lombok.Getter;
 
@@ -20,6 +22,9 @@ public class AppShell extends Composite {
     private final AdminServiceAsync rpc;
     private final SimplePanel content = new SimplePanel();
     private final Label flash = new Label();
+    private Anchor sftpLink;
+    /** Mirrors the saved "SSH enabled" setting; SFTP needs the SSH listener. */
+    private boolean sshEnabled = true;
     private AutoRefresh autoRefresh;
 
     public AppShell(AdminServiceAsync rpc) {
@@ -91,6 +96,19 @@ public class AppShell extends Composite {
                 showEncryption();
             }
         }));
+        sftpLink = navLink("SFTP", new ClickHandler() {
+            @Override
+            public void onClick(ClickEvent event) {
+                event.preventDefault();
+                clearFlash();
+                if (sshEnabled) {
+                    showSftp();
+                } else {
+                    showFlash("Enable the SSH proxy in Settings to use SFTP.", false);
+                }
+            }
+        });
+        nav.add(sftpLink);
 
         FlowPanel logout = new FlowPanel();
         logout.setStyleName("logout");
@@ -120,6 +138,29 @@ public class AppShell extends Composite {
         root.add(container);
         initWidget(root);
         setWidth("100%");
+        refreshNavState();
+    }
+
+    /** Re-reads settings and greys out the SFTP section while the SSH proxy is disabled. */
+    public void refreshNavState() {
+        rpc.getSettings(new AsyncCallback<SettingsDto>() {
+            @Override
+            public void onFailure(Throwable caught) {
+                // keep the current state; pages report their own RPC errors
+            }
+
+            @Override
+            public void onSuccess(SettingsDto result) {
+                sshEnabled = result.isSshEnabled();
+                if (sshEnabled) {
+                    sftpLink.removeStyleName("nav-disabled");
+                    sftpLink.setTitle("");
+                } else {
+                    sftpLink.addStyleName("nav-disabled");
+                    sftpLink.setTitle("Requires the SSH proxy (Settings)");
+                }
+            }
+        });
     }
 
     public void showFlash(String message, boolean ok) {
@@ -153,6 +194,11 @@ public class AppShell extends Composite {
         stopRefresh();
         clearFlash();
         content.setWidget(new SshAccessPage(this, userId));
+    }
+
+    public void showSftp() {
+        stopRefresh();
+        content.setWidget(new SftpPage(this));
     }
 
     public void showSettings() {

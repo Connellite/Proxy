@@ -1,6 +1,9 @@
 package io.github.connellite.proxy;
 
 import io.github.connellite.proxy.util.RuntimeEnvironment;
+import io.github.connellite.proxy.util.WindowsConsoleUtf8;
+import org.graalvm.nativeimage.ImageInfo;
+import org.graalvm.nativeimage.Platform;
 import org.springframework.boot.Banner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -21,6 +24,10 @@ public class ProxyApplication extends SpringBootServletInitializer {
         if (RuntimeEnvironment.isWindows()) {
             // Required for SystemTray / Desktop.browse on desktop Windows sessions.
             System.setProperty("java.awt.headless", "false");
+        }
+        if (ImageInfo.inImageRuntimeCode() && Platform.includedIn(Platform.WINDOWS.class)) {
+            WindowsConsoleUtf8.enable();
+            System.setProperty("logging.charset.console", "UTF-8");
         }
         SpringApplication app = new SpringApplication(ProxyApplication.class);
         app.setBannerMode(Banner.Mode.OFF);

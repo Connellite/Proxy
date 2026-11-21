@@ -4,6 +4,7 @@ package io.github.connellite.proxy.config.hint;
 import org.apache.sshd.client.SshClient;
 import org.apache.sshd.client.session.ClientConnectionServiceFactory;
 import org.apache.sshd.common.channel.ChannelListener;
+import org.apache.sshd.common.file.root.RootedFileSystemProvider;
 import org.apache.sshd.common.forward.PortForwardingEventListener;
 import org.apache.sshd.common.io.IoServiceEventListener;
 import org.apache.sshd.common.io.nio2.Nio2ServiceFactory;
@@ -16,6 +17,9 @@ import org.apache.sshd.common.util.security.eddsa.EdDSASecurityProviderRegistrar
 import org.apache.sshd.server.SshServer;
 import org.apache.sshd.server.keyprovider.SimpleGeneratorHostKeyProvider;
 import org.apache.sshd.server.session.ServerConnectionServiceFactory;
+import org.apache.sshd.sftp.server.SftpEventListener;
+import org.apache.sshd.sftp.server.SftpSubsystem;
+import org.apache.sshd.sftp.server.SftpSubsystemFactory;
 import org.springframework.aot.hint.ExecutableMode;
 import org.springframework.aot.hint.MemberCategory;
 import org.springframework.aot.hint.RuntimeHints;
@@ -73,6 +77,8 @@ public class SshdNativeConfiguration {
             hints.proxies().registerJdkProxy(ChannelListener.class);
             hints.proxies().registerJdkProxy(PortForwardingEventListener.class);
             hints.proxies().registerJdkProxy(IoServiceEventListener.class);
+            // SFTP server: listener proxy per subsystem, chrooted file system per channel.
+            hints.proxies().registerJdkProxy(SftpEventListener.class);
 
             for (Class<?> type : new Class<?>[] {
                     SshClient.class,
@@ -85,7 +91,10 @@ public class SshdNativeConfiguration {
                     ServerConnectionServiceFactory.class,
                     SunJCESecurityProviderRegistrar.class,
                     BouncyCastleSecurityProviderRegistrar.class,
-                    EdDSASecurityProviderRegistrar.class
+                    EdDSASecurityProviderRegistrar.class,
+                    SftpSubsystemFactory.class,
+                    SftpSubsystem.class,
+                    RootedFileSystemProvider.class
             }) {
                 hints.reflection().registerType(type, TYPE_CATEGORIES);
             }

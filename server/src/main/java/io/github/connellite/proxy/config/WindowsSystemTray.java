@@ -1,6 +1,5 @@
-package io.github.connellite.proxy.ui;
+package io.github.connellite.proxy.config;
 
-import io.github.connellite.proxy.config.ServerPort;
 import io.github.connellite.proxy.util.RuntimeEnvironment;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;

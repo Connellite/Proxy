@@ -7,6 +7,7 @@ import io.github.connellite.proxy.model.ProxyUser;
 import io.github.connellite.proxy.model.Role;
 import io.github.connellite.proxy.repository.ProxyUserRepository;
 import io.github.connellite.proxy.repository.RoleRepository;
+import io.github.connellite.proxy.repository.SftpAccessRepository;
 import io.github.connellite.proxy.repository.SshUserKeyRepository;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
@@ -28,6 +29,7 @@ public class ProxyUserService {
 
     private final ProxyUserRepository repository;
     private final SshUserKeyRepository sshUserKeyRepository;
+    private final SftpAccessRepository sftpAccessRepository;
     private final CacheService cacheService;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
@@ -77,6 +79,8 @@ public class ProxyUserService {
         sshUserKeyRepository.deleteByUser_Id(id);
         sshUserKeyRepository.flush();
         cacheService.evictSshKeysAfterCommit();
+        sftpAccessRepository.findById(id).ifPresent(sftpAccessRepository::delete);
+        sftpAccessRepository.flush();
         repository.deleteById(id);
         trafficStatsService.clearLiveTotal(id);
     }

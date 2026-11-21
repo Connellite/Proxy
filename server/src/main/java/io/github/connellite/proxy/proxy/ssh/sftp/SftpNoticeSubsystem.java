@@ -1,10 +1,11 @@
-package io.github.connellite.proxy.proxy.ssh;
+package io.github.connellite.proxy.proxy.ssh.sftp;
 
 import org.apache.sshd.server.Environment;
 import org.apache.sshd.server.ExitCallback;
 import org.apache.sshd.server.channel.ChannelSession;
 import org.apache.sshd.server.command.Command;
 import org.apache.sshd.server.subsystem.SubsystemFactory;
+import org.apache.sshd.sftp.common.SftpConstants;
 
 import java.io.DataInputStream;
 import java.io.EOFException;
@@ -15,21 +16,14 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 
 /**
+ * Answers the {@code sftp} subsystem for users without an SFTP folder.
  * Clients such as WinSCP only log the subsystem's stderr and report a generic
  * "Cannot initialize SFTP protocol" when the channel closes; a status reply is shown to the user verbatim.
  * The notice is also written to stderr for the OpenSSH {@code sftp} client, which prints it directly.
  */
-final class SftpNoticeSubsystem implements Command, Runnable {
+public final class SftpNoticeSubsystem implements Command, Runnable {
 
-    static final String NAME = "sftp";
-
-    private static final int SSH_FXP_INIT = 1;
-    private static final int SSH_FXP_VERSION = 2;
-    private static final int SSH_FXP_STATUS = 101;
-    private static final int SSH_FX_PERMISSION_DENIED = 3;
-    private static final int SFTP_VERSION = 3;
-    /** Requests from a refused client are tiny; anything larger is not worth reading. */
-    private static final int MAX_PACKET = 256 * 1024;
+    public static final String NAME = SftpConstants.SFTP_SUBSYSTEM_NAME;
 
     private ChannelSession channel;
     private InputStream in;
@@ -37,7 +31,12 @@ final class SftpNoticeSubsystem implements Command, Runnable {
     private OutputStream err;
     private ExitCallback callback;
 
-    static SubsystemFactory factory() {
+    public static String messageFor(String username) {
+        String user = username == null || username.isBlank() ? "user" : username.trim();
+        return "Hi " + user + "! You've successfully authenticated, but SFTP is not enabled for this account.";
+    }
+
+    public static SubsystemFactory factory() {
         return new SubsystemFactory() {
             @Override
             public String getName() {
@@ -88,7 +87,7 @@ final class SftpNoticeSubsystem implements Command, Runnable {
     public void run() {
         String username = channel == null || channel.getServerSession() == null
                 ? null : channel.getServerSession().getUsername();
-        String message = SshAuthMessageCommand.messageFor(username, "SFTP");
+        String message = messageFor(username);
         try {
             if (err != null) {
                 err.write((message + "\n").getBytes(StandardCharsets.UTF_8));
@@ -112,14 +111,14 @@ final class SftpNoticeSubsystem implements Command, Runnable {
             } catch (EOFException eof) {
                 return;
             }
-            if (length < 1 || length > MAX_PACKET) {
+            if (length < 1 || length > SftpConstants.MAX_SFTP_MESSAGE_LENGTH) {
                 return;
             }
             byte[] packet = new byte[length];
             input.readFully(packet);
             ByteBuffer body = ByteBuffer.wrap(packet);
             int type = body.get() & 0xFF;
-            if (type == SSH_FXP_INIT) {
+            if (type == SftpConstants.SSH_FXP_INIT) {
                 writeVersion();
                 continue;
             }
@@ -133,7 +132,7 @@ final class SftpNoticeSubsystem implements Command, Runnable {
 
     private void writeVersion() throws IOException {
         ByteBuffer reply = ByteBuffer.allocate(4 + 1 + 4);
-        reply.putInt(1 + 4).put((byte) SSH_FXP_VERSION).putInt(SFTP_VERSION);
+        reply.putInt(1 + 4).put((byte) SftpConstants.SSH_FXP_VERSION).putInt(SftpConstants.SFTP_V3);
         send(reply);
     }
 
@@ -143,9 +142,9 @@ final class SftpNoticeSubsystem implements Command, Runnable {
         int payload = 1 + 4 + 4 + 4 + text.length + 4 + lang.length;
         ByteBuffer reply = ByteBuffer.allocate(4 + payload);
         reply.putInt(payload)
-                .put((byte) SSH_FXP_STATUS)
+                .put((byte) SftpConstants.SSH_FXP_STATUS)
                 .putInt(requestId)
-                .putInt(SSH_FX_PERMISSION_DENIED)
+                .putInt(SftpConstants.SSH_FX_PERMISSION_DENIED)
                 .putInt(text.length).put(text)
                 .putInt(lang.length).put(lang);
         send(reply);

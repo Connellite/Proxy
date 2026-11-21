@@ -2,12 +2,18 @@ package io.github.connellite.proxy.proxy.ssh;
 
 import io.github.connellite.proxy.config.ProxyProperties;
 import io.github.connellite.proxy.dto.AuthenticatedSession;
+import io.github.connellite.proxy.proxy.QuietCloseHandlerAdapter;
+import io.github.connellite.proxy.proxy.ssh.sftp.SftpGrant;
+import io.github.connellite.proxy.proxy.ssh.sftp.SftpRootFileSystemFactory;
+import io.github.connellite.proxy.proxy.ssh.sftp.UserSftpSubsystemFactory;
 import io.github.connellite.proxy.service.ProxyAuthService;
 import io.github.connellite.proxy.service.ProxyMetrics;
+import io.github.connellite.proxy.service.SftpAccessService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.sshd.common.AttributeRepository;
 import org.apache.sshd.common.SshConstants;
+import org.apache.sshd.common.SshException;
 import org.apache.sshd.common.io.IoSession;
 import org.apache.sshd.common.io.IoWriteFuture;
 import org.apache.sshd.common.session.Session;
@@ -34,14 +40,16 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.PublicKey;
 import java.time.Duration;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * SSH listener for authenticated TCP tunnels / port forwards (Apache Mina SSHD).
- * Interactive shell, exec and SFTP are rejected with a GitHub-style notice.
+ * An interactive shell is rejected with a GitHub-style notice. An exec command is served as
+ * SFTP whatever the command text is, including a configured path such as {@code sudo /usr/lib/sftp-server}.
+ * SFTP is served from the user's SFTP folder (chrooted as {@code /}, read-only or read/write) when the user has
+ * {@link io.github.connellite.proxy.model.SftpAccess}, otherwise rejected the same way.
  * Auth and connection/traffic limits reuse {@link io.github.connellite.proxy.model.ProxyUser}
  * via {@link ProxyAuthService}.
  */
@@ -50,9 +58,9 @@ import java.util.concurrent.atomic.AtomicLong;
 @RequiredArgsConstructor
 public final class SshProxyServer implements AutoCloseable {
 
-    static final AttributeRepository.AttributeKey<AuthenticatedSession> AUTH_KEY =
+    public static final AttributeRepository.AttributeKey<AuthenticatedSession> AUTH_KEY =
             new AttributeRepository.AttributeKey<>();
-    static final AttributeRepository.AttributeKey<ProxyMetrics.TrackedSession> TRACKED_KEY =
+    public static final AttributeRepository.AttributeKey<ProxyMetrics.TrackedSession> TRACKED_KEY =
             new AttributeRepository.AttributeKey<>();
 
     private static final long TRAFFIC_FLUSH_BYTES = 64 * 1024L;
@@ -60,6 +68,7 @@ public final class SshProxyServer implements AutoCloseable {
     private final ProxyAuthService authService;
     private final ProxyMetrics metrics;
     private final ProxyProperties properties;
+    private final SftpAccessService sftpAccessService;
 
     private SshServer server;
 
@@ -78,8 +87,10 @@ public final class SshProxyServer implements AutoCloseable {
         sshd.setPublickeyAuthenticator(this::authenticatePublicKey);
         sshd.setKeyboardInteractiveAuthenticator(DefaultKeyboardInteractiveAuthenticator.INSTANCE);
         sshd.setShellFactory(channel -> new SshAuthMessageCommand());
-        sshd.setCommandFactory((channel, command) -> new SshAuthMessageCommand());
-        sshd.setSubsystemFactories(List.of(SftpNoticeSubsystem.factory()));
+        UserSftpSubsystemFactory sftp = new UserSftpSubsystemFactory(this::sftpGrant);
+        sshd.setCommandFactory((channel, command) -> sftp.createSubsystem(channel));
+        sshd.setSubsystemFactories(List.of(sftp));
+        sshd.setFileSystemFactory(new SftpRootFileSystemFactory());
         sshd.setForwardingFilter(ForwardingFilter.asForwardingFilter(
                 AgentForwardingFilter.of(false),
                 X11ForwardingFilter.of(false),
@@ -137,6 +148,11 @@ public final class SshProxyServer implements AutoCloseable {
         return true;
     }
 
+    private Optional<SftpGrant> sftpGrant(ServerSession session) {
+        AuthenticatedSession auth = session.getAttribute(AUTH_KEY);
+        return auth == null ? Optional.empty() : sftpAccessService.findGrant(auth.userId());
+    }
+
     private boolean allowForward(Session session) {
         AuthenticatedSession auth = session.getAttribute(AUTH_KEY);
         return metrics.allowMoreTraffic(auth);
@@ -172,10 +188,15 @@ public final class SshProxyServer implements AutoCloseable {
                 return;
             }
             serverSession.setAttribute(TRACKED_KEY, tracked.get());
+            if (properties.isSshKeepaliveEnabled()) {
+                int interval = SshKeepalive.intervalSeconds(properties.getIdleTimeoutSeconds(), properties.getSshKeepaliveCount());
+                SshKeepalive.start(serverSession, interval);
+            }
         }
 
         @Override
         public void sessionClosed(Session session) {
+            SshKeepalive.stop(session);
             if (session instanceof TrafficAwareServerSession trafficSession) {
                 trafficSession.flushTraffic(true);
             }
@@ -193,6 +214,45 @@ public final class SshProxyServer implements AutoCloseable {
         private TrafficAwareServerSession(ServerFactoryManager server, IoSession ioSession)
                 throws Exception {
             super(server, ioSession);
+        }
+
+        /**
+         * SSHD logs every {@code exceptionCaught} on an open session at warn. A client that
+         * drops the socket is not a fault: the session is closed either way.
+         * Windows NIO.2 reports that drop as a plain {@link IOException}. The Win32 code is
+         * not kept on the exception, and subclasses such as {@code SshException} stay warnings.
+         */
+        @Override
+        public void exceptionCaught(Throwable t) {
+            if (isClientDisconnect(t)) {
+                debug("exceptionCaught({}) peer closed the connection: {}", this, t.toString(), t);
+                close(true);
+                return;
+            }
+            super.exceptionCaught(t);
+        }
+
+        private static boolean isClientDisconnect(Throwable cause) {
+            if (QuietCloseHandlerAdapter.isBenignClose(cause)) {
+                return true;
+            }
+            Throwable current = cause;
+            int depth = 0;
+            while (current != null && depth < 8) {
+                if (current instanceof SshException) {
+                    return false;
+                }
+                if (current.getClass() == IOException.class) {
+                    return true;
+                }
+                Throwable next = current.getCause();
+                if (next == current) {
+                    break;
+                }
+                current = next;
+                depth++;
+            }
+            return false;
         }
 
         @Override

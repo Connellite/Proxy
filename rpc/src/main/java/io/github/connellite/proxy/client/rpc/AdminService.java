@@ -3,10 +3,12 @@ package io.github.connellite.proxy.client.rpc;
 import com.google.gwt.user.client.rpc.RemoteService;
 import com.google.gwt.user.client.rpc.RemoteServiceRelativePath;
 import io.github.connellite.proxy.client.rpc.dto.DashboardDto;
+import io.github.connellite.proxy.client.rpc.dto.DirectoryListingDto;
 import io.github.connellite.proxy.client.rpc.dto.EncryptionDto;
 import io.github.connellite.proxy.client.rpc.dto.HttpStripHeadersPageDto;
 import io.github.connellite.proxy.client.rpc.dto.PasswordChangeDto;
 import io.github.connellite.proxy.client.rpc.dto.SettingsDto;
+import io.github.connellite.proxy.client.rpc.dto.SftpPageDto;
 import io.github.connellite.proxy.client.rpc.dto.SshAccessDto;
 import io.github.connellite.proxy.client.rpc.dto.SshIssuedKeyDto;
 import io.github.connellite.proxy.client.rpc.dto.TlsStatusDto;
@@ -41,6 +43,19 @@ public interface AdminService extends RemoteService {
     SshIssuedKeyDto issueSshKey(String userId, String comment, String passphrase) throws AdminRpcException;
 
     void revokeSshKey(String userId, long keyId) throws AdminRpcException;
+
+    SftpPageDto getSftpAccess();
+
+    /** Grants or changes SFTP access. A blank {@code path} turns SFTP off for the user. */
+    void saveSftpAccess(String userId, String path, boolean readOnly) throws AdminRpcException;
+
+    void removeSftpAccess(String userId) throws AdminRpcException;
+
+    /** {@code null} path lists file system roots. */
+    DirectoryListingDto listServerDirectories(String path) throws AdminRpcException;
+
+    /** Creates a subfolder {@code name} in {@code parentPath}; returns its absolute path. */
+    String createServerDirectory(String parentPath, String name) throws AdminRpcException;
 
     UpstreamProxiesPageDto getUpstreamProxies();
 
