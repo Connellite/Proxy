@@ -109,6 +109,14 @@ public class AppShell extends Composite {
             }
         });
         nav.add(sftpLink);
+        nav.add(navLink("Relay", new ClickHandler() {
+            @Override
+            public void onClick(ClickEvent event) {
+                event.preventDefault();
+                clearFlash();
+                showRelay();
+            }
+        }));
 
         FlowPanel logout = new FlowPanel();
         logout.setStyleName("logout");
@@ -225,6 +233,11 @@ public class AppShell extends Composite {
     public void showEncryption() {
         stopRefresh();
         content.setWidget(new EncryptionPage(this));
+    }
+
+    public void showRelay() {
+        stopRefresh();
+        content.setWidget(new RelayPage(this));
     }
 
     void attachRefresh(AutoRefresh refresh) {

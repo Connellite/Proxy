@@ -64,6 +64,7 @@
         <spring.boot.compat.version>2.7.18</spring.boot.compat.version>
         <sqlite.dialect>org.sqlite.hibernate.dialect.SQLiteDialect</sqlite.dialect>
         <netty.version>4.2.18.Final</netty.version>
+        <dnsjava.version>3.6.3</dnsjava.version>
         <!-- provided for WAR; compile for standalone / native -->
         <tomcat.scope>provided</tomcat.scope>
     </properties>
@@ -175,6 +176,11 @@
                 <groupId>org.graalvm.sdk</groupId>
                 <artifactId>nativeimage</artifactId>
                 <version>${nativeimage.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>dnsjava</groupId>
+                <artifactId>dnsjava</artifactId>
+                <version>${dnsjava.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.httpcomponents</groupId>

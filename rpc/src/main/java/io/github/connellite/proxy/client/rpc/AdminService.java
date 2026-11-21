@@ -7,6 +7,8 @@ import io.github.connellite.proxy.client.rpc.dto.DirectoryListingDto;
 import io.github.connellite.proxy.client.rpc.dto.EncryptionDto;
 import io.github.connellite.proxy.client.rpc.dto.HttpStripHeadersPageDto;
 import io.github.connellite.proxy.client.rpc.dto.PasswordChangeDto;
+import io.github.connellite.proxy.client.rpc.dto.RelayPageDto;
+import io.github.connellite.proxy.client.rpc.dto.RelayRouteRowDto;
 import io.github.connellite.proxy.client.rpc.dto.SettingsDto;
 import io.github.connellite.proxy.client.rpc.dto.SftpPageDto;
 import io.github.connellite.proxy.client.rpc.dto.SshAccessDto;
@@ -90,4 +92,12 @@ public interface AdminService extends RemoteService {
     TlsStatusDto previewEncryption(EncryptionDto form) throws AdminRpcException;
 
     void saveEncryption(EncryptionDto form) throws AdminRpcException;
+
+    RelayPageDto getRelayPage();
+
+    void saveRelaySettings(RelayPageDto form) throws AdminRpcException;
+
+    void saveRelayRoute(RelayRouteRowDto row) throws AdminRpcException;
+
+    void deleteRelayRoute(long id) throws AdminRpcException;
 }

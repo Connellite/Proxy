@@ -18,6 +18,8 @@ import io.github.connellite.proxy.client.rpc.dto.EncryptionDto;
 import io.github.connellite.proxy.client.rpc.dto.HttpStripHeaderRowDto;
 import io.github.connellite.proxy.client.rpc.dto.HttpStripHeadersPageDto;
 import io.github.connellite.proxy.client.rpc.dto.PasswordChangeDto;
+import io.github.connellite.proxy.client.rpc.dto.RelayPageDto;
+import io.github.connellite.proxy.client.rpc.dto.RelayRouteRowDto;
 import io.github.connellite.proxy.client.rpc.dto.SettingsDto;
 import io.github.connellite.proxy.client.rpc.dto.SftpPageDto;
 import io.github.connellite.proxy.client.rpc.dto.SftpUserRowDto;
@@ -44,12 +46,16 @@ import io.github.connellite.proxy.mapper.UpstreamProxyFormMapper;
 import io.github.connellite.proxy.model.HttpStripHeader;
 import io.github.connellite.proxy.model.SftpAccess;
 import io.github.connellite.proxy.model.ProxyUser;
+import io.github.connellite.proxy.model.RelayRoute;
+import io.github.connellite.proxy.model.RelayRouteMode;
 import io.github.connellite.proxy.model.SshUserKey;
 import io.github.connellite.proxy.model.UpstreamProxy;
 import io.github.connellite.proxy.model.UpstreamProxyType;
 import io.github.connellite.proxy.proxy.ProxyServerManager;
 import io.github.connellite.proxy.proxy.http.ProxyTlsService;
 import io.github.connellite.proxy.service.HttpStripHeaderService;
+import io.github.connellite.proxy.relay.HostPort;
+import io.github.connellite.proxy.relay.RelayRouteService;
 import io.github.connellite.proxy.service.ProxyMetrics;
 import io.github.connellite.proxy.service.ProxyUserService;
 import io.github.connellite.proxy.service.ServerDirectoryService;
@@ -101,6 +107,7 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
     private final TlsStatusMapper tlsStatusMapper;
     private final AdminRpcManualMapper adminRpcManualMapper;
     private final ZoneId appZoneId;
+    private final RelayRouteService relayRouteService;
 
     /**
      * Spring Boot serves {@code *.gwt.rpc} from the classpath ({@code static/proxyAdmin/}),
@@ -557,6 +564,87 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
         } catch (RuntimeException ex) {
             throw toRpcException("Failed to save encryption settings", ex);
         }
+    }
+
+    @Override
+    public RelayPageDto getRelayPage() {
+        AppSettings settings = settingsService.get();
+        RelayPageDto page = new RelayPageDto();
+        page.setDnsEnabled(settings.isRelayDnsEnabled());
+        page.setDnsBindHost(settings.getRelayDnsBindHost());
+        page.setDnsPort(settings.getRelayDnsPort());
+        page.setTcpEnabled(settings.isRelayTcpEnabled());
+        page.setTcpBindHost(settings.getRelayTcpBindHost());
+        page.setTcpPort(settings.getRelayTcpPort());
+        page.setAdvertisedAddress(settings.getRelayAdvertisedAddress() == null ? "" : settings.getRelayAdvertisedAddress());
+        page.setUpstreamResolver(settings.getRelayUpstreamResolver());
+        for (RelayRoute route : relayRouteService.findAll()) {
+            page.getRoutes().add(toRow(route));
+        }
+        return page;
+    }
+
+    @Override
+    public void saveRelaySettings(RelayPageDto form) throws AdminRpcException {
+        try {
+            AppSettings settings = new AppSettings();
+            settings.setRelayDnsEnabled(form.isDnsEnabled());
+            settings.setRelayDnsBindHost(form.getDnsBindHost());
+            settings.setRelayDnsPort(form.getDnsPort());
+            settings.setRelayTcpEnabled(form.isTcpEnabled());
+            settings.setRelayTcpBindHost(form.getTcpBindHost());
+            settings.setRelayTcpPort(form.getTcpPort());
+            settings.setRelayAdvertisedAddress(form.getAdvertisedAddress());
+            settings.setRelayUpstreamResolver(form.getUpstreamResolver());
+            relayRouteService.saveSettings(settings);
+        } catch (RuntimeException ex) {
+            throw toRpcException("Failed to save relay settings", ex);
+        }
+    }
+
+    @Override
+    public void saveRelayRoute(RelayRouteRowDto row) throws AdminRpcException {
+        try {
+            RelayRoute route = new RelayRoute();
+            route.setId(row.getId());
+            route.setName(row.getName());
+            route.setMode(RelayRouteMode.valueOf(row.getMode()));
+            route.setUpstreamHost(row.getUpstreamHost());
+            route.setUpstreamPort(portOrNull(row.getUpstreamPort()));
+            route.setAnswerAddress(row.getAnswerAddress());
+            route.setEnabled(row.isEnabled());
+            relayRouteService.saveRoute(route);
+        } catch (RuntimeException ex) {
+            throw toRpcException("Failed to save relay route", ex);
+        }
+    }
+
+    @Override
+    public void deleteRelayRoute(long id) throws AdminRpcException {
+        try {
+            relayRouteService.delete(id);
+        } catch (RuntimeException ex) {
+            throw toRpcException("Failed to delete relay route", ex);
+        }
+    }
+
+    private static RelayRouteRowDto toRow(RelayRoute route) {
+        RelayRouteRowDto row = new RelayRouteRowDto();
+        row.setId(route.getId());
+        row.setName(route.getName());
+        row.setMode(route.getMode() == null ? RelayRouteMode.RELAY.name() : route.getMode().name());
+        row.setUpstreamHost(route.getUpstreamHost() == null ? "" : route.getUpstreamHost());
+        row.setUpstreamPort(route.getUpstreamPort() == null ? "" : Integer.toString(route.getUpstreamPort()));
+        row.setAnswerAddress(route.getAnswerAddress() == null ? "" : route.getAnswerAddress());
+        row.setEnabled(route.isEnabled());
+        return row;
+    }
+
+    private static Integer portOrNull(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        return HostPort.parsePort(raw);
     }
 
     private AdminRpcException toRpcException(String action, Throwable ex) {

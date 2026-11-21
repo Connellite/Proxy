@@ -133,6 +133,7 @@ public class SettingsService {
         settings.setSshBindHost(properties.getSsh().getBindHost());
         settings.setSshPort(properties.getSsh().getPort());
         settings.setOutboundTtl(properties.getOutboundTtl());
+        settings.setRelayUpstreamResolver("1.1.1.1:53");
         return settings;
     }
 
@@ -160,6 +161,14 @@ public class SettingsService {
         settings.setSshEnabled(ParseUtils.parseBoolean(map.get(ConfigEntry.SSH_ENABLED), settings.isSshEnabled()));
         settings.setSshBindHost(ParseUtils.parseString(map.get(ConfigEntry.SSH_BIND_HOST), settings.getSshBindHost()));
         settings.setSshPort(ParseUtils.parseInt(map.get(ConfigEntry.SSH_PORT), settings.getSshPort()));
+        settings.setRelayDnsEnabled(ParseUtils.parseBoolean(map.get(ConfigEntry.RELAY_DNS_ENABLED), settings.isRelayDnsEnabled()));
+        settings.setRelayDnsBindHost(ParseUtils.parseString(map.get(ConfigEntry.RELAY_DNS_BIND_HOST), settings.getRelayDnsBindHost()));
+        settings.setRelayDnsPort(ParseUtils.parseInt(map.get(ConfigEntry.RELAY_DNS_PORT), settings.getRelayDnsPort()));
+        settings.setRelayTcpEnabled(ParseUtils.parseBoolean(map.get(ConfigEntry.RELAY_TCP_ENABLED), settings.isRelayTcpEnabled()));
+        settings.setRelayTcpBindHost(ParseUtils.parseString(map.get(ConfigEntry.RELAY_TCP_BIND_HOST), settings.getRelayTcpBindHost()));
+        settings.setRelayTcpPort(ParseUtils.parseInt(map.get(ConfigEntry.RELAY_TCP_PORT), settings.getRelayTcpPort()));
+        settings.setRelayAdvertisedAddress(StringUtils.trimToNull(map.get(ConfigEntry.RELAY_ADVERTISED_ADDRESS)));
+        settings.setRelayUpstreamResolver(ParseUtils.parseString(map.get(ConfigEntry.RELAY_UPSTREAM_RESOLVER), settings.getRelayUpstreamResolver()));
         settings.setOutboundTtl(ParseUtils.parseInt(map.get(ConfigEntry.OUTBOUND_TTL), settings.getOutboundTtl()));
         settings.setBytesUpTotal(ParseUtils.parseLong(map.get(ConfigEntry.BYTES_UP_TOTAL), 0L));
         settings.setBytesDownTotal(ParseUtils.parseLong(map.get(ConfigEntry.BYTES_DOWN_TOTAL), 0L));
@@ -189,6 +198,14 @@ public class SettingsService {
         entries.add(new ConfigEntry(ConfigEntry.SSH_ENABLED, Boolean.toString(settings.isSshEnabled())));
         entries.add(new ConfigEntry(ConfigEntry.SSH_BIND_HOST, settings.getSshBindHost()));
         entries.add(new ConfigEntry(ConfigEntry.SSH_PORT, Integer.toString(settings.getSshPort())));
+        entries.add(new ConfigEntry(ConfigEntry.RELAY_DNS_ENABLED, Boolean.toString(settings.isRelayDnsEnabled())));
+        entries.add(new ConfigEntry(ConfigEntry.RELAY_DNS_BIND_HOST, settings.getRelayDnsBindHost()));
+        entries.add(new ConfigEntry(ConfigEntry.RELAY_DNS_PORT, Integer.toString(settings.getRelayDnsPort())));
+        entries.add(new ConfigEntry(ConfigEntry.RELAY_TCP_ENABLED, Boolean.toString(settings.isRelayTcpEnabled())));
+        entries.add(new ConfigEntry(ConfigEntry.RELAY_TCP_BIND_HOST, settings.getRelayTcpBindHost()));
+        entries.add(new ConfigEntry(ConfigEntry.RELAY_TCP_PORT, Integer.toString(settings.getRelayTcpPort())));
+        entries.add(new ConfigEntry(ConfigEntry.RELAY_ADVERTISED_ADDRESS, settings.getRelayAdvertisedAddress()));
+        entries.add(new ConfigEntry(ConfigEntry.RELAY_UPSTREAM_RESOLVER, settings.getRelayUpstreamResolver()));
         entries.add(new ConfigEntry(ConfigEntry.OUTBOUND_TTL, Integer.toString(settings.getOutboundTtl())));
         entries.add(new ConfigEntry(ConfigEntry.BYTES_UP_TOTAL, Long.toString(settings.getBytesUpTotal())));
         entries.add(new ConfigEntry(ConfigEntry.BYTES_DOWN_TOTAL, Long.toString(settings.getBytesDownTotal())));

@@ -1,0 +1,158 @@
+package io.github.connellite.proxy.relay;
+
+import io.github.connellite.proxy.dto.AppSettings;
+import io.github.connellite.proxy.model.RelayRoute;
+import io.github.connellite.proxy.model.RelayRouteMode;
+import io.github.connellite.proxy.repository.RelayRouteRepository;
+import io.github.connellite.proxy.service.SettingsService;
+import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+
+import java.net.InetAddress;
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+public class RelayRouteService {
+
+    private final RelayRouteRepository repository;
+    private final SettingsService settingsService;
+    private final RelayCatalog catalog;
+    private final RelayRuntime runtime;
+
+    @Transactional(readOnly = true)
+    public List<RelayRoute> findAll() {
+        return repository.findAllByOrderByNameAsc();
+    }
+
+    @Transactional
+    public void saveSettings(AppSettings form) {
+        validateSettings(form);
+        AppSettings current = settingsService.get();
+        boolean dnsRestart = listenerChanged(current.isRelayDnsEnabled(), current.getRelayDnsBindHost(),
+                current.getRelayDnsPort(), form.isRelayDnsEnabled(), form.getRelayDnsBindHost(), form.getRelayDnsPort());
+        boolean tcpRestart = listenerChanged(current.isRelayTcpEnabled(), current.getRelayTcpBindHost(),
+                current.getRelayTcpPort(), form.isRelayTcpEnabled(), form.getRelayTcpBindHost(), form.getRelayTcpPort());
+        current.setRelayDnsEnabled(form.isRelayDnsEnabled());
+        current.setRelayDnsBindHost(form.getRelayDnsBindHost());
+        current.setRelayDnsPort(form.getRelayDnsPort());
+        current.setRelayTcpEnabled(form.isRelayTcpEnabled());
+        current.setRelayTcpBindHost(form.getRelayTcpBindHost());
+        current.setRelayTcpPort(form.getRelayTcpPort());
+        current.setRelayAdvertisedAddress(StringUtils.trimToNull(form.getRelayAdvertisedAddress()));
+        current.setRelayUpstreamResolver(form.getRelayUpstreamResolver());
+        settingsService.save(current);
+        afterCommit(dnsRestart, tcpRestart);
+    }
+
+    @Transactional
+    public RelayRoute saveRoute(RelayRoute form) {
+        String name = RelayNames.normalizePattern(form.getName());
+        RelayRouteMode mode = form.getMode();
+        if (mode == null) {
+            throw new IllegalArgumentException("Mode is required");
+        }
+        AppSettings settings = settingsService.get();
+        String upstreamHost = null;
+        Integer upstreamPort = null;
+        String answer = null;
+        if (mode == RelayRouteMode.RELAY) {
+            if (RelayCatalog.parseAddress(settings.getRelayAdvertisedAddress()) == null) {
+                throw new IllegalArgumentException("Set the address clients should receive before adding a relay route");
+            }
+            upstreamHost = normalizeHost(form.getUpstreamHost());
+            upstreamPort = form.getUpstreamPort();
+            if (upstreamPort != null) {
+                HostPort.parsePort(Integer.toString(upstreamPort));
+            }
+        } else {
+            InetAddress ip = RelayCatalog.parseAddress(form.getAnswerAddress());
+            if (ip == null) {
+                throw new IllegalArgumentException("Address mode requires a single IP");
+            }
+            answer = ip.getHostAddress();
+        }
+        RelayRoute row = form.getId() == null
+                ? new RelayRoute()
+                : repository.findById(form.getId()).orElseThrow(() -> new IllegalArgumentException("Route not found"));
+        for (RelayRoute other : repository.findAll()) {
+            if (name.equals(other.getName()) && (row.getId() == null || !row.getId().equals(other.getId()))) {
+                throw new IllegalArgumentException("Name already listed: " + name);
+            }
+        }
+        row.setName(name);
+        row.setMode(mode);
+        row.setUpstreamHost(upstreamHost);
+        row.setUpstreamPort(upstreamPort);
+        row.setAnswerAddress(answer);
+        row.setEnabled(form.isEnabled());
+        RelayRoute saved = repository.save(row);
+        afterCommit(false, false);
+        return saved;
+    }
+
+    @Transactional
+    public void delete(long id) {
+        if (!repository.existsById(id)) {
+            throw new IllegalArgumentException("Route not found");
+        }
+        repository.deleteById(id);
+        afterCommit(false, false);
+    }
+
+    private void afterCommit(boolean dnsRestart, boolean tcpRestart) {
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                catalog.reload();
+                if (dnsRestart) {
+                    runtime.restartDns();
+                }
+                if (tcpRestart) {
+                    runtime.restartTcp();
+                }
+            }
+        });
+    }
+
+    private static void validateSettings(AppSettings form) {
+        form.setRelayDnsBindHost(requiredHost(form.getRelayDnsBindHost(), "DNS bind address"));
+        form.setRelayTcpBindHost(requiredHost(form.getRelayTcpBindHost(), "TCP bind address"));
+        form.setRelayDnsPort(HostPort.parsePort(Integer.toString(form.getRelayDnsPort())));
+        form.setRelayTcpPort(HostPort.parsePort(Integer.toString(form.getRelayTcpPort())));
+        HostPort.parse(form.getRelayUpstreamResolver(), 53);
+        if (StringUtils.isNotBlank(form.getRelayAdvertisedAddress())
+                && RelayCatalog.parseAddress(form.getRelayAdvertisedAddress()) == null) {
+            throw new IllegalArgumentException("Client address must be a single IP");
+        }
+        form.setRelayAdvertisedAddress(StringUtils.trimToNull(form.getRelayAdvertisedAddress()));
+    }
+
+    private static String requiredHost(String raw, String label) {
+        if (raw == null || raw.isBlank()) {
+            throw new IllegalArgumentException(label + " is required");
+        }
+        return raw.trim();
+    }
+
+    private static String normalizeHost(String raw) {
+        if (raw == null || raw.isBlank()) {
+            throw new IllegalArgumentException("Relay mode requires an upstream host");
+        }
+        String host = raw.trim();
+        int colon = host.lastIndexOf(':');
+        if (colon > 0 && host.indexOf(':') == colon) {
+            throw new IllegalArgumentException("Put the upstream port in its own field");
+        }
+        return host;
+    }
+
+    private static boolean listenerChanged(boolean enabled, String host, int port,
+                                           boolean nextEnabled, String nextHost, int nextPort) {
+        return enabled != nextEnabled || port != nextPort || !String.valueOf(host).equals(String.valueOf(nextHost));
+    }
+}
