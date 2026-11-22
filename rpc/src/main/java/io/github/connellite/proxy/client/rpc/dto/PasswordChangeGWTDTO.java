@@ -5,13 +5,13 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import com.google.gwt.user.client.rpc.IsSerializable;
-import java.util.ArrayList;
-import java.util.List;
 
 @Getter
 @Setter
 @NoArgsConstructor
-public class UsersPageDto implements IsSerializable {
+public class PasswordChangeGWTDTO implements IsSerializable {
 
-    private List<UserRowDto> users = new ArrayList<>();
+    private String currentPassword;
+    private String newPassword;
+    private String confirmPassword;
 }

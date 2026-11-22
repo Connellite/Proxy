@@ -5,7 +5,7 @@ import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.FlowPanel;
 import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.Label;
-import io.github.connellite.proxy.client.rpc.dto.DashboardProxyDto;
+import io.github.connellite.proxy.client.rpc.dto.DashboardProxyGWTDTO;
 import io.github.connellite.proxy.client.util.Formatters;
 import io.github.connellite.proxy.client.util.Rpc;
 
@@ -37,20 +37,20 @@ public class DashboardProxyPage extends Composite {
     }
 
     public void refresh() {
-        shell.getRpc().getDashboardProxy(new AsyncCallback<DashboardProxyDto>() {
+        shell.getRpc().getDashboardProxy(new AsyncCallback<DashboardProxyGWTDTO>() {
             @Override
             public void onFailure(Throwable caught) {
                 Rpc.showFailure(caught);
             }
 
             @Override
-            public void onSuccess(DashboardProxyDto dto) {
+            public void onSuccess(DashboardProxyGWTDTO dto) {
                 render(dto);
             }
         });
     }
 
-    private void render(DashboardProxyDto dto) {
+    private void render(DashboardProxyGWTDTO dto) {
         stats.clear();
         DashboardStats.addStat(stats, "HTTP proxy", dto.isHttpRunning() ? dto.getHttpBind() : "stopped",
                 dto.isHttpRunning() ? "up" : "down");

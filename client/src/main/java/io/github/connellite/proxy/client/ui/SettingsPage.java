@@ -10,10 +10,9 @@ import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.FlowPanel;
 import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.Label;
-import com.google.gwt.user.client.ui.ListBox;
 import com.google.gwt.user.client.ui.PasswordTextBox;
-import io.github.connellite.proxy.client.rpc.dto.PasswordChangeDto;
-import io.github.connellite.proxy.client.rpc.dto.SettingsDto;
+import io.github.connellite.proxy.client.rpc.dto.PasswordChangeGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.SettingsGWTDTO;
 import io.github.connellite.proxy.client.util.BindHostList;
 import io.github.connellite.proxy.client.util.Forms;
 import io.github.connellite.proxy.client.util.PlainIntegerBox;
@@ -30,9 +29,9 @@ public class SettingsPage extends Composite {
     private final CheckBox socksAuthRequired = Forms.checkbox(
             "Require username/password for SOCKS5 (SOCKS4 disabled while on)");
     private final CheckBox socksUdpEnabled = Forms.checkbox("Full SOCKS5 with UDP (TCP CONNECT + UDP ASSOCIATE)");
-    private final ListBox httpBindHost = BindHostList.create();
-    private final ListBox socksBindHost = BindHostList.create();
-    private final ListBox sshBindHost = BindHostList.create();
+    private final BindHostList httpBindHost = new BindHostList();
+    private final BindHostList socksBindHost = new BindHostList();
+    private final BindHostList sshBindHost = new BindHostList();
     private final PlainIntegerBox httpPort = new PlainIntegerBox();
     private final PlainIntegerBox socksPort = new PlainIntegerBox();
     private final PlainIntegerBox sshPort = new PlainIntegerBox();
@@ -176,23 +175,23 @@ public class SettingsPage extends Composite {
     }
 
     private void load() {
-        shell.getRpc().getSettings(new AsyncCallback<SettingsDto>() {
+        shell.getRpc().getSettings(new AsyncCallback<SettingsGWTDTO>() {
             @Override
             public void onFailure(Throwable caught) {
                 Rpc.showFailure(caught);
             }
 
             @Override
-            public void onSuccess(SettingsDto dto) {
+            public void onSuccess(SettingsGWTDTO dto) {
                 httpEnabled.setValue(dto.isHttpEnabled());
                 socksEnabled.setValue(dto.isSocksEnabled());
                 sshEnabled.setValue(dto.isSshEnabled());
                 httpAuthRequired.setValue(dto.isHttpAuthRequired());
                 socksAuthRequired.setValue(dto.isSocksAuthRequired());
                 socksUdpEnabled.setValue(dto.isSocksUdpEnabled());
-                BindHostList.fill(httpBindHost, dto.getBindHostOptions(), dto.getHttpBindHost());
-                BindHostList.fill(socksBindHost, dto.getBindHostOptions(), dto.getSocksBindHost());
-                BindHostList.fill(sshBindHost, dto.getBindHostOptions(), dto.getSshBindHost());
+                httpBindHost.fill(dto.getBindHostOptions(), dto.getHttpBindHost());
+                socksBindHost.fill(dto.getBindHostOptions(), dto.getSocksBindHost());
+                sshBindHost.fill(dto.getBindHostOptions(), dto.getSshBindHost());
                 httpPort.setIntValue(dto.getHttpPort());
                 socksPort.setIntValue(dto.getSocksPort());
                 sshPort.setIntValue(dto.getSshPort());
@@ -241,7 +240,7 @@ public class SettingsPage extends Composite {
     }
 
     private void changePassword() {
-        PasswordChangeDto dto = new PasswordChangeDto();
+        PasswordChangeGWTDTO dto = new PasswordChangeGWTDTO();
         dto.setCurrentPassword(currentPassword.getText());
         dto.setNewPassword(newPassword.getText());
         dto.setConfirmPassword(confirmPassword.getText());
@@ -261,17 +260,17 @@ public class SettingsPage extends Composite {
         });
     }
 
-    private SettingsDto collectSettings() {
-        SettingsDto dto = new SettingsDto();
+    private SettingsGWTDTO collectSettings() {
+        SettingsGWTDTO dto = new SettingsGWTDTO();
         dto.setHttpEnabled(httpEnabled.getValue());
         dto.setSocksEnabled(socksEnabled.getValue());
         dto.setSshEnabled(sshEnabled.getValue());
         dto.setHttpAuthRequired(httpAuthRequired.getValue());
         dto.setSocksAuthRequired(socksAuthRequired.getValue());
         dto.setSocksUdpEnabled(socksUdpEnabled.getValue());
-        dto.setHttpBindHost(BindHostList.selected(httpBindHost));
-        dto.setSocksBindHost(BindHostList.selected(socksBindHost));
-        dto.setSshBindHost(BindHostList.selected(sshBindHost));
+        dto.setHttpBindHost(httpBindHost.selected());
+        dto.setSocksBindHost(socksBindHost.selected());
+        dto.setSshBindHost(sshBindHost.selected());
         Integer hp = httpPort.getIntValue();
         Integer sp = socksPort.getIntValue();
         Integer sshp = sshPort.getIntValue();

@@ -13,8 +13,8 @@ import com.google.gwt.user.client.ui.FlowPanel;
 import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.TextBox;
-import io.github.connellite.proxy.client.rpc.dto.HttpStripHeaderRowDto;
-import io.github.connellite.proxy.client.rpc.dto.HttpStripHeadersPageDto;
+import io.github.connellite.proxy.client.rpc.dto.HttpStripHeaderRowGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.HttpStripHeadersPageGWTDTO;
 import io.github.connellite.proxy.client.util.CellCopy;
 import io.github.connellite.proxy.client.util.Rpc;
 
@@ -63,13 +63,13 @@ public class HttpStripHeadersPage extends Composite {
             }
 
             @Override
-            public void onSuccess(HttpStripHeadersPageDto result) {
+            public void onSuccess(HttpStripHeadersPageGWTDTO result) {
                 render(result);
             }
         });
     }
 
-    private void render(HttpStripHeadersPageDto page) {
+    private void render(HttpStripHeadersPageGWTDTO page) {
         tableHost.clear();
         FlexTable table = new FlexTable();
         table.setStyleName("users-table strip-headers-table");
@@ -83,7 +83,7 @@ public class HttpStripHeadersPage extends Composite {
 
         int row = 1;
         if (page.getHeaders() != null) {
-            for (final HttpStripHeaderRowDto header : page.getHeaders()) {
+            for (final HttpStripHeaderRowGWTDTO header : page.getHeaders()) {
                 table.setText(row, 0, header.getName() == null ? "" : header.getName());
                 table.getCellFormatter().addStyleName(row, 0, "cell-ellipsis");
                 table.setWidget(row, 1, minusButton(header));
@@ -115,7 +115,7 @@ public class HttpStripHeadersPage extends Composite {
         return actions;
     }
 
-    private FlowPanel minusButton(final HttpStripHeaderRowDto header) {
+    private FlowPanel minusButton(final HttpStripHeaderRowGWTDTO header) {
         FlowPanel actions = new FlowPanel();
         actions.setStyleName("actions");
         Button remove = new Button("−");

@@ -8,7 +8,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-public class DashboardDnsDto implements IsSerializable {
+public class DashboardDnsGWTDTO implements IsSerializable {
 
     private boolean dnsRunning;
     private boolean tcpRunning;

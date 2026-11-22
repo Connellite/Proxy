@@ -8,7 +8,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-public class UserRowDto implements IsSerializable {
+public class UserRowGWTDTO implements IsSerializable {
 
     private String id;
     private boolean enabled;

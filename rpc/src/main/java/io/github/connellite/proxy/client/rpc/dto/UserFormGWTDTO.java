@@ -9,7 +9,7 @@ import com.google.gwt.user.client.rpc.IsSerializable;
 @Getter
 @Setter
 @NoArgsConstructor
-public class UserFormDto implements IsSerializable {
+public class UserFormGWTDTO implements IsSerializable {
 
     private String id;
     private String password;

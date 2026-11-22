@@ -12,31 +12,33 @@ import com.google.gwt.user.server.rpc.SerializationPolicy;
 import com.google.gwt.user.server.rpc.SerializationPolicyLoader;
 import io.github.connellite.proxy.client.rpc.AdminRpcException;
 import io.github.connellite.proxy.client.rpc.AdminService;
-import io.github.connellite.proxy.client.rpc.dto.DashboardDnsDto;
-import io.github.connellite.proxy.client.rpc.dto.DashboardProxyDto;
-import io.github.connellite.proxy.client.rpc.dto.DirectoryListingDto;
-import io.github.connellite.proxy.client.rpc.dto.EncryptionDto;
-import io.github.connellite.proxy.client.rpc.dto.HttpStripHeaderRowDto;
-import io.github.connellite.proxy.client.rpc.dto.HttpStripHeadersPageDto;
-import io.github.connellite.proxy.client.rpc.dto.PasswordChangeDto;
-import io.github.connellite.proxy.client.rpc.dto.RelayAllowRowDto;
-import io.github.connellite.proxy.client.rpc.dto.RelayPageDto;
-import io.github.connellite.proxy.client.rpc.dto.RelayQueryRowDto;
-import io.github.connellite.proxy.client.rpc.dto.RelayRouteRowDto;
-import io.github.connellite.proxy.client.rpc.dto.RelayTcpSessionRowDto;
-import io.github.connellite.proxy.client.rpc.dto.SettingsDto;
-import io.github.connellite.proxy.client.rpc.dto.SftpPageDto;
-import io.github.connellite.proxy.client.rpc.dto.SftpUserRowDto;
-import io.github.connellite.proxy.client.rpc.dto.SshAccessDto;
-import io.github.connellite.proxy.client.rpc.dto.SshIssuedKeyDto;
-import io.github.connellite.proxy.client.rpc.dto.SshUserKeyRowDto;
-import io.github.connellite.proxy.client.rpc.dto.TlsStatusDto;
-import io.github.connellite.proxy.client.rpc.dto.UpstreamProxiesPageDto;
-import io.github.connellite.proxy.client.rpc.dto.UpstreamProxyFormDto;
-import io.github.connellite.proxy.client.rpc.dto.UpstreamProxyRowDto;
-import io.github.connellite.proxy.client.rpc.dto.UserFormDto;
-import io.github.connellite.proxy.client.rpc.dto.UserRowDto;
-import io.github.connellite.proxy.client.rpc.dto.UsersPageDto;
+import io.github.connellite.proxy.client.rpc.dto.DashboardDnsGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.DashboardProxyGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.DirectoryListingGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.EncryptionGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.HttpStripHeaderRowGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.HttpStripHeadersPageGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.PasswordChangeGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.RelayAllowRowGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.RelayPageGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.RelayQueryRowGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.RelayRouteModeGWT;
+import io.github.connellite.proxy.client.rpc.dto.RelayRouteRowGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.RelayTcpSessionRowGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.SettingsGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.SftpPageGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.SftpUserRowGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.SshAccessGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.SshIssuedKeyGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.SshUserKeyRowGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.TlsStatusGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.UpstreamProxiesPageGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.UpstreamProxyFormGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.UpstreamProxyRowGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.UpstreamProxyTypeGWT;
+import io.github.connellite.proxy.client.rpc.dto.UserFormGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.UserRowGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.UsersPageGWTDTO;
 import io.github.connellite.proxy.dto.AppSettings;
 import io.github.connellite.proxy.dto.DirectoryListing;
 import io.github.connellite.proxy.dto.IssuedSshKey;
@@ -160,10 +162,10 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
     }
 
     @Override
-    public DashboardProxyDto getDashboardProxy() {
+    public DashboardProxyGWTDTO getDashboardProxy() {
         AppSettings settings = settingsService.get();
         List<ProxyUser> users = userService.findAll();
-        DashboardProxyDto dto = new DashboardProxyDto();
+        DashboardProxyGWTDTO dto = new DashboardProxyGWTDTO();
         dto.setHttpRunning(proxyServerManager.isHttpRunning());
         dto.setHttpsRunning(proxyServerManager.isHttpsRunning());
         dto.setSocksRunning(proxyServerManager.isSocksRunning());
@@ -188,10 +190,10 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
     }
 
     @Override
-    public DashboardDnsDto getDashboardDns() {
+    public DashboardDnsGWTDTO getDashboardDns() {
         AppSettings settings = settingsService.get();
         List<RelayRoute> routes = relayRouteService.findAll();
-        DashboardDnsDto dto = new DashboardDnsDto();
+        DashboardDnsGWTDTO dto = new DashboardDnsGWTDTO();
         dto.setDnsRunning(relayDnsServer.isRunning());
         dto.setTcpRunning(relayTcpServer.isRunning());
         dto.setDohRunning(relayDohServer.isRunning());
@@ -225,12 +227,12 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
     }
 
     @Override
-    public UsersPageDto getUsers() {
-        UsersPageDto page = new UsersPageDto();
+    public UsersPageGWTDTO getUsers() {
+        UsersPageGWTDTO page = new UsersPageGWTDTO();
         page.setUsers(new ArrayList<>());
         for (ProxyUser user : userService.findAll()) {
             UserThroughput speed = trafficStatsService.throughputFor(user.getId());
-            UserRowDto row = new UserRowDto();
+            UserRowGWTDTO row = new UserRowGWTDTO();
             row.setId(user.getId());
             row.setEnabled(user.isEnabled());
             row.setExpired(user.isExpired());
@@ -257,8 +259,8 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
     }
 
     @Override
-    public UserFormDto getUserForm(String id) {
-        UserFormDto form = new UserFormDto();
+    public UserFormGWTDTO getUserForm(String id) {
+        UserFormGWTDTO form = new UserFormGWTDTO();
         if (id == null) {
             form.setCreating(true);
             form.setEnabled(true);
@@ -289,7 +291,7 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
     }
 
     @Override
-    public void createUser(UserFormDto form) throws AdminRpcException {
+    public void createUser(UserFormGWTDTO form) throws AdminRpcException {
         try {
             userService.create(proxyUserFormMapper.toForm(form));
         } catch (RuntimeException ex) {
@@ -298,7 +300,7 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
     }
 
     @Override
-    public void updateUser(UserFormDto form) throws AdminRpcException {
+    public void updateUser(UserFormGWTDTO form) throws AdminRpcException {
         if (form.getId() == null) {
             throw new AdminRpcException("User id is required");
         }
@@ -329,14 +331,14 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
     }
 
     @Override
-    public SshAccessDto getSshAccess(String userId) throws AdminRpcException {
+    public SshAccessGWTDTO getSshAccess(String userId) throws AdminRpcException {
         try {
             ProxyUser user = userService.getRequired(userId);
-            SshAccessDto dto = new SshAccessDto();
+            SshAccessGWTDTO dto = new SshAccessGWTDTO();
             dto.setUserId(user.getId());
             dto.setSshPasswordEnabled(user.isSshPasswordEnabled());
             for (SshUserKey key : sshUserKeyService.list(user.getId())) {
-                SshUserKeyRowDto row = new SshUserKeyRowDto();
+                SshUserKeyRowGWTDTO row = new SshUserKeyRowGWTDTO();
                 row.setId(key.getId());
                 row.setComment(key.getComment());
                 row.setFingerprint(key.getFingerprint());
@@ -359,10 +361,10 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
     }
 
     @Override
-    public SshIssuedKeyDto issueSshKey(String userId, String comment, String passphrase) throws AdminRpcException {
+    public SshIssuedKeyGWTDTO issueSshKey(String userId, String comment, String passphrase) throws AdminRpcException {
         try {
             IssuedSshKey issued = sshUserKeyService.issue(userId, comment, passphrase);
-            SshIssuedKeyDto dto = new SshIssuedKeyDto();
+            SshIssuedKeyGWTDTO dto = new SshIssuedKeyGWTDTO();
             dto.setId(issued.id());
             dto.setFingerprint(issued.fingerprint());
             dto.setPublicKey(issued.publicKey());
@@ -384,9 +386,9 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
     }
 
     @Override
-    public SftpPageDto getSftpAccess() {
+    public SftpPageGWTDTO getSftpAccess() {
         AppSettings settings = settingsService.get();
-        SftpPageDto page = new SftpPageDto();
+        SftpPageGWTDTO page = new SftpPageGWTDTO();
         page.setSshEnabled(settings.isSshEnabled());
         page.setSshRunning(proxyServerManager.isSshRunning());
         page.setSshPort(settings.getSshPort());
@@ -395,7 +397,7 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
             access.put(row.getUserId(), row);
         }
         for (ProxyUser user : userService.findAll()) {
-            SftpUserRowDto row = new SftpUserRowDto();
+            SftpUserRowGWTDTO row = new SftpUserRowGWTDTO();
             row.setUserId(user.getId());
             boolean overQuota = trafficStatsService.isOverTrafficLimit(user.getId(), user.getTrafficLimitBytes());
             row.setUsable(user.isUsable() && !overQuota && user.hasUserRole());
@@ -426,10 +428,10 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
     }
 
     @Override
-    public DirectoryListingDto listServerDirectories(String path) throws AdminRpcException {
+    public DirectoryListingGWTDTO listServerDirectories(String path) throws AdminRpcException {
         try {
             DirectoryListing listing = serverDirectoryService.list(path);
-            DirectoryListingDto dto = new DirectoryListingDto();
+            DirectoryListingGWTDTO dto = new DirectoryListingGWTDTO();
             dto.setPath(listing.path());
             dto.setParent(listing.parent());
             dto.getDirectories().addAll(listing.directories());
@@ -449,14 +451,14 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
     }
 
     @Override
-    public UpstreamProxiesPageDto getUpstreamProxies() {
-        UpstreamProxiesPageDto page = new UpstreamProxiesPageDto();
+    public UpstreamProxiesPageGWTDTO getUpstreamProxies() {
+        UpstreamProxiesPageGWTDTO page = new UpstreamProxiesPageGWTDTO();
         page.setProxies(new ArrayList<>());
         for (UpstreamProxy proxy : upstreamProxyService.findAll()) {
-            UpstreamProxyRowDto row = new UpstreamProxyRowDto();
+            UpstreamProxyRowGWTDTO row = new UpstreamProxyRowGWTDTO();
             row.setId(proxy.getId());
             row.setName(proxy.getName());
-            row.setType(proxy.getType() == null ? UpstreamProxyType.HTTP.name() : proxy.getType().name());
+            row.setType(toGwtType(proxy.getType()));
             row.setHost(proxy.getHost());
             row.setPort(proxy.getPort());
             row.setUsername(proxy.getUsername());
@@ -471,19 +473,19 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
     }
 
     @Override
-    public UpstreamProxyFormDto getUpstreamProxyForm(Long id) {
-        UpstreamProxyFormDto form = new UpstreamProxyFormDto();
+    public UpstreamProxyFormGWTDTO getUpstreamProxyForm(Long id) {
+        UpstreamProxyFormGWTDTO form = new UpstreamProxyFormGWTDTO();
         if (id == null) {
             form.setCreating(true);
-            form.setType(UpstreamProxyType.HTTP.name());
-            form.setPort(8080);
+            form.setType(UpstreamProxyTypeGWT.HTTP);
+            form.setPort(UpstreamProxyTypeGWT.HTTP.defaultPort());
             return form;
         }
         UpstreamProxy proxy = upstreamProxyService.getRequired(id);
         form.setCreating(false);
         form.setId(proxy.getId());
         form.setName(proxy.getName());
-        form.setType(proxy.getType() == null ? UpstreamProxyType.HTTP.name() : proxy.getType().name());
+        form.setType(toGwtType(proxy.getType()));
         form.setHost(proxy.getHost());
         form.setPort(proxy.getPort());
         form.setUsername(proxy.getUsername());
@@ -492,7 +494,7 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
     }
 
     @Override
-    public void createUpstreamProxy(UpstreamProxyFormDto form) throws AdminRpcException {
+    public void createUpstreamProxy(UpstreamProxyFormGWTDTO form) throws AdminRpcException {
         try {
             upstreamProxyService.create(upstreamProxyFormMapper.toForm(form, true));
         } catch (RuntimeException ex) {
@@ -501,7 +503,7 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
     }
 
     @Override
-    public void updateUpstreamProxy(UpstreamProxyFormDto form) throws AdminRpcException {
+    public void updateUpstreamProxy(UpstreamProxyFormGWTDTO form) throws AdminRpcException {
         if (form.getId() == null) {
             throw new AdminRpcException("Upstream proxy id is required");
         }
@@ -532,11 +534,11 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
     }
 
     @Override
-    public HttpStripHeadersPageDto getHttpStripHeaders() {
-        HttpStripHeadersPageDto page = new HttpStripHeadersPageDto();
+    public HttpStripHeadersPageGWTDTO getHttpStripHeaders() {
+        HttpStripHeadersPageGWTDTO page = new HttpStripHeadersPageGWTDTO();
         page.setHeaders(new ArrayList<>());
         for (HttpStripHeader header : stripHeaderService.findAll()) {
-            HttpStripHeaderRowDto row = new HttpStripHeaderRowDto();
+            HttpStripHeaderRowGWTDTO row = new HttpStripHeaderRowGWTDTO();
             row.setId(header.getId());
             row.setName(header.getName());
             page.getHeaders().add(row);
@@ -563,12 +565,12 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
     }
 
     @Override
-    public SettingsDto getSettings() {
-        return adminRpcManualMapper.toSettingsDto(settingsService.get());
+    public SettingsGWTDTO getSettings() {
+        return adminRpcManualMapper.toSettingsGWTDTO(settingsService.get());
     }
 
     @Override
-    public void saveSettings(SettingsDto form) throws AdminRpcException {
+    public void saveSettings(SettingsGWTDTO form) throws AdminRpcException {
         try {
             AppSettings settings = settingsService.get();
             appSettingsMapper.apply(settings, form);
@@ -585,7 +587,7 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
     }
 
     @Override
-    public void changePassword(PasswordChangeDto form) throws AdminRpcException {
+    public void changePassword(PasswordChangeGWTDTO form) throws AdminRpcException {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || auth.getName() == null) {
             throw new AdminRpcException("Not authenticated");
@@ -598,15 +600,15 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
     }
 
     @Override
-    public EncryptionDto getEncryption() {
+    public EncryptionGWTDTO getEncryption() {
         AppSettings settings = settingsService.get();
-        EncryptionDto dto = adminRpcManualMapper.toEncryptionDto(settings);
+        EncryptionGWTDTO dto = adminRpcManualMapper.toEncryptionGWTDTO(settings);
         dto.setTlsStatus(tlsStatusMapper.toDto(tlsService.status(settings), appZoneId));
         return dto;
     }
 
     @Override
-    public TlsStatusDto previewEncryption(EncryptionDto form) throws AdminRpcException {
+    public TlsStatusGWTDTO previewEncryption(EncryptionGWTDTO form) throws AdminRpcException {
         try {
             AppSettings preview = appSettingsMapper.copy(settingsService.get());
             adminRpcManualMapper.applyEncryption(preview, form);
@@ -617,7 +619,7 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
     }
 
     @Override
-    public void saveEncryption(EncryptionDto form) throws AdminRpcException {
+    public void saveEncryption(EncryptionGWTDTO form) throws AdminRpcException {
         try {
             AppSettings settings = settingsService.get();
             adminRpcManualMapper.applyEncryption(settings, form);
@@ -630,9 +632,9 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
     }
 
     @Override
-    public RelayPageDto getRelayPage() {
+    public RelayPageGWTDTO getRelayPage() {
         AppSettings settings = settingsService.get();
-        RelayPageDto page = new RelayPageDto();
+        RelayPageGWTDTO page = new RelayPageGWTDTO();
         page.setDnsEnabled(settings.isRelayDnsEnabled());
         page.setDnsBindHost(settings.getRelayDnsBindHost());
         page.setDnsPort(settings.getRelayDnsPort());
@@ -671,7 +673,7 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
     }
 
     @Override
-    public void saveRelaySettings(RelayPageDto form) throws AdminRpcException {
+    public void saveRelaySettings(RelayPageGWTDTO form) throws AdminRpcException {
         try {
             AppSettings settings = new AppSettings();
             settings.setRelayDnsEnabled(form.isDnsEnabled());
@@ -702,12 +704,13 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
     }
 
     @Override
-    public void saveRelayRoute(RelayRouteRowDto row) throws AdminRpcException {
+    public void saveRelayRoute(RelayRouteRowGWTDTO row) throws AdminRpcException {
         try {
             RelayRoute route = new RelayRoute();
             route.setId(row.getId());
             route.setName(row.getName());
-            route.setMode(RelayRouteMode.valueOf(row.getMode()));
+            RelayRouteModeGWT mode = row.getMode() == null ? RelayRouteModeGWT.RELAY : row.getMode();
+            route.setMode(RelayRouteMode.valueOf(mode.name()));
             route.setUpstreamHost(row.getUpstreamHost());
             route.setUpstreamPort(portOrNull(row.getUpstreamPort()));
             route.setAnswerAddress(row.getAnswerAddress());
@@ -754,8 +757,8 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
         }
     }
 
-    private static RelayAllowRowDto allowRow(Long id, String cidr) {
-        RelayAllowRowDto row = new RelayAllowRowDto();
+    private static RelayAllowRowGWTDTO allowRow(Long id, String cidr) {
+        RelayAllowRowGWTDTO row = new RelayAllowRowGWTDTO();
         row.setId(id);
         row.setCidr(cidr);
         return row;
@@ -771,10 +774,10 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
     }
 
     @Override
-    public List<RelayQueryRowDto> getRelayQueryLog() {
-        List<RelayQueryRowDto> rows = new ArrayList<>();
+    public List<RelayQueryRowGWTDTO> getRelayQueryLog() {
+        List<RelayQueryRowGWTDTO> rows = new ArrayList<>();
         for (RelayQueryLog.Entry entry : relayQueryLog.recent()) {
-            RelayQueryRowDto row = new RelayQueryRowDto();
+            RelayQueryRowGWTDTO row = new RelayQueryRowGWTDTO();
             row.setTime(QUERY_TIME_FMT.format(entry.at().atZone(appZoneId)));
             row.setClient(entry.client());
             row.setProtocol(entry.protocol());
@@ -789,10 +792,10 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
     }
 
     @Override
-    public List<RelayTcpSessionRowDto> getRelayTcpSessionLog() {
-        List<RelayTcpSessionRowDto> rows = new ArrayList<>();
+    public List<RelayTcpSessionRowGWTDTO> getRelayTcpSessionLog() {
+        List<RelayTcpSessionRowGWTDTO> rows = new ArrayList<>();
         for (RelayTcpSessionLog.Entry entry : relayTcpSessionLog.recent()) {
-            RelayTcpSessionRowDto row = new RelayTcpSessionRowDto();
+            RelayTcpSessionRowGWTDTO row = new RelayTcpSessionRowGWTDTO();
             row.setTime(QUERY_TIME_FMT.format(entry.at().atZone(appZoneId)));
             row.setClient(entry.client());
             row.setHostname(entry.hostname());
@@ -803,16 +806,30 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
         return rows;
     }
 
-    private static RelayRouteRowDto toRow(RelayRoute route) {
-        RelayRouteRowDto row = new RelayRouteRowDto();
+    private static RelayRouteRowGWTDTO toRow(RelayRoute route) {
+        RelayRouteRowGWTDTO row = new RelayRouteRowGWTDTO();
         row.setId(route.getId());
         row.setName(route.getName());
-        row.setMode(route.getMode() == null ? RelayRouteMode.RELAY.name() : route.getMode().name());
+        row.setMode(toGwtMode(route.getMode()));
         row.setUpstreamHost(route.getUpstreamHost() == null ? "" : route.getUpstreamHost());
         row.setUpstreamPort(route.getUpstreamPort() == null ? "" : Integer.toString(route.getUpstreamPort()));
         row.setAnswerAddress(route.getAnswerAddress() == null ? "" : route.getAnswerAddress());
         row.setEnabled(route.isEnabled());
         return row;
+    }
+
+    private static RelayRouteModeGWT toGwtMode(RelayRouteMode mode) {
+        if (mode == null) {
+            return RelayRouteModeGWT.RELAY;
+        }
+        return RelayRouteModeGWT.valueOf(mode.name());
+    }
+
+    private static UpstreamProxyTypeGWT toGwtType(UpstreamProxyType type) {
+        if (type == null) {
+            return UpstreamProxyTypeGWT.HTTP;
+        }
+        return UpstreamProxyTypeGWT.valueOf(type.name());
     }
 
     private static Integer portOrNull(String raw) {

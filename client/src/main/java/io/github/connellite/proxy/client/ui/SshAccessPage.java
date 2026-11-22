@@ -14,9 +14,9 @@ import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.PasswordTextBox;
 import com.google.gwt.user.client.ui.TextArea;
 import com.google.gwt.user.client.ui.TextBox;
-import io.github.connellite.proxy.client.rpc.dto.SshAccessDto;
-import io.github.connellite.proxy.client.rpc.dto.SshIssuedKeyDto;
-import io.github.connellite.proxy.client.rpc.dto.SshUserKeyRowDto;
+import io.github.connellite.proxy.client.rpc.dto.SshAccessGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.SshIssuedKeyGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.SshUserKeyRowGWTDTO;
 import io.github.connellite.proxy.client.util.CellCopy;
 import io.github.connellite.proxy.client.util.Forms;
 import io.github.connellite.proxy.client.util.Rpc;
@@ -125,21 +125,21 @@ public class SshAccessPage extends Composite {
     }
 
     private void load() {
-        shell.getRpc().getSshAccess(userId, new AsyncCallback<SshAccessDto>() {
+        shell.getRpc().getSshAccess(userId, new AsyncCallback<SshAccessGWTDTO>() {
             @Override
             public void onFailure(Throwable caught) {
                 Rpc.showFailure(caught);
             }
 
             @Override
-            public void onSuccess(SshAccessDto result) {
+            public void onSuccess(SshAccessGWTDTO result) {
                 passwordEnabled.setValue(result.isSshPasswordEnabled());
                 renderKeys(result);
             }
         });
     }
 
-    private void renderKeys(SshAccessDto page) {
+    private void renderKeys(SshAccessGWTDTO page) {
         tableHost.clear();
         FlexTable table = new FlexTable();
         table.setStyleName("users-table");
@@ -151,7 +151,7 @@ public class SshAccessPage extends Composite {
 
         int row = 1;
         if (page.getKeys() != null) {
-            for (final SshUserKeyRowDto key : page.getKeys()) {
+            for (final SshUserKeyRowGWTDTO key : page.getKeys()) {
                 table.setText(row, 0, blankToDash(key.getComment()));
                 table.getCellFormatter().addStyleName(row, 0, "cell-ellipsis");
                 table.setText(row, 1, blankToDash(key.getFingerprint()));
@@ -170,7 +170,7 @@ public class SshAccessPage extends Composite {
         tableHost.add(table);
     }
 
-    private FlowPanel revokeButton(final SshUserKeyRowDto key) {
+    private FlowPanel revokeButton(final SshUserKeyRowGWTDTO key) {
         FlowPanel actions = new FlowPanel();
         actions.setStyleName("actions");
         Button revoke = new Button("Revoke");
@@ -217,14 +217,14 @@ public class SshAccessPage extends Composite {
     private void issueKey() {
         final String commentText = comment.getText();
         final String passphraseText = passphrase.getText();
-        shell.getRpc().issueSshKey(userId, commentText, passphraseText, new AsyncCallback<SshIssuedKeyDto>() {
+        shell.getRpc().issueSshKey(userId, commentText, passphraseText, new AsyncCallback<SshIssuedKeyGWTDTO>() {
             @Override
             public void onFailure(Throwable caught) {
                 Rpc.showFailure(caught);
             }
 
             @Override
-            public void onSuccess(SshIssuedKeyDto result) {
+            public void onSuccess(SshIssuedKeyGWTDTO result) {
                 comment.setText("");
                 passphrase.setText("");
                 showIssued(result);
@@ -234,7 +234,7 @@ public class SshAccessPage extends Composite {
         });
     }
 
-    private void showIssued(SshIssuedKeyDto issued) {
+    private void showIssued(SshIssuedKeyGWTDTO issued) {
         StringBuilder warning = new StringBuilder();
         warning.append("This private key is shown once. Save it now. The server does not keep a copy.");
         if (issued.isEncrypted()) {

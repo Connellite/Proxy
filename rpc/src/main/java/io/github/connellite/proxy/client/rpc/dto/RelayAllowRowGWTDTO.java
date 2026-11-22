@@ -8,7 +8,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-public class RelayAllowRowDto implements IsSerializable {
+public class RelayAllowRowGWTDTO implements IsSerializable {
 
     private Long id;
     private String cidr;

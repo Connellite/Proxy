@@ -8,14 +8,8 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-public class RelayQueryRowDto implements IsSerializable {
+public class HttpStripHeaderRowGWTDTO implements IsSerializable {
 
-    private String time;
-    private String client;
-    private String protocol;
+    private long id;
     private String name;
-    private String type;
-    private String outcome;
-    private String answer;
-    private String elapsed;
 }

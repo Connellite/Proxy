@@ -8,7 +8,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-public class DashboardProxyDto implements IsSerializable {
+public class DashboardProxyGWTDTO implements IsSerializable {
 
     private boolean httpRunning;
     private boolean httpsRunning;

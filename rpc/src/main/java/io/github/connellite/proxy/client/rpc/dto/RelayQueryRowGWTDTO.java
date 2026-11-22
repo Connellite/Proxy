@@ -8,14 +8,14 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-public class UpstreamProxyRowDto implements IsSerializable {
+public class RelayQueryRowGWTDTO implements IsSerializable {
 
-    private long id;
+    private String time;
+    private String client;
+    private String protocol;
     private String name;
     private String type;
-    private String host;
-    private int port;
-    private String username;
-    private boolean selected;
-    private boolean authEnabled;
+    private String outcome;
+    private String answer;
+    private String elapsed;
 }

@@ -1,6 +1,6 @@
 package io.github.connellite.proxy.mapper;
 
-import io.github.connellite.proxy.client.rpc.dto.TlsStatusDto;
+import io.github.connellite.proxy.client.rpc.dto.TlsStatusGWTDTO;
 import io.github.connellite.proxy.dto.TlsStatus;
 import org.mapstruct.AfterMapping;
 import org.mapstruct.Context;
@@ -21,10 +21,10 @@ public interface TlsStatusMapper {
     @Mapping(target = "notBefore", ignore = true)
     @Mapping(target = "notAfter", ignore = true)
     @Mapping(target = "dnsNames", ignore = true)
-    TlsStatusDto toDto(TlsStatus status, @Context ZoneId zoneId);
+    TlsStatusGWTDTO toDto(TlsStatus status, @Context ZoneId zoneId);
 
     @AfterMapping
-    default void finish(TlsStatus status, @MappingTarget TlsStatusDto dto, @Context ZoneId zoneId) {
+    default void finish(TlsStatus status, @MappingTarget TlsStatusGWTDTO dto, @Context ZoneId zoneId) {
         dto.setNotBefore(formatInstant(status.getNotBefore(), zoneId));
         dto.setNotAfter(formatInstant(status.getNotAfter(), zoneId));
         dto.setDnsNames(status.getDnsNames() == null ? new ArrayList<>() : new ArrayList<>(status.getDnsNames()));

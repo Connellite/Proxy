@@ -12,7 +12,7 @@ import com.google.gwt.user.client.ui.HTMLPanel;
 import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.SimplePanel;
 import io.github.connellite.proxy.client.rpc.AdminServiceAsync;
-import io.github.connellite.proxy.client.rpc.dto.SettingsDto;
+import io.github.connellite.proxy.client.rpc.dto.SettingsGWTDTO;
 import io.github.connellite.proxy.client.util.AutoRefresh;
 import lombok.Getter;
 
@@ -154,14 +154,14 @@ public class AppShell extends Composite {
 
     /** Re-reads settings and greys out the SFTP section while the SSH proxy is disabled. */
     public void refreshNavState() {
-        rpc.getSettings(new AsyncCallback<SettingsDto>() {
+        rpc.getSettings(new AsyncCallback<SettingsGWTDTO>() {
             @Override
             public void onFailure(Throwable caught) {
                 // keep the current state; pages report their own RPC errors
             }
 
             @Override
-            public void onSuccess(SettingsDto result) {
+            public void onSuccess(SettingsGWTDTO result) {
                 sshEnabled = result.isSshEnabled();
                 if (sshEnabled) {
                     sftpLink.removeStyleName("nav-disabled");

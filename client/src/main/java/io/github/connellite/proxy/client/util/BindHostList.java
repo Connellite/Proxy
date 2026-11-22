@@ -6,21 +6,16 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Helpers for CCProxy-style bind-host dropdowns.
+ * CCProxy-style bind-host dropdown.
  */
-public final class BindHostList {
+public class BindHostList extends ListBox {
 
-    private BindHostList() {
+    public BindHostList() {
+        setVisibleItemCount(1);
     }
 
-    public static ListBox create() {
-        ListBox box = new ListBox();
-        box.setVisibleItemCount(1);
-        return box;
-    }
-
-    public static void fill(ListBox box, List<String> options, String selected) {
-        box.clear();
+    public void fill(List<String> options, String selected) {
+        clear();
         List<String> values = options != null ? options : new ArrayList<>();
         if (values.isEmpty()) {
             values = new ArrayList<>();
@@ -33,34 +28,34 @@ public final class BindHostList {
             if (option == null || option.isEmpty()) {
                 continue;
             }
-            box.addItem(label(option), option);
+            addItem(label(option), option);
             if (option.equals(value)) {
                 found = true;
             }
         }
         if (!found) {
-            box.addItem(label(value), value);
+            addItem(label(value), value);
         }
-        selectValue(box, value);
+        selectValue(value);
     }
 
-    public static String selected(ListBox box) {
-        int index = box.getSelectedIndex();
+    public String selected() {
+        int index = getSelectedIndex();
         if (index < 0) {
             return "0.0.0.0";
         }
-        return box.getValue(index);
+        return getValue(index);
     }
 
-    private static void selectValue(ListBox box, String value) {
-        for (int i = 0; i < box.getItemCount(); i++) {
-            if (box.getValue(i).equals(value)) {
-                box.setSelectedIndex(i);
+    private void selectValue(String value) {
+        for (int i = 0; i < getItemCount(); i++) {
+            if (getValue(i).equals(value)) {
+                setSelectedIndex(i);
                 return;
             }
         }
-        if (box.getItemCount() > 0) {
-            box.setSelectedIndex(0);
+        if (getItemCount() > 0) {
+            setSelectedIndex(0);
         }
     }
 

@@ -12,7 +12,7 @@ import java.util.List;
 @Getter
 @Setter
 @NoArgsConstructor
-public class SettingsDto implements IsSerializable {
+public class SettingsGWTDTO implements IsSerializable {
 
     private boolean httpEnabled;
     private boolean socksEnabled;

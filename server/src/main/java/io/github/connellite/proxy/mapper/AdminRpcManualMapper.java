@@ -1,7 +1,7 @@
 package io.github.connellite.proxy.mapper;
 
-import io.github.connellite.proxy.client.rpc.dto.EncryptionDto;
-import io.github.connellite.proxy.client.rpc.dto.SettingsDto;
+import io.github.connellite.proxy.client.rpc.dto.EncryptionGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.SettingsGWTDTO;
 import io.github.connellite.proxy.dto.AppSettings;
 import io.github.connellite.proxy.dto.EncryptionForm;
 import io.github.connellite.proxy.proxy.ProxyServerManager;
@@ -21,8 +21,8 @@ public class AdminRpcManualMapper {
 
     private final ProxyServerManager proxyServerManager;
 
-    public SettingsDto toSettingsDto(AppSettings settings) {
-        SettingsDto dto = new SettingsDto();
+    public SettingsGWTDTO toSettingsGWTDTO(AppSettings settings) {
+        SettingsGWTDTO dto = new SettingsGWTDTO();
         dto.setHttpEnabled(settings.isHttpEnabled());
         dto.setHttpBindHost(settings.getHttpBindHost());
         dto.setHttpPort(settings.getHttpPort());
@@ -46,8 +46,8 @@ public class AdminRpcManualMapper {
         return dto;
     }
 
-    public EncryptionDto toEncryptionDto(AppSettings settings) {
-        EncryptionDto dto = new EncryptionDto();
+    public EncryptionGWTDTO toEncryptionGWTDTO(AppSettings settings) {
+        EncryptionGWTDTO dto = new EncryptionGWTDTO();
         dto.setHttpsEnabled(settings.isHttpsEnabled());
         dto.setHttpsAuthRequired(settings.isHttpsAuthRequired());
         dto.setHttpsBindHost(settings.getHttpsBindHost());
@@ -64,7 +64,7 @@ public class AdminRpcManualMapper {
         return dto;
     }
 
-    public void applyEncryption(AppSettings settings, EncryptionDto form) {
+    public void applyEncryption(AppSettings settings, EncryptionGWTDTO form) {
         EncryptionForm bridge = new EncryptionForm();
         bridge.setHttpsEnabled(form.isHttpsEnabled());
         bridge.setHttpsAuthRequired(form.isHttpsAuthRequired());

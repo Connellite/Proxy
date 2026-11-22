@@ -10,7 +10,7 @@ import com.google.gwt.user.client.ui.FlowPanel;
 import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.PasswordTextBox;
 import com.google.gwt.user.client.ui.TextBox;
-import io.github.connellite.proxy.client.rpc.dto.UserFormDto;
+import io.github.connellite.proxy.client.rpc.dto.UserFormGWTDTO;
 import io.github.connellite.proxy.client.util.DateInput;
 import io.github.connellite.proxy.client.util.Forms;
 import io.github.connellite.proxy.client.util.PlainIntegerBox;
@@ -99,14 +99,14 @@ public class UserFormPage extends Composite {
     }
 
     private void load() {
-        shell.getRpc().getUserForm(editId, new AsyncCallback<UserFormDto>() {
+        shell.getRpc().getUserForm(editId, new AsyncCallback<UserFormGWTDTO>() {
             @Override
             public void onFailure(Throwable caught) {
                 Rpc.showFailure(caught);
             }
 
             @Override
-            public void onSuccess(UserFormDto form) {
+            public void onSuccess(UserFormGWTDTO form) {
                 creating = form.isCreating() || form.getId() == null;
                 bootstrapAdmin = form.isBootstrapAdmin();
                 title.setHTML(creating ? "<h1>New user</h1>" : "<h1>Edit user</h1>");
@@ -127,7 +127,7 @@ public class UserFormPage extends Composite {
     }
 
     private void save() {
-        UserFormDto form = new UserFormDto();
+        UserFormGWTDTO form = new UserFormGWTDTO();
         form.setId(creating ? username.getText().trim() : editId);
         form.setCreating(creating);
         form.setPassword(password.getText());

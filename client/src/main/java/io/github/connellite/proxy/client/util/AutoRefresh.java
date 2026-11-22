@@ -6,7 +6,7 @@ import com.google.gwt.user.client.Timer;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.FlowPanel;
 import com.google.gwt.user.client.ui.Label;
-import com.google.gwt.user.client.ui.ListBox;
+import io.github.connellite.proxy.client.rpc.dto.AutoRefreshIntervalGWT;
 
 /**
  * Auto-refresh control matching the old Thymeleaf refresh selector.
@@ -18,24 +18,17 @@ public class AutoRefresh extends Composite {
     }
 
     private final Callback callback;
-    private final ListBox interval = new ListBox();
+    private final EnumListBox<AutoRefreshIntervalGWT> interval =
+            new EnumListBox<>(AutoRefreshIntervalGWT.values());
     private Timer timer;
 
     public AutoRefresh(Callback callback) {
         this.callback = callback;
         FlowPanel root = new FlowPanel();
         root.setStyleName("refresh-control");
-        // use Label as visual; HTML label wrapping is awkward in GWT
         Label caption = new Label("Auto-refresh");
         interval.getElement().setAttribute("aria-label", "Auto-refresh interval");
-        interval.addItem("Off", "0");
-        interval.addItem("1s", "1");
-        interval.addItem("2s", "2");
-        interval.addItem("3s", "3");
-        interval.addItem("5s", "5");
-        interval.addItem("10s", "10");
-        interval.addItem("30s", "30");
-        interval.setSelectedIndex(3); // 3s default like old JS
+        interval.select(AutoRefreshIntervalGWT.defaultInterval());
         interval.addChangeHandler(new ChangeHandler() {
             @Override
             public void onChange(ChangeEvent event) {
@@ -57,7 +50,7 @@ public class AutoRefresh extends Composite {
 
     private void restart() {
         stop();
-        int seconds = Integer.parseInt(interval.getSelectedValue());
+        int seconds = interval.selected(AutoRefreshIntervalGWT.OFF).getSeconds();
         if (seconds <= 0) {
             return;
         }

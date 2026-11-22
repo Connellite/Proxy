@@ -10,8 +10,8 @@ import com.google.gwt.user.client.ui.FlexTable;
 import com.google.gwt.user.client.ui.FlowPanel;
 import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.Label;
-import io.github.connellite.proxy.client.rpc.dto.UpstreamProxiesPageDto;
-import io.github.connellite.proxy.client.rpc.dto.UpstreamProxyRowDto;
+import io.github.connellite.proxy.client.rpc.dto.UpstreamProxiesPageGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.UpstreamProxyRowGWTDTO;
 import io.github.connellite.proxy.client.util.CellCopy;
 import io.github.connellite.proxy.client.util.Rpc;
 
@@ -72,19 +72,19 @@ public class UpstreamProxiesPage extends Composite {
             }
 
             @Override
-            public void onSuccess(UpstreamProxiesPageDto result) {
+            public void onSuccess(UpstreamProxiesPageGWTDTO result) {
                 render(result);
             }
         });
     }
 
-    private void render(UpstreamProxiesPageDto page) {
+    private void render(UpstreamProxiesPageGWTDTO page) {
         if (page.getSelectedId() == 0L) {
             status.setText("Active: direct (no upstream)");
         } else {
             String selectedName = "";
             if (page.getProxies() != null) {
-                for (UpstreamProxyRowDto row : page.getProxies()) {
+                for (UpstreamProxyRowGWTDTO row : page.getProxies()) {
                     if (row.isSelected()) {
                         selectedName = row.getName();
                         break;
@@ -109,10 +109,10 @@ public class UpstreamProxiesPage extends Composite {
 
         int row = 1;
         if (page.getProxies() != null) {
-            for (final UpstreamProxyRowDto proxy : page.getProxies()) {
+            for (final UpstreamProxyRowGWTDTO proxy : page.getProxies()) {
                 table.setText(row, 0, nullToEmpty(proxy.getName()));
                 table.getCellFormatter().addStyleName(row, 0, "cell-ellipsis");
-                table.setText(row, 1, nullToEmpty(proxy.getType()));
+                table.setText(row, 1, proxy.getType() == null ? "" : proxy.getType().getLabel());
                 table.setText(row, 2, nullToEmpty(proxy.getHost()) + ":" + proxy.getPort());
                 table.getCellFormatter().addStyleName(row, 2, "num");
                 table.setHTML(row, 3, proxy.isAuthEnabled()
@@ -136,7 +136,7 @@ public class UpstreamProxiesPage extends Composite {
         tableHost.add(table);
     }
 
-    private FlowPanel actionsFor(final UpstreamProxyRowDto proxy) {
+    private FlowPanel actionsFor(final UpstreamProxyRowGWTDTO proxy) {
         FlowPanel actions = new FlowPanel();
         actions.setStyleName("actions");
 

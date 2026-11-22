@@ -8,7 +8,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-public class RelayTcpSessionRowDto implements IsSerializable {
+public class RelayTcpSessionRowGWTDTO implements IsSerializable {
 
     private String time;
     private String client;

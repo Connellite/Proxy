@@ -20,7 +20,7 @@ import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.PopupPanel;
 import com.google.gwt.user.client.ui.TextBox;
 import io.github.connellite.proxy.client.rpc.AdminServiceAsync;
-import io.github.connellite.proxy.client.rpc.dto.DirectoryListingDto;
+import io.github.connellite.proxy.client.rpc.dto.DirectoryListingGWTDTO;
 import io.github.connellite.proxy.client.util.Rpc;
 
 import java.util.ArrayList;
@@ -145,14 +145,14 @@ public class DirectoryPickerDialog extends PopupPanel {
     }
 
     private void loadRoots(final String target) {
-        rpc.listServerDirectories(null, new AsyncCallback<DirectoryListingDto>() {
+        rpc.listServerDirectories(null, new AsyncCallback<DirectoryListingGWTDTO>() {
             @Override
             public void onFailure(Throwable caught) {
                 Rpc.showFailure(caught);
             }
 
             @Override
-            public void onSuccess(DirectoryListingDto result) {
+            public void onSuccess(DirectoryListingGWTDTO result) {
                 tree.clear();
                 List<Node> roots = new ArrayList<Node>();
                 for (String root : result.getDirectories()) {
@@ -415,7 +415,7 @@ public class DirectoryPickerDialog extends PopupPanel {
             }
             loading = true;
             row.addStyleName("loading");
-            rpc.listServerDirectories(path, new AsyncCallback<DirectoryListingDto>() {
+            rpc.listServerDirectories(path, new AsyncCallback<DirectoryListingGWTDTO>() {
                 @Override
                 public void onFailure(Throwable caught) {
                     loading = false;
@@ -424,7 +424,7 @@ public class DirectoryPickerDialog extends PopupPanel {
                 }
 
                 @Override
-                public void onSuccess(DirectoryListingDto result) {
+                public void onSuccess(DirectoryListingGWTDTO result) {
                     loading = false;
                     loaded = true;
                     row.removeStyleName("loading");

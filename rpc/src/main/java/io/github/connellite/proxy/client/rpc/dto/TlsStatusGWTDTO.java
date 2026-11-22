@@ -10,7 +10,7 @@ import java.util.ArrayList;
 @Getter
 @Setter
 @NoArgsConstructor
-public class TlsStatusDto implements IsSerializable {
+public class TlsStatusGWTDTO implements IsSerializable {
 
     private boolean usingCustomCertificate;
     private boolean validCert;

@@ -10,8 +10,8 @@ import com.google.gwt.user.client.ui.FlexTable;
 import com.google.gwt.user.client.ui.FlowPanel;
 import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.Label;
-import io.github.connellite.proxy.client.rpc.dto.UserRowDto;
-import io.github.connellite.proxy.client.rpc.dto.UsersPageDto;
+import io.github.connellite.proxy.client.rpc.dto.UserRowGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.UsersPageGWTDTO;
 import io.github.connellite.proxy.client.util.AutoRefresh;
 import io.github.connellite.proxy.client.util.CellCopy;
 import io.github.connellite.proxy.client.util.Formatters;
@@ -65,20 +65,20 @@ public class UsersPage extends Composite {
     }
 
     private void load() {
-        shell.getRpc().getUsers(new AsyncCallback<UsersPageDto>() {
+        shell.getRpc().getUsers(new AsyncCallback<UsersPageGWTDTO>() {
             @Override
             public void onFailure(Throwable caught) {
                 Rpc.showFailure(caught);
             }
 
             @Override
-            public void onSuccess(UsersPageDto result) {
+            public void onSuccess(UsersPageGWTDTO result) {
                 render(result);
             }
         });
     }
 
-    private void render(UsersPageDto page) {
+    private void render(UsersPageGWTDTO page) {
         tableHost.clear();
         FlexTable table = new FlexTable();
         table.setStyleName("users-table");
@@ -100,7 +100,7 @@ public class UsersPage extends Composite {
 
         int row = 1;
         if (page.getUsers() != null) {
-            for (final UserRowDto user : page.getUsers()) {
+            for (final UserRowGWTDTO user : page.getUsers()) {
                 if (user.isRoleAdmin()) {
                     table.getRowFormatter().addStyleName(row, "admin-row");
                 }
@@ -151,7 +151,7 @@ public class UsersPage extends Composite {
         tableHost.add(table);
     }
 
-    private static String rolesBadge(UserRowDto user) {
+    private static String rolesBadge(UserRowGWTDTO user) {
         StringBuilder badges = new StringBuilder();
         if (user.isRoleAdmin()) {
             badges.append("<span class=\"badge admin\">Admin</span> ");
@@ -165,7 +165,7 @@ public class UsersPage extends Composite {
         return badges.toString().trim();
     }
 
-    private static String statusBadge(UserRowDto user) {
+    private static String statusBadge(UserRowGWTDTO user) {
         if (user.isUsable()) {
             return "<span class=\"badge ok\">active</span>";
         }
@@ -181,14 +181,14 @@ public class UsersPage extends Composite {
         return "<span class=\"badge muted\">inactive</span>";
     }
 
-    private static String connCell(UserRowDto user) {
+    private static String connCell(UserRowGWTDTO user) {
         String limit = user.getMaxConnections() > 0
                 ? " / " + user.getMaxConnections()
                 : " / ∞";
         return "<span>" + user.getActiveConnections() + "</span><span>" + limit + "</span>";
     }
 
-    private FlowPanel actionsFor(final UserRowDto user) {
+    private FlowPanel actionsFor(final UserRowGWTDTO user) {
         FlowPanel actions = new FlowPanel();
         actions.setStyleName("actions");
 

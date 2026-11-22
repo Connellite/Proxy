@@ -15,8 +15,8 @@ import com.google.gwt.user.client.ui.FlowPanel;
 import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.TextBox;
-import io.github.connellite.proxy.client.rpc.dto.SftpPageDto;
-import io.github.connellite.proxy.client.rpc.dto.SftpUserRowDto;
+import io.github.connellite.proxy.client.rpc.dto.SftpPageGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.SftpUserRowGWTDTO;
 import io.github.connellite.proxy.client.util.CellCopy;
 import io.github.connellite.proxy.client.util.Rpc;
 
@@ -61,13 +61,13 @@ public class SftpPage extends Composite {
             }
 
             @Override
-            public void onSuccess(SftpPageDto result) {
+            public void onSuccess(SftpPageGWTDTO result) {
                 render(result);
             }
         });
     }
 
-    private void render(SftpPageDto page) {
+    private void render(SftpPageGWTDTO page) {
         boolean editable = page.isSshEnabled();
         if (!page.isSshEnabled()) {
             notice.setText("The SSH proxy is disabled. Enable it in Settings to use SFTP.");
@@ -91,7 +91,7 @@ public class SftpPage extends Composite {
 
         int row = 1;
         if (page.getUsers() != null) {
-            for (SftpUserRowDto user : page.getUsers()) {
+            for (SftpUserRowGWTDTO user : page.getUsers()) {
                 addRow(table, row++, user, editable);
             }
         }
@@ -104,7 +104,7 @@ public class SftpPage extends Composite {
         tableHost.add(table);
     }
 
-    private void addRow(FlexTable table, int row, final SftpUserRowDto user, boolean editable) {
+    private void addRow(FlexTable table, int row, final SftpUserRowGWTDTO user, boolean editable) {
         String status;
         if (user.getRoot() == null) {
             status = " <span class=\"badge muted\">off</span>";

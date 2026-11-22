@@ -11,10 +11,10 @@ import java.util.List;
 @Getter
 @Setter
 @NoArgsConstructor
-public class SftpPageDto implements IsSerializable {
+public class SftpPageGWTDTO implements IsSerializable {
 
     private boolean sshEnabled;
     private boolean sshRunning;
     private int sshPort;
-    private List<SftpUserRowDto> users = new ArrayList<>();
+    private List<SftpUserRowGWTDTO> users = new ArrayList<>();
 }

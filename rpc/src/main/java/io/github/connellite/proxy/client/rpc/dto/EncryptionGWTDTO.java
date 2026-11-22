@@ -12,7 +12,7 @@ import java.util.List;
 @Getter
 @Setter
 @NoArgsConstructor
-public class EncryptionDto implements IsSerializable {
+public class EncryptionGWTDTO implements IsSerializable {
 
     private boolean httpsEnabled;
     private boolean httpsAuthRequired;
@@ -26,7 +26,7 @@ public class EncryptionDto implements IsSerializable {
     private boolean privateKeySaved;
     private boolean httpsRunning;
     private String lastError;
-    private TlsStatusDto tlsStatus;
+    private TlsStatusGWTDTO tlsStatus;
     /** Local bind choices: 0.0.0.0, 127.0.0.1, and current machine IPv4 addresses. */
     private List<String> bindHostOptions = new ArrayList<>();
 }

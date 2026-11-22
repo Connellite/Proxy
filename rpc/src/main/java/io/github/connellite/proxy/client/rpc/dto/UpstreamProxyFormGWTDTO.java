@@ -8,11 +8,11 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-public class UpstreamProxyFormDto implements IsSerializable {
+public class UpstreamProxyFormGWTDTO implements IsSerializable {
 
     private Long id;
     private String name;
-    private String type;
+    private UpstreamProxyTypeGWT type;
     private String host;
     private int port;
     private String username;

@@ -5,13 +5,14 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.util.ArrayList;
-import java.util.List;
-
 @Getter
 @Setter
 @NoArgsConstructor
-public class HttpStripHeadersPageDto implements IsSerializable {
+public class SshIssuedKeyGWTDTO implements IsSerializable {
 
-    private List<HttpStripHeaderRowDto> headers = new ArrayList<>();
+    private long id;
+    private String fingerprint;
+    private String publicKey;
+    private String privateKey;
+    private boolean encrypted;
 }

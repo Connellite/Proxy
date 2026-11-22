@@ -8,7 +8,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-public class SshUserKeyRowDto implements IsSerializable {
+public class SshUserKeyRowGWTDTO implements IsSerializable {
 
     private long id;
     private String comment;

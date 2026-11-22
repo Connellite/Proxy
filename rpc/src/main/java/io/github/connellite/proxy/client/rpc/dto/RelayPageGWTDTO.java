@@ -11,7 +11,7 @@ import java.util.List;
 @Getter
 @Setter
 @NoArgsConstructor
-public class RelayPageDto implements IsSerializable {
+public class RelayPageGWTDTO implements IsSerializable {
 
     private boolean dnsEnabled;
     private String dnsBindHost;
@@ -36,7 +36,7 @@ public class RelayPageDto implements IsSerializable {
     private String advertisedAddress;
     private String upstreamResolver;
     private List<String> bindHostOptions = new ArrayList<>();
-    private List<RelayAllowRowDto> dnsAllows = new ArrayList<>();
-    private List<RelayAllowRowDto> tcpAllows = new ArrayList<>();
-    private List<RelayRouteRowDto> routes = new ArrayList<>();
+    private List<RelayAllowRowGWTDTO> dnsAllows = new ArrayList<>();
+    private List<RelayAllowRowGWTDTO> tcpAllows = new ArrayList<>();
+    private List<RelayRouteRowGWTDTO> routes = new ArrayList<>();
 }

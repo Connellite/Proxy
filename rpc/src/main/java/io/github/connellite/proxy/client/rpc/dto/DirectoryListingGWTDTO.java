@@ -12,7 +12,7 @@ import java.util.List;
 @Getter
 @Setter
 @NoArgsConstructor
-public class DirectoryListingDto implements IsSerializable {
+public class DirectoryListingGWTDTO implements IsSerializable {
 
     /** Directory shown; {@code null} for the list of file system roots (drives). */
     private String path;

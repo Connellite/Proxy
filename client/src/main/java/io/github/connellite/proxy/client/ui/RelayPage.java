@@ -13,18 +13,19 @@ import com.google.gwt.user.client.ui.FlowPanel;
 import com.google.gwt.user.client.ui.HTMLTable;
 import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.Label;
-import com.google.gwt.user.client.ui.ListBox;
 import com.google.gwt.user.client.ui.TextBox;
 
 import java.util.List;
-import io.github.connellite.proxy.client.rpc.dto.RelayAllowRowDto;
-import io.github.connellite.proxy.client.rpc.dto.RelayPageDto;
-import io.github.connellite.proxy.client.rpc.dto.RelayQueryRowDto;
-import io.github.connellite.proxy.client.rpc.dto.RelayRouteRowDto;
-import io.github.connellite.proxy.client.rpc.dto.RelayTcpSessionRowDto;
+import io.github.connellite.proxy.client.rpc.dto.RelayAllowRowGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.RelayPageGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.RelayQueryRowGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.RelayRouteModeGWT;
+import io.github.connellite.proxy.client.rpc.dto.RelayRouteRowGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.RelayTcpSessionRowGWTDTO;
 import io.github.connellite.proxy.client.util.AutoRefresh;
 import io.github.connellite.proxy.client.util.BindHostList;
 import io.github.connellite.proxy.client.util.CellCopy;
+import io.github.connellite.proxy.client.util.EnumListBox;
 import io.github.connellite.proxy.client.util.Forms;
 import io.github.connellite.proxy.client.util.PlainIntegerBox;
 import io.github.connellite.proxy.client.util.Rpc;
@@ -40,12 +41,12 @@ public class RelayPage extends Composite {
     private final CheckBox doh3Enabled = Forms.checkbox("Enable DoH3");
     private final CheckBox dotEnabled = Forms.checkbox("Enable DoT");
     private final CheckBox doqEnabled = Forms.checkbox("Enable DoQ");
-    private final ListBox dnsBind = BindHostList.create();
-    private final ListBox tcpBind = BindHostList.create();
-    private final ListBox dohBind = BindHostList.create();
-    private final ListBox doh3Bind = BindHostList.create();
-    private final ListBox dotBind = BindHostList.create();
-    private final ListBox doqBind = BindHostList.create();
+    private final BindHostList dnsBind = new BindHostList();
+    private final BindHostList tcpBind = new BindHostList();
+    private final BindHostList dohBind = new BindHostList();
+    private final BindHostList doh3Bind = new BindHostList();
+    private final BindHostList dotBind = new BindHostList();
+    private final BindHostList doqBind = new BindHostList();
     private final PlainIntegerBox dnsPort = new PlainIntegerBox();
     private final PlainIntegerBox tcpPort = new PlainIntegerBox();
     private final PlainIntegerBox dohPort = new PlainIntegerBox();
@@ -59,7 +60,7 @@ public class RelayPage extends Composite {
     private final FlowPanel dnsAllowHost = new FlowPanel();
     private final FlowPanel tcpAllowHost = new FlowPanel();
     private final TextBox routeName = new TextBox();
-    private final ListBox routeMode = new ListBox();
+    private final EnumListBox<RelayRouteModeGWT> routeMode = new EnumListBox<>(RelayRouteModeGWT.values());
     private final TextBox upstreamHost = new TextBox();
     private final TextBox upstreamPort = new TextBox();
     private final TextBox answerAddress = new TextBox();
@@ -89,8 +90,7 @@ public class RelayPage extends Composite {
         doqPort.setMin(1);
         doqPort.setMax(65535);
         upstreamPort.getElement().setAttribute("inputmode", "numeric");
-        routeMode.addItem("Relay", "RELAY");
-        routeMode.addItem("Address", "ADDRESS");
+        routeMode.select(RelayRouteModeGWT.RELAY);
         routeMode.addChangeHandler(new ChangeHandler() {
             @Override
             public void onChange(ChangeEvent event) {
@@ -287,30 +287,30 @@ public class RelayPage extends Composite {
     }
 
     private void applyRouteMode() {
-        boolean relay = routeMode.getSelectedIndex() < 0
-                || "RELAY".equals(routeMode.getValue(routeMode.getSelectedIndex()));
+        RelayRouteModeGWT mode = routeMode.selected(RelayRouteModeGWT.RELAY);
+        boolean relay = mode == RelayRouteModeGWT.RELAY;
         upstreamFields.setVisible(relay);
         answerField.setVisible(!relay);
     }
 
     private void load() {
-        shell.getRpc().getRelayPage(new AsyncCallback<RelayPageDto>() {
+        shell.getRpc().getRelayPage(new AsyncCallback<RelayPageGWTDTO>() {
             @Override
             public void onFailure(Throwable caught) {
                 Rpc.showFailure(caught);
             }
 
             @Override
-            public void onSuccess(RelayPageDto result) {
+            public void onSuccess(RelayPageGWTDTO result) {
                 dnsEnabled.setValue(result.isDnsEnabled());
                 tcpEnabled.setValue(result.isTcpEnabled());
                 tcpUseUpstream.setValue(result.isTcpUseUpstream());
-                BindHostList.fill(dnsBind, result.getBindHostOptions(), result.getDnsBindHost());
-                BindHostList.fill(tcpBind, result.getBindHostOptions(), result.getTcpBindHost());
-                BindHostList.fill(dohBind, result.getBindHostOptions(), result.getDohBindHost());
-                BindHostList.fill(doh3Bind, result.getBindHostOptions(), result.getDoh3BindHost());
-                BindHostList.fill(dotBind, result.getBindHostOptions(), result.getDotBindHost());
-                BindHostList.fill(doqBind, result.getBindHostOptions(), result.getDoqBindHost());
+                dnsBind.fill(result.getBindHostOptions(), result.getDnsBindHost());
+                tcpBind.fill(result.getBindHostOptions(), result.getTcpBindHost());
+                dohBind.fill(result.getBindHostOptions(), result.getDohBindHost());
+                doh3Bind.fill(result.getBindHostOptions(), result.getDoh3BindHost());
+                dotBind.fill(result.getBindHostOptions(), result.getDotBindHost());
+                doqBind.fill(result.getBindHostOptions(), result.getDoqBindHost());
                 dnsPort.setIntValue(result.getDnsPort());
                 tcpPort.setIntValue(result.getTcpPort());
                 dohPort.setIntValue(result.getDohPort());
@@ -353,7 +353,7 @@ public class RelayPage extends Composite {
         return box;
     }
 
-    private void renderAllows(FlowPanel host, TextBox input, List<RelayAllowRowDto> rows, boolean dns) {
+    private void renderAllows(FlowPanel host, TextBox input, List<RelayAllowRowGWTDTO> rows, boolean dns) {
         host.clear();
         if (rows == null || rows.isEmpty()) {
             host.setStyleName("");
@@ -369,7 +369,7 @@ public class RelayPage extends Composite {
         styleHeader(table, 0);
         styleHeader(table, 1);
         int row = 1;
-        for (RelayAllowRowDto allow : rows) {
+        for (RelayAllowRowGWTDTO allow : rows) {
             table.setText(row, 0, text(allow.getCidr()));
             Button remove = new Button("Delete");
             remove.addClickHandler(new ClickHandler() {
@@ -429,7 +429,7 @@ public class RelayPage extends Composite {
         }
     }
 
-    private void render(RelayPageDto page) {
+    private void render(RelayPageGWTDTO page) {
         tableHost.clear();
         if (page.getRoutes() == null || page.getRoutes().isEmpty()) {
             tableHost.setStyleName("");
@@ -450,13 +450,14 @@ public class RelayPage extends Composite {
             table.getCellFormatter().getElement(0, i).getStyle().setProperty("color", "#6b645a");
         }
         int row = 1;
-        final List<RelayRouteRowDto> routes = page.getRoutes();
-        for (RelayRouteRowDto route : routes) {
+        final List<RelayRouteRowGWTDTO> routes = page.getRoutes();
+        for (RelayRouteRowGWTDTO route : routes) {
                 table.setText(row, 0, route.getName());
-                table.setText(row, 1, "ADDRESS".equals(route.getMode()) ? "Address" : "Relay");
+                RelayRouteModeGWT mode = route.getMode() == null ? RelayRouteModeGWT.RELAY : route.getMode();
+                table.setText(row, 1, mode.getLabel());
                 String upstream = route.getUpstreamHost() == null || route.getUpstreamHost().isEmpty()
                         ? "real address" : route.getUpstreamHost();
-                if ("ADDRESS".equals(route.getMode())) {
+                if (mode == RelayRouteModeGWT.ADDRESS) {
                     upstream = "";
                 } else if (route.getUpstreamPort() != null && !route.getUpstreamPort().isEmpty()) {
                     upstream = upstream + ":" + route.getUpstreamPort();
@@ -504,20 +505,20 @@ public class RelayPage extends Composite {
     }
 
     private void loadLog() {
-        shell.getRpc().getRelayQueryLog(new AsyncCallback<List<RelayQueryRowDto>>() {
+        shell.getRpc().getRelayQueryLog(new AsyncCallback<List<RelayQueryRowGWTDTO>>() {
             @Override
             public void onFailure(Throwable caught) {
                 Rpc.showFailure(caught);
             }
 
             @Override
-            public void onSuccess(List<RelayQueryRowDto> result) {
+            public void onSuccess(List<RelayQueryRowGWTDTO> result) {
                 renderLog(result);
             }
         });
     }
 
-    private void renderLog(List<RelayQueryRowDto> rows) {
+    private void renderLog(List<RelayQueryRowGWTDTO> rows) {
         logTable.clear();
         if (rows == null || rows.isEmpty()) {
             Label empty = new Label("No queries yet.");
@@ -533,7 +534,7 @@ public class RelayPage extends Composite {
             styleHeader(table, i);
         }
         int row = 1;
-        for (RelayQueryRowDto query : rows) {
+        for (RelayQueryRowGWTDTO query : rows) {
             table.setText(row, 0, text(query.getTime()));
             table.setText(row, 1, text(query.getClient()));
             table.setText(row, 2, text(query.getProtocol()));
@@ -549,20 +550,20 @@ public class RelayPage extends Composite {
     }
 
     private void loadTcpLog() {
-        shell.getRpc().getRelayTcpSessionLog(new AsyncCallback<List<RelayTcpSessionRowDto>>() {
+        shell.getRpc().getRelayTcpSessionLog(new AsyncCallback<List<RelayTcpSessionRowGWTDTO>>() {
             @Override
             public void onFailure(Throwable caught) {
                 Rpc.showFailure(caught);
             }
 
             @Override
-            public void onSuccess(List<RelayTcpSessionRowDto> result) {
+            public void onSuccess(List<RelayTcpSessionRowGWTDTO> result) {
                 renderTcpLog(result);
             }
         });
     }
 
-    private void renderTcpLog(List<RelayTcpSessionRowDto> rows) {
+    private void renderTcpLog(List<RelayTcpSessionRowGWTDTO> rows) {
         tcpLogTable.clear();
         if (rows == null || rows.isEmpty()) {
             Label empty = new Label("No TCP sessions yet.");
@@ -578,7 +579,7 @@ public class RelayPage extends Composite {
             styleHeader(table, i);
         }
         int row = 1;
-        for (RelayTcpSessionRowDto session : rows) {
+        for (RelayTcpSessionRowGWTDTO session : rows) {
             table.setText(row, 0, text(session.getTime()));
             table.setText(row, 1, text(session.getClient()));
             table.setText(row, 2, text(session.getHostname()));
@@ -603,25 +604,25 @@ public class RelayPage extends Composite {
     }
 
     private void saveSettings() {
-        RelayPageDto form = new RelayPageDto();
+        RelayPageGWTDTO form = new RelayPageGWTDTO();
         form.setDnsEnabled(dnsEnabled.getValue());
-        form.setDnsBindHost(BindHostList.selected(dnsBind));
+        form.setDnsBindHost(dnsBind.selected());
         form.setDnsPort(portOrZero(dnsPort));
         form.setTcpEnabled(tcpEnabled.getValue());
         form.setTcpUseUpstream(tcpUseUpstream.getValue());
-        form.setTcpBindHost(BindHostList.selected(tcpBind));
+        form.setTcpBindHost(tcpBind.selected());
         form.setTcpPort(portOrZero(tcpPort));
         form.setDohEnabled(dohEnabled.getValue());
-        form.setDohBindHost(BindHostList.selected(dohBind));
+        form.setDohBindHost(dohBind.selected());
         form.setDohPort(portOrZero(dohPort));
         form.setDoh3Enabled(doh3Enabled.getValue());
-        form.setDoh3BindHost(BindHostList.selected(doh3Bind));
+        form.setDoh3BindHost(doh3Bind.selected());
         form.setDoh3Port(portOrZero(doh3Port));
         form.setDotEnabled(dotEnabled.getValue());
-        form.setDotBindHost(BindHostList.selected(dotBind));
+        form.setDotBindHost(dotBind.selected());
         form.setDotPort(portOrZero(dotPort));
         form.setDoqEnabled(doqEnabled.getValue());
-        form.setDoqBindHost(BindHostList.selected(doqBind));
+        form.setDoqBindHost(doqBind.selected());
         form.setDoqPort(portOrZero(doqPort));
         form.setAdvertisedAddress(advertised.getText());
         form.setUpstreamResolver(resolver.getText());
@@ -639,7 +640,7 @@ public class RelayPage extends Composite {
         });
     }
 
-    private void fillRoute(RelayRouteRowDto route) {
+    private void fillRoute(RelayRouteRowGWTDTO route) {
         editingRouteId = route.getId();
         routeName.setText(text(route.getName()));
         selectMode(route.getMode());
@@ -650,14 +651,8 @@ public class RelayPage extends Composite {
         applyRouteMode();
     }
 
-    private void selectMode(String mode) {
-        String value = mode == null || mode.isEmpty() ? "RELAY" : mode;
-        for (int i = 0; i < routeMode.getItemCount(); i++) {
-            if (value.equals(routeMode.getValue(i))) {
-                routeMode.setSelectedIndex(i);
-                return;
-            }
-        }
+    private void selectMode(RelayRouteModeGWT mode) {
+        routeMode.select(mode == null ? RelayRouteModeGWT.RELAY : mode);
     }
 
     private void clearRouteForm() {
@@ -667,15 +662,15 @@ public class RelayPage extends Composite {
         upstreamPort.setText("");
         answerAddress.setText("");
         routeEnabled.setValue(true);
-        selectMode("RELAY");
+        selectMode(RelayRouteModeGWT.RELAY);
         applyRouteMode();
     }
 
     private void saveRoute() {
-        RelayRouteRowDto row = new RelayRouteRowDto();
+        RelayRouteRowGWTDTO row = new RelayRouteRowGWTDTO();
         row.setId(editingRouteId);
         row.setName(routeName.getText());
-        row.setMode(routeMode.getValue(routeMode.getSelectedIndex()));
+        row.setMode(routeMode.selected(RelayRouteModeGWT.RELAY));
         row.setUpstreamHost(upstreamHost.getText());
         row.setUpstreamPort(upstreamPort.getText());
         row.setAnswerAddress(answerAddress.getText());

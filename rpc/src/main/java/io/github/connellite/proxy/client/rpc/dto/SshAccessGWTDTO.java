@@ -11,8 +11,9 @@ import java.util.List;
 @Getter
 @Setter
 @NoArgsConstructor
-public class UpstreamProxiesPageDto implements IsSerializable {
+public class SshAccessGWTDTO implements IsSerializable {
 
-    private List<UpstreamProxyRowDto> proxies = new ArrayList<>();
-    private long selectedId;
+    private String userId;
+    private boolean sshPasswordEnabled;
+    private List<SshUserKeyRowGWTDTO> keys = new ArrayList<SshUserKeyRowGWTDTO>();
 }

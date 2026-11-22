@@ -1,41 +1,41 @@
 package io.github.connellite.proxy.client.rpc;
 
 import com.google.gwt.user.client.rpc.AsyncCallback;
-import io.github.connellite.proxy.client.rpc.dto.DashboardDnsDto;
-import io.github.connellite.proxy.client.rpc.dto.DashboardProxyDto;
-import io.github.connellite.proxy.client.rpc.dto.DirectoryListingDto;
-import io.github.connellite.proxy.client.rpc.dto.EncryptionDto;
-import io.github.connellite.proxy.client.rpc.dto.HttpStripHeadersPageDto;
-import io.github.connellite.proxy.client.rpc.dto.PasswordChangeDto;
-import io.github.connellite.proxy.client.rpc.dto.RelayPageDto;
-import io.github.connellite.proxy.client.rpc.dto.RelayQueryRowDto;
-import io.github.connellite.proxy.client.rpc.dto.RelayRouteRowDto;
-import io.github.connellite.proxy.client.rpc.dto.RelayTcpSessionRowDto;
-import io.github.connellite.proxy.client.rpc.dto.SettingsDto;
-import io.github.connellite.proxy.client.rpc.dto.SftpPageDto;
-import io.github.connellite.proxy.client.rpc.dto.SshAccessDto;
-import io.github.connellite.proxy.client.rpc.dto.SshIssuedKeyDto;
-import io.github.connellite.proxy.client.rpc.dto.TlsStatusDto;
-import io.github.connellite.proxy.client.rpc.dto.UpstreamProxiesPageDto;
-import io.github.connellite.proxy.client.rpc.dto.UpstreamProxyFormDto;
-import io.github.connellite.proxy.client.rpc.dto.UserFormDto;
-import io.github.connellite.proxy.client.rpc.dto.UsersPageDto;
+import io.github.connellite.proxy.client.rpc.dto.DashboardDnsGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.DashboardProxyGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.DirectoryListingGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.EncryptionGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.HttpStripHeadersPageGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.PasswordChangeGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.RelayPageGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.RelayQueryRowGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.RelayRouteRowGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.RelayTcpSessionRowGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.SettingsGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.SftpPageGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.SshAccessGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.SshIssuedKeyGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.TlsStatusGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.UpstreamProxiesPageGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.UpstreamProxyFormGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.UserFormGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.UsersPageGWTDTO;
 
 import java.util.List;
 
 public interface AdminServiceAsync {
 
-    void getDashboardProxy(AsyncCallback<DashboardProxyDto> callback);
+    void getDashboardProxy(AsyncCallback<DashboardProxyGWTDTO> callback);
 
-    void getDashboardDns(AsyncCallback<DashboardDnsDto> callback);
+    void getDashboardDns(AsyncCallback<DashboardDnsGWTDTO> callback);
 
-    void getUsers(AsyncCallback<UsersPageDto> callback);
+    void getUsers(AsyncCallback<UsersPageGWTDTO> callback);
 
-    void getUserForm(String id, AsyncCallback<UserFormDto> callback);
+    void getUserForm(String id, AsyncCallback<UserFormGWTDTO> callback);
 
-    void createUser(UserFormDto form, AsyncCallback<Void> callback);
+    void createUser(UserFormGWTDTO form, AsyncCallback<Void> callback);
 
-    void updateUser(UserFormDto form, AsyncCallback<Void> callback);
+    void updateUser(UserFormGWTDTO form, AsyncCallback<Void> callback);
 
     void setUserEnabled(String id, boolean enabled, AsyncCallback<Void> callback);
 
@@ -43,31 +43,31 @@ public interface AdminServiceAsync {
 
     void deleteUser(String id, AsyncCallback<Void> callback);
 
-    void getSshAccess(String userId, AsyncCallback<SshAccessDto> callback);
+    void getSshAccess(String userId, AsyncCallback<SshAccessGWTDTO> callback);
 
     void setSshPasswordEnabled(String userId, boolean enabled, AsyncCallback<Void> callback);
 
-    void issueSshKey(String userId, String comment, String passphrase, AsyncCallback<SshIssuedKeyDto> callback);
+    void issueSshKey(String userId, String comment, String passphrase, AsyncCallback<SshIssuedKeyGWTDTO> callback);
 
     void revokeSshKey(String userId, long keyId, AsyncCallback<Void> callback);
 
-    void getSftpAccess(AsyncCallback<SftpPageDto> callback);
+    void getSftpAccess(AsyncCallback<SftpPageGWTDTO> callback);
 
     void saveSftpAccess(String userId, String path, boolean readOnly, AsyncCallback<Void> callback);
 
     void removeSftpAccess(String userId, AsyncCallback<Void> callback);
 
-    void listServerDirectories(String path, AsyncCallback<DirectoryListingDto> callback);
+    void listServerDirectories(String path, AsyncCallback<DirectoryListingGWTDTO> callback);
 
     void createServerDirectory(String parentPath, String name, AsyncCallback<String> callback);
 
-    void getUpstreamProxies(AsyncCallback<UpstreamProxiesPageDto> callback);
+    void getUpstreamProxies(AsyncCallback<UpstreamProxiesPageGWTDTO> callback);
 
-    void getUpstreamProxyForm(Long id, AsyncCallback<UpstreamProxyFormDto> callback);
+    void getUpstreamProxyForm(Long id, AsyncCallback<UpstreamProxyFormGWTDTO> callback);
 
-    void createUpstreamProxy(UpstreamProxyFormDto form, AsyncCallback<Void> callback);
+    void createUpstreamProxy(UpstreamProxyFormGWTDTO form, AsyncCallback<Void> callback);
 
-    void updateUpstreamProxy(UpstreamProxyFormDto form, AsyncCallback<Void> callback);
+    void updateUpstreamProxy(UpstreamProxyFormGWTDTO form, AsyncCallback<Void> callback);
 
     void deleteUpstreamProxy(long id, AsyncCallback<Void> callback);
 
@@ -75,31 +75,31 @@ public interface AdminServiceAsync {
 
     void clearUpstreamProxySelection(AsyncCallback<Void> callback);
 
-    void getHttpStripHeaders(AsyncCallback<HttpStripHeadersPageDto> callback);
+    void getHttpStripHeaders(AsyncCallback<HttpStripHeadersPageGWTDTO> callback);
 
     void addHttpStripHeader(String name, AsyncCallback<Void> callback);
 
     void deleteHttpStripHeader(long id, AsyncCallback<Void> callback);
 
-    void getSettings(AsyncCallback<SettingsDto> callback);
+    void getSettings(AsyncCallback<SettingsGWTDTO> callback);
 
-    void saveSettings(SettingsDto form, AsyncCallback<Void> callback);
+    void saveSettings(SettingsGWTDTO form, AsyncCallback<Void> callback);
 
     void restartProxy(AsyncCallback<Void> callback);
 
-    void changePassword(PasswordChangeDto form, AsyncCallback<Void> callback);
+    void changePassword(PasswordChangeGWTDTO form, AsyncCallback<Void> callback);
 
-    void getEncryption(AsyncCallback<EncryptionDto> callback);
+    void getEncryption(AsyncCallback<EncryptionGWTDTO> callback);
 
-    void previewEncryption(EncryptionDto form, AsyncCallback<TlsStatusDto> callback);
+    void previewEncryption(EncryptionGWTDTO form, AsyncCallback<TlsStatusGWTDTO> callback);
 
-    void saveEncryption(EncryptionDto form, AsyncCallback<Void> callback);
+    void saveEncryption(EncryptionGWTDTO form, AsyncCallback<Void> callback);
 
-    void getRelayPage(AsyncCallback<RelayPageDto> callback);
+    void getRelayPage(AsyncCallback<RelayPageGWTDTO> callback);
 
-    void saveRelaySettings(RelayPageDto form, AsyncCallback<Void> callback);
+    void saveRelaySettings(RelayPageGWTDTO form, AsyncCallback<Void> callback);
 
-    void saveRelayRoute(RelayRouteRowDto row, AsyncCallback<Void> callback);
+    void saveRelayRoute(RelayRouteRowGWTDTO row, AsyncCallback<Void> callback);
 
     void deleteRelayRoute(long id, AsyncCallback<Void> callback);
 
@@ -111,7 +111,7 @@ public interface AdminServiceAsync {
 
     void deleteRelayTcpAllow(long id, AsyncCallback<Void> callback);
 
-    void getRelayQueryLog(AsyncCallback<List<RelayQueryRowDto>> callback);
+    void getRelayQueryLog(AsyncCallback<List<RelayQueryRowGWTDTO>> callback);
 
-    void getRelayTcpSessionLog(AsyncCallback<List<RelayTcpSessionRowDto>> callback);
+    void getRelayTcpSessionLog(AsyncCallback<List<RelayTcpSessionRowGWTDTO>> callback);
 }

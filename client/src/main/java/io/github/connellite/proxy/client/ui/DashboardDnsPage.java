@@ -5,7 +5,7 @@ import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.FlowPanel;
 import com.google.gwt.user.client.ui.HTML;
-import io.github.connellite.proxy.client.rpc.dto.DashboardDnsDto;
+import io.github.connellite.proxy.client.rpc.dto.DashboardDnsGWTDTO;
 import io.github.connellite.proxy.client.util.CellCopy;
 import io.github.connellite.proxy.client.util.Rpc;
 
@@ -36,20 +36,20 @@ public class DashboardDnsPage extends Composite {
     }
 
     public void refresh() {
-        shell.getRpc().getDashboardDns(new AsyncCallback<DashboardDnsDto>() {
+        shell.getRpc().getDashboardDns(new AsyncCallback<DashboardDnsGWTDTO>() {
             @Override
             public void onFailure(Throwable caught) {
                 Rpc.showFailure(caught);
             }
 
             @Override
-            public void onSuccess(DashboardDnsDto dto) {
+            public void onSuccess(DashboardDnsGWTDTO dto) {
                 render(dto);
             }
         });
     }
 
-    private void render(DashboardDnsDto dto) {
+    private void render(DashboardDnsGWTDTO dto) {
         stats.clear();
         DashboardStats.addStat(stats, "DNS", dto.isDnsRunning() ? dto.getDnsBind() : "stopped",
                 dto.isDnsRunning() ? "up" : "down");

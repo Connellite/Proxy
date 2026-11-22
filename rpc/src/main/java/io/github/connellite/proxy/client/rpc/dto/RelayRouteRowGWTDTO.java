@@ -8,12 +8,11 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-public class RelayRouteRowDto implements IsSerializable {
+public class RelayRouteRowGWTDTO implements IsSerializable {
 
     private Long id;
     private String name;
-    /** {@code RELAY} or {@code ADDRESS}. */
-    private String mode;
+    private RelayRouteModeGWT mode;
     private String upstreamHost;
     /** Empty when the relay should use the port the client connected to. */
     private String upstreamPort;

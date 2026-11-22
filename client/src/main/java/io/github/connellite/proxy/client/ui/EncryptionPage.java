@@ -9,11 +9,10 @@ import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.FlowPanel;
 import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.Label;
-import com.google.gwt.user.client.ui.ListBox;
 import com.google.gwt.user.client.ui.TextArea;
 import com.google.gwt.user.client.ui.TextBox;
-import io.github.connellite.proxy.client.rpc.dto.EncryptionDto;
-import io.github.connellite.proxy.client.rpc.dto.TlsStatusDto;
+import io.github.connellite.proxy.client.rpc.dto.EncryptionGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.TlsStatusGWTDTO;
 import io.github.connellite.proxy.client.util.BindHostList;
 import io.github.connellite.proxy.client.util.Forms;
 import io.github.connellite.proxy.client.util.PlainIntegerBox;
@@ -25,7 +24,7 @@ public class EncryptionPage extends Composite {
 
     private final CheckBox httpsEnabled = Forms.checkbox("Enable HTTPS proxy encryption");
     private final CheckBox httpsAuthRequired = Forms.checkbox("Require username/password for HTTPS proxy");
-    private final ListBox httpsBindHost = BindHostList.create();
+    private final BindHostList httpsBindHost = new BindHostList();
     private final PlainIntegerBox httpsPort = new PlainIntegerBox();
     private final TextBox serverName = new TextBox();
     private final TextArea certificateChain = new TextArea();
@@ -113,24 +112,24 @@ public class EncryptionPage extends Composite {
     }
 
     private void load() {
-        shell.getRpc().getEncryption(new AsyncCallback<EncryptionDto>() {
+        shell.getRpc().getEncryption(new AsyncCallback<EncryptionGWTDTO>() {
             @Override
             public void onFailure(Throwable caught) {
                 Rpc.showFailure(caught);
             }
 
             @Override
-            public void onSuccess(EncryptionDto dto) {
+            public void onSuccess(EncryptionGWTDTO dto) {
                 apply(dto);
             }
         });
     }
 
-    private void apply(EncryptionDto dto) {
+    private void apply(EncryptionGWTDTO dto) {
         privateKeySaved = dto.isPrivateKeySaved();
         httpsEnabled.setValue(dto.isHttpsEnabled());
         httpsAuthRequired.setValue(dto.isHttpsAuthRequired());
-        BindHostList.fill(httpsBindHost, dto.getBindHostOptions(), dto.getHttpsBindHost());
+        httpsBindHost.fill(dto.getBindHostOptions(), dto.getHttpsBindHost());
         httpsPort.setIntValue(dto.getHttpsPort());
         serverName.setText(nullToEmpty(dto.getServerName()));
         certificateChain.setText(nullToEmpty(dto.getCertificateChain()));
@@ -153,7 +152,7 @@ public class EncryptionPage extends Composite {
     }
 
     private void save() {
-        EncryptionDto dto = collect();
+        EncryptionGWTDTO dto = collect();
         shell.getRpc().saveEncryption(dto, new AsyncCallback<Void>() {
             @Override
             public void onFailure(Throwable caught) {
@@ -168,11 +167,11 @@ public class EncryptionPage extends Composite {
         });
     }
 
-    private EncryptionDto collect() {
-        EncryptionDto dto = new EncryptionDto();
+    private EncryptionGWTDTO collect() {
+        EncryptionGWTDTO dto = new EncryptionGWTDTO();
         dto.setHttpsEnabled(httpsEnabled.getValue());
         dto.setHttpsAuthRequired(httpsAuthRequired.getValue());
-        dto.setHttpsBindHost(BindHostList.selected(httpsBindHost));
+        dto.setHttpsBindHost(httpsBindHost.selected());
         Integer port = httpsPort.getIntValue();
         dto.setHttpsPort(port == null ? 0 : port);
         dto.setServerName(serverName.getText().trim());
@@ -184,7 +183,7 @@ public class EncryptionPage extends Composite {
         return dto;
     }
 
-    private void renderTls(TlsStatusDto tls) {
+    private void renderTls(TlsStatusGWTDTO tls) {
         tlsPanel.clear();
         if (tls == null || !(tls.isValidCert() || tls.isValidKey()
                 || (tls.getWarningValidation() != null && !tls.getWarningValidation().isEmpty()))) {

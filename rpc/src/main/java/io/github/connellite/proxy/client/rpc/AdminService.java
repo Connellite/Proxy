@@ -2,42 +2,42 @@ package io.github.connellite.proxy.client.rpc;
 
 import com.google.gwt.user.client.rpc.RemoteService;
 import com.google.gwt.user.client.rpc.RemoteServiceRelativePath;
-import io.github.connellite.proxy.client.rpc.dto.DashboardDnsDto;
-import io.github.connellite.proxy.client.rpc.dto.DashboardProxyDto;
-import io.github.connellite.proxy.client.rpc.dto.DirectoryListingDto;
-import io.github.connellite.proxy.client.rpc.dto.EncryptionDto;
-import io.github.connellite.proxy.client.rpc.dto.HttpStripHeadersPageDto;
-import io.github.connellite.proxy.client.rpc.dto.PasswordChangeDto;
-import io.github.connellite.proxy.client.rpc.dto.RelayPageDto;
-import io.github.connellite.proxy.client.rpc.dto.RelayQueryRowDto;
-import io.github.connellite.proxy.client.rpc.dto.RelayRouteRowDto;
-import io.github.connellite.proxy.client.rpc.dto.RelayTcpSessionRowDto;
-import io.github.connellite.proxy.client.rpc.dto.SettingsDto;
-import io.github.connellite.proxy.client.rpc.dto.SftpPageDto;
-import io.github.connellite.proxy.client.rpc.dto.SshAccessDto;
-import io.github.connellite.proxy.client.rpc.dto.SshIssuedKeyDto;
-import io.github.connellite.proxy.client.rpc.dto.TlsStatusDto;
-import io.github.connellite.proxy.client.rpc.dto.UpstreamProxiesPageDto;
-import io.github.connellite.proxy.client.rpc.dto.UpstreamProxyFormDto;
-import io.github.connellite.proxy.client.rpc.dto.UserFormDto;
-import io.github.connellite.proxy.client.rpc.dto.UsersPageDto;
+import io.github.connellite.proxy.client.rpc.dto.DashboardDnsGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.DashboardProxyGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.DirectoryListingGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.EncryptionGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.HttpStripHeadersPageGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.PasswordChangeGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.RelayPageGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.RelayQueryRowGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.RelayRouteRowGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.RelayTcpSessionRowGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.SettingsGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.SftpPageGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.SshAccessGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.SshIssuedKeyGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.TlsStatusGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.UpstreamProxiesPageGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.UpstreamProxyFormGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.UserFormGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.UsersPageGWTDTO;
 
 import java.util.List;
 
 @RemoteServiceRelativePath("rpc/admin")
 public interface AdminService extends RemoteService {
 
-    DashboardProxyDto getDashboardProxy();
+    DashboardProxyGWTDTO getDashboardProxy();
 
-    DashboardDnsDto getDashboardDns();
+    DashboardDnsGWTDTO getDashboardDns();
 
-    UsersPageDto getUsers();
+    UsersPageGWTDTO getUsers();
 
-    UserFormDto getUserForm(String id);
+    UserFormGWTDTO getUserForm(String id);
 
-    void createUser(UserFormDto form) throws AdminRpcException;
+    void createUser(UserFormGWTDTO form) throws AdminRpcException;
 
-    void updateUser(UserFormDto form) throws AdminRpcException;
+    void updateUser(UserFormGWTDTO form) throws AdminRpcException;
 
     void setUserEnabled(String id, boolean enabled);
 
@@ -45,15 +45,15 @@ public interface AdminService extends RemoteService {
 
     void deleteUser(String id) throws AdminRpcException;
 
-    SshAccessDto getSshAccess(String userId) throws AdminRpcException;
+    SshAccessGWTDTO getSshAccess(String userId) throws AdminRpcException;
 
     void setSshPasswordEnabled(String userId, boolean enabled) throws AdminRpcException;
 
-    SshIssuedKeyDto issueSshKey(String userId, String comment, String passphrase) throws AdminRpcException;
+    SshIssuedKeyGWTDTO issueSshKey(String userId, String comment, String passphrase) throws AdminRpcException;
 
     void revokeSshKey(String userId, long keyId) throws AdminRpcException;
 
-    SftpPageDto getSftpAccess();
+    SftpPageGWTDTO getSftpAccess();
 
     /** Grants or changes SFTP access. A blank {@code path} turns SFTP off for the user. */
     void saveSftpAccess(String userId, String path, boolean readOnly) throws AdminRpcException;
@@ -61,18 +61,18 @@ public interface AdminService extends RemoteService {
     void removeSftpAccess(String userId) throws AdminRpcException;
 
     /** {@code null} path lists file system roots. */
-    DirectoryListingDto listServerDirectories(String path) throws AdminRpcException;
+    DirectoryListingGWTDTO listServerDirectories(String path) throws AdminRpcException;
 
     /** Creates a subfolder {@code name} in {@code parentPath}; returns its absolute path. */
     String createServerDirectory(String parentPath, String name) throws AdminRpcException;
 
-    UpstreamProxiesPageDto getUpstreamProxies();
+    UpstreamProxiesPageGWTDTO getUpstreamProxies();
 
-    UpstreamProxyFormDto getUpstreamProxyForm(Long id);
+    UpstreamProxyFormGWTDTO getUpstreamProxyForm(Long id);
 
-    void createUpstreamProxy(UpstreamProxyFormDto form) throws AdminRpcException;
+    void createUpstreamProxy(UpstreamProxyFormGWTDTO form) throws AdminRpcException;
 
-    void updateUpstreamProxy(UpstreamProxyFormDto form) throws AdminRpcException;
+    void updateUpstreamProxy(UpstreamProxyFormGWTDTO form) throws AdminRpcException;
 
     void deleteUpstreamProxy(long id);
 
@@ -80,31 +80,31 @@ public interface AdminService extends RemoteService {
 
     void clearUpstreamProxySelection();
 
-    HttpStripHeadersPageDto getHttpStripHeaders();
+    HttpStripHeadersPageGWTDTO getHttpStripHeaders();
 
     void addHttpStripHeader(String name) throws AdminRpcException;
 
     void deleteHttpStripHeader(long id) throws AdminRpcException;
 
-    SettingsDto getSettings();
+    SettingsGWTDTO getSettings();
 
-    void saveSettings(SettingsDto form) throws AdminRpcException;
+    void saveSettings(SettingsGWTDTO form) throws AdminRpcException;
 
     void restartProxy();
 
-    void changePassword(PasswordChangeDto form) throws AdminRpcException;
+    void changePassword(PasswordChangeGWTDTO form) throws AdminRpcException;
 
-    EncryptionDto getEncryption();
+    EncryptionGWTDTO getEncryption();
 
-    TlsStatusDto previewEncryption(EncryptionDto form) throws AdminRpcException;
+    TlsStatusGWTDTO previewEncryption(EncryptionGWTDTO form) throws AdminRpcException;
 
-    void saveEncryption(EncryptionDto form) throws AdminRpcException;
+    void saveEncryption(EncryptionGWTDTO form) throws AdminRpcException;
 
-    RelayPageDto getRelayPage();
+    RelayPageGWTDTO getRelayPage();
 
-    void saveRelaySettings(RelayPageDto form) throws AdminRpcException;
+    void saveRelaySettings(RelayPageGWTDTO form) throws AdminRpcException;
 
-    void saveRelayRoute(RelayRouteRowDto row) throws AdminRpcException;
+    void saveRelayRoute(RelayRouteRowGWTDTO row) throws AdminRpcException;
 
     void deleteRelayRoute(long id) throws AdminRpcException;
 
@@ -116,7 +116,7 @@ public interface AdminService extends RemoteService {
 
     void deleteRelayTcpAllow(long id) throws AdminRpcException;
 
-    List<RelayQueryRowDto> getRelayQueryLog();
+    List<RelayQueryRowGWTDTO> getRelayQueryLog();
 
-    List<RelayTcpSessionRowDto> getRelayTcpSessionLog();
+    List<RelayTcpSessionRowGWTDTO> getRelayTcpSessionLog();
 }

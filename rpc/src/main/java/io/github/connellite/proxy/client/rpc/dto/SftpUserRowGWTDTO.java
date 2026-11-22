@@ -8,7 +8,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-public class SftpUserRowDto implements IsSerializable {
+public class SftpUserRowGWTDTO implements IsSerializable {
 
     private String userId;
     /** Enabled, not expired, within quota and has ROLE_USER — i.e. can log in over SSH. */
