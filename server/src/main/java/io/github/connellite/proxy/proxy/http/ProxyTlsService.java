@@ -2,6 +2,7 @@ package io.github.connellite.proxy.proxy.http;
 
 import io.github.connellite.proxy.dto.TlsStatus;
 import io.github.connellite.proxy.dto.AppSettings;
+import io.netty.handler.codec.http3.Http3;
 import io.netty.handler.codec.quic.QuicSslContext;
 import io.netty.handler.codec.quic.QuicSslContextBuilder;
 import io.netty.handler.ssl.ApplicationProtocolConfig;
@@ -118,6 +119,19 @@ public class ProxyTlsService {
         List<X509Certificate> certs = parseCertificates(material.certificateChain);
         return QuicSslContextBuilder.forServer(readPrivateKey(material.privateKey), null, certs.toArray(X509Certificate[]::new))
                 .applicationProtocols("doq")
+                .build();
+    }
+
+    /** QUIC context with ALPN {@code h3}. Used by DNS-over-HTTP/3. */
+    public synchronized QuicSslContext doh3ServerContext(AppSettings settings) throws Exception {
+        if (!hasCustomPair(settings)) {
+            throw new IllegalStateException(
+                    "DoH3 requires a certificate chain and private key (PEM content or file paths)");
+        }
+        TlsMaterial material = loadMaterial(settings);
+        List<X509Certificate> certs = parseCertificates(material.certificateChain);
+        return QuicSslContextBuilder.forServer(readPrivateKey(material.privateKey), null, certs.toArray(X509Certificate[]::new))
+                .applicationProtocols(Http3.supportedApplicationProtocols())
                 .build();
     }
 

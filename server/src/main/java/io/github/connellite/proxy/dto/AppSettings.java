@@ -92,6 +92,12 @@ public class AppSettings {
 
     private int relayDotPort = 853;
 
+    private boolean relayDoh3Enabled = false;
+
+    private String relayDoh3BindHost = "0.0.0.0";
+
+    private int relayDoh3Port = 443;
+
     /** Address DNS returns for relay-mode names. Empty until the operator saves one. */
     private String relayAdvertisedAddress;
 

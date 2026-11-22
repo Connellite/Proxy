@@ -75,6 +75,7 @@ public class RelayCatalog {
                 settings.isRelayDohEnabled(), settings.getRelayDohBindHost(), settings.getRelayDohPort(),
                 settings.isRelayDoqEnabled(), settings.getRelayDoqBindHost(), settings.getRelayDoqPort(),
                 settings.isRelayDotEnabled(), settings.getRelayDotBindHost(), settings.getRelayDotPort(),
+                settings.isRelayDoh3Enabled(), settings.getRelayDoh3BindHost(), settings.getRelayDoh3Port(),
                 dnsNetworks(dnsRows), tcpNetworks(tcpRows), settings.isRelayTcpUseUpstream());
     }
 

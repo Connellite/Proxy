@@ -25,7 +25,7 @@ import lombok.Setter;
 import org.hibernate.annotations.Cache;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
 
-/** One network allowed to query DNS, DoH, DoT, and DoQ. An empty table allows every address. */
+/** One network allowed to query DNS, DoH, DoH3, DoT, and DoQ. An empty table allows every address. */
 @Getter
 @Setter
 @NoArgsConstructor

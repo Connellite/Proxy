@@ -94,6 +94,7 @@ public class ProxyServerManager implements ApplicationRunner {
         startListener("DNS relay", true, errors, relayRuntime::restartDns);
         startListener("TCP relay", true, errors, relayRuntime::restartTcp);
         startListener("DoH", true, errors, relayRuntime::restartDoh);
+        startListener("DoH3", true, errors, relayRuntime::restartDoh3);
         startListener("DoT", true, errors, relayRuntime::restartDot);
         startListener("DoQ", true, errors, relayRuntime::restartDoq);
         if (errors.length() > 0) {

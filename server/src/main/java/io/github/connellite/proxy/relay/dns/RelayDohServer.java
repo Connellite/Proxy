@@ -177,7 +177,4 @@ public class RelayDohServer {
         }
         return value + "====".substring(mod);
     }
-
-    private static final class ContentTypeException extends IllegalArgumentException {
-    }
 }

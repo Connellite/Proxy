@@ -36,16 +36,19 @@ public class RelayPage extends Composite {
     private final CheckBox tcpEnabled = Forms.checkbox("Enable TCP relay");
     private final CheckBox tcpUseUpstream = Forms.checkbox("Use the selected upstream proxy");
     private final CheckBox dohEnabled = Forms.checkbox("Enable DoH");
+    private final CheckBox doh3Enabled = Forms.checkbox("Enable DoH3");
     private final CheckBox dotEnabled = Forms.checkbox("Enable DoT");
     private final CheckBox doqEnabled = Forms.checkbox("Enable DoQ");
     private final ListBox dnsBind = BindHostList.create();
     private final ListBox tcpBind = BindHostList.create();
     private final ListBox dohBind = BindHostList.create();
+    private final ListBox doh3Bind = BindHostList.create();
     private final ListBox dotBind = BindHostList.create();
     private final ListBox doqBind = BindHostList.create();
     private final PlainIntegerBox dnsPort = new PlainIntegerBox();
     private final PlainIntegerBox tcpPort = new PlainIntegerBox();
     private final PlainIntegerBox dohPort = new PlainIntegerBox();
+    private final PlainIntegerBox doh3Port = new PlainIntegerBox();
     private final PlainIntegerBox dotPort = new PlainIntegerBox();
     private final PlainIntegerBox doqPort = new PlainIntegerBox();
     private final TextBox advertised = new TextBox();
@@ -77,6 +80,8 @@ public class RelayPage extends Composite {
         tcpPort.setMax(65535);
         dohPort.setMin(1);
         dohPort.setMax(65535);
+        doh3Port.setMin(1);
+        doh3Port.setMax(65535);
         dotPort.setMin(1);
         dotPort.setMax(65535);
         doqPort.setMin(1);
@@ -141,6 +146,20 @@ public class RelayPage extends Composite {
         dohHint.setStyleName("muted");
         dohPanel.add(dohHint);
         root.add(dohPanel);
+
+        FlowPanel doh3Panel = new FlowPanel();
+        doh3Panel.setStyleName("panel form");
+        doh3Panel.add(new HTML("<h2>DNS over HTTP/3</h2>"));
+        doh3Panel.add(doh3Enabled);
+        doh3Panel.add(Forms.twoCol(
+                Forms.field("DoH3 bind address", doh3Bind,
+                        "0.0.0.0 = all interfaces; 127.0.0.1 = this PC only."),
+                Forms.field("DoH3 port", doh3Port)));
+        Label doh3Hint = new Label("GET and POST /dns-query over HTTP/3. UDP, so port 443 can be used beside the TCP relay. "
+                + "Uses the certificate from Encryption. Cannot share an address and port with DoQ.");
+        doh3Hint.setStyleName("muted");
+        doh3Panel.add(doh3Hint);
+        root.add(doh3Panel);
 
         FlowPanel dotPanel = new FlowPanel();
         dotPanel.setStyleName("panel form");
@@ -268,14 +287,17 @@ public class RelayPage extends Composite {
                 BindHostList.fill(dnsBind, result.getBindHostOptions(), result.getDnsBindHost());
                 BindHostList.fill(tcpBind, result.getBindHostOptions(), result.getTcpBindHost());
                 BindHostList.fill(dohBind, result.getBindHostOptions(), result.getDohBindHost());
+                BindHostList.fill(doh3Bind, result.getBindHostOptions(), result.getDoh3BindHost());
                 BindHostList.fill(dotBind, result.getBindHostOptions(), result.getDotBindHost());
                 BindHostList.fill(doqBind, result.getBindHostOptions(), result.getDoqBindHost());
                 dnsPort.setIntValue(result.getDnsPort());
                 tcpPort.setIntValue(result.getTcpPort());
                 dohPort.setIntValue(result.getDohPort());
+                doh3Port.setIntValue(result.getDoh3Port());
                 dotPort.setIntValue(result.getDotPort());
                 doqPort.setIntValue(result.getDoqPort());
                 dohEnabled.setValue(result.isDohEnabled());
+                doh3Enabled.setValue(result.isDoh3Enabled());
                 dotEnabled.setValue(result.isDotEnabled());
                 doqEnabled.setValue(result.isDoqEnabled());
                 advertised.setText(result.getAdvertisedAddress() == null ? "" : result.getAdvertisedAddress());
@@ -528,6 +550,9 @@ public class RelayPage extends Composite {
         form.setDohEnabled(dohEnabled.getValue());
         form.setDohBindHost(BindHostList.selected(dohBind));
         form.setDohPort(portOrZero(dohPort));
+        form.setDoh3Enabled(doh3Enabled.getValue());
+        form.setDoh3BindHost(BindHostList.selected(doh3Bind));
+        form.setDoh3Port(portOrZero(doh3Port));
         form.setDotEnabled(dotEnabled.getValue());
         form.setDotBindHost(BindHostList.selected(dotBind));
         form.setDotPort(portOrZero(dotPort));

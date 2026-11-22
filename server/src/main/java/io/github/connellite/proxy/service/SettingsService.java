@@ -191,6 +191,9 @@ public class SettingsService {
         settings.setRelayDotEnabled(ParseUtils.parseBoolean(map.get(ConfigEntry.RELAY_DOT_ENABLED), settings.isRelayDotEnabled()));
         settings.setRelayDotBindHost(ParseUtils.parseString(map.get(ConfigEntry.RELAY_DOT_BIND_HOST), settings.getRelayDotBindHost()));
         settings.setRelayDotPort(ParseUtils.parseInt(map.get(ConfigEntry.RELAY_DOT_PORT), settings.getRelayDotPort()));
+        settings.setRelayDoh3Enabled(ParseUtils.parseBoolean(map.get(ConfigEntry.RELAY_DOH3_ENABLED), settings.isRelayDoh3Enabled()));
+        settings.setRelayDoh3BindHost(ParseUtils.parseString(map.get(ConfigEntry.RELAY_DOH3_BIND_HOST), settings.getRelayDoh3BindHost()));
+        settings.setRelayDoh3Port(ParseUtils.parseInt(map.get(ConfigEntry.RELAY_DOH3_PORT), settings.getRelayDoh3Port()));
         settings.setRelayAdvertisedAddress(StringUtils.trimToNull(map.get(ConfigEntry.RELAY_ADVERTISED_ADDRESS)));
         settings.setRelayUpstreamResolver(ParseUtils.parseString(map.get(ConfigEntry.RELAY_UPSTREAM_RESOLVER), settings.getRelayUpstreamResolver()));
         settings.setOutboundTtl(ParseUtils.parseInt(map.get(ConfigEntry.OUTBOUND_TTL), settings.getOutboundTtl()));
@@ -238,6 +241,9 @@ public class SettingsService {
         entries.add(new ConfigEntry(ConfigEntry.RELAY_DOT_ENABLED, Boolean.toString(settings.isRelayDotEnabled())));
         entries.add(new ConfigEntry(ConfigEntry.RELAY_DOT_BIND_HOST, settings.getRelayDotBindHost()));
         entries.add(new ConfigEntry(ConfigEntry.RELAY_DOT_PORT, Integer.toString(settings.getRelayDotPort())));
+        entries.add(new ConfigEntry(ConfigEntry.RELAY_DOH3_ENABLED, Boolean.toString(settings.isRelayDoh3Enabled())));
+        entries.add(new ConfigEntry(ConfigEntry.RELAY_DOH3_BIND_HOST, settings.getRelayDoh3BindHost()));
+        entries.add(new ConfigEntry(ConfigEntry.RELAY_DOH3_PORT, Integer.toString(settings.getRelayDoh3Port())));
         entries.add(new ConfigEntry(ConfigEntry.RELAY_ADVERTISED_ADDRESS, settings.getRelayAdvertisedAddress()));
         entries.add(new ConfigEntry(ConfigEntry.RELAY_UPSTREAM_RESOLVER, settings.getRelayUpstreamResolver()));
         entries.add(new ConfigEntry(ConfigEntry.OUTBOUND_TTL, Integer.toString(settings.getOutboundTtl())));

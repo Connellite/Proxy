@@ -69,6 +69,11 @@
         </dependency>
         <dependency>
             <groupId>io.netty</groupId>
+            <artifactId>netty-codec-http3</artifactId>
+            <version>${netty.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
             <artifactId>netty-codec-native-quic</artifactId>
             <version>${netty.version}</version>
             <classifier>windows-x86_64</classifier>

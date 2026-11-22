@@ -590,6 +590,9 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
         page.setDohEnabled(settings.isRelayDohEnabled());
         page.setDohBindHost(settings.getRelayDohBindHost());
         page.setDohPort(settings.getRelayDohPort());
+        page.setDoh3Enabled(settings.isRelayDoh3Enabled());
+        page.setDoh3BindHost(settings.getRelayDoh3BindHost());
+        page.setDoh3Port(settings.getRelayDoh3Port());
         page.setDotEnabled(settings.isRelayDotEnabled());
         page.setDotBindHost(settings.getRelayDotBindHost());
         page.setDotPort(settings.getRelayDotPort());
@@ -600,7 +603,8 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
         page.setUpstreamResolver(settings.getRelayUpstreamResolver());
         page.setBindHostOptions(new ArrayList<>(LocalBindAddresses.optionsIncluding(
                 settings.getRelayDnsBindHost(), settings.getRelayTcpBindHost(),
-                settings.getRelayDohBindHost(), settings.getRelayDotBindHost(), settings.getRelayDoqBindHost())));
+                settings.getRelayDohBindHost(), settings.getRelayDoh3BindHost(),
+                settings.getRelayDotBindHost(), settings.getRelayDoqBindHost())));
         for (RelayDnsAllow allow : relayAllowService.dnsAllows()) {
             page.getDnsAllows().add(allowRow(allow.getId(), allow.getCidr()));
         }
@@ -627,6 +631,9 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
             settings.setRelayDohEnabled(form.isDohEnabled());
             settings.setRelayDohBindHost(form.getDohBindHost());
             settings.setRelayDohPort(form.getDohPort());
+            settings.setRelayDoh3Enabled(form.isDoh3Enabled());
+            settings.setRelayDoh3BindHost(form.getDoh3BindHost());
+            settings.setRelayDoh3Port(form.getDoh3Port());
             settings.setRelayDotEnabled(form.isDotEnabled());
             settings.setRelayDotBindHost(form.getDotBindHost());
             settings.setRelayDotPort(form.getDotPort());

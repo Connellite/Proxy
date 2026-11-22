@@ -64,6 +64,9 @@ public class ConfigEntry {
     public static final String RELAY_DOT_ENABLED = "relay_dot_enabled";
     public static final String RELAY_DOT_BIND_HOST = "relay_dot_bind_host";
     public static final String RELAY_DOT_PORT = "relay_dot_port";
+    public static final String RELAY_DOH3_ENABLED = "relay_doh3_enabled";
+    public static final String RELAY_DOH3_BIND_HOST = "relay_doh3_bind_host";
+    public static final String RELAY_DOH3_PORT = "relay_doh3_port";
     public static final String RELAY_ADVERTISED_ADDRESS = "relay_advertised_address";
     public static final String RELAY_UPSTREAM_RESOLVER = "relay_upstream_resolver";
     /** Outbound IP TTL (0 = OS default, 1–255 = override on proxy→direct/upstream sockets). */

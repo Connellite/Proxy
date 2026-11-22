@@ -39,7 +39,7 @@ class RelayNamesTest {
         RelaySnapshot.Route mask = new RelaySnapshot.Route("*.example.ru", RelayRouteMode.ADDRESS, null, null, relay);
         RelaySnapshot snapshot = new RelaySnapshot(List.of(mask, exact), relay, "1.1.1.1", 53,
                 true, "0.0.0.0", 53, true, "0.0.0.0", 443,
-                false, "0.0.0.0", 8443, false, "0.0.0.0", 853, false, "0.0.0.0", 853,
+                false, "0.0.0.0", 8443, false, "0.0.0.0", 853, false, "0.0.0.0", 853, false, "0.0.0.0", 443,
                 RelayNetworks.everyone(), RelayNetworks.everyone(), false);
         assertThat(snapshot.match("ip.example.ru.").getMode()).isEqualTo(RelayRouteMode.RELAY);
         assertThat(snapshot.match("other.example.ru").getMode()).isEqualTo(RelayRouteMode.ADDRESS);

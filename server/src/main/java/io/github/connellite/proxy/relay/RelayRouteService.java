@@ -43,6 +43,8 @@ public class RelayRouteService {
                 current.getRelayDoqPort(), form.isRelayDoqEnabled(), form.getRelayDoqBindHost(), form.getRelayDoqPort());
         boolean dotRestart = listenerChanged(current.isRelayDotEnabled(), current.getRelayDotBindHost(),
                 current.getRelayDotPort(), form.isRelayDotEnabled(), form.getRelayDotBindHost(), form.getRelayDotPort());
+        boolean doh3Restart = listenerChanged(current.isRelayDoh3Enabled(), current.getRelayDoh3BindHost(),
+                current.getRelayDoh3Port(), form.isRelayDoh3Enabled(), form.getRelayDoh3BindHost(), form.getRelayDoh3Port());
         current.setRelayDnsEnabled(form.isRelayDnsEnabled());
         current.setRelayDnsBindHost(form.getRelayDnsBindHost());
         current.setRelayDnsPort(form.getRelayDnsPort());
@@ -59,10 +61,13 @@ public class RelayRouteService {
         current.setRelayDotEnabled(form.isRelayDotEnabled());
         current.setRelayDotBindHost(form.getRelayDotBindHost());
         current.setRelayDotPort(form.getRelayDotPort());
+        current.setRelayDoh3Enabled(form.isRelayDoh3Enabled());
+        current.setRelayDoh3BindHost(form.getRelayDoh3BindHost());
+        current.setRelayDoh3Port(form.getRelayDoh3Port());
         current.setRelayAdvertisedAddress(StringUtils.trimToNull(form.getRelayAdvertisedAddress()));
         current.setRelayUpstreamResolver(form.getRelayUpstreamResolver());
         settingsService.save(current);
-        afterCommit(dnsRestart, tcpRestart, dohRestart, doqRestart, dotRestart);
+        afterCommit(dnsRestart, tcpRestart, dohRestart, doqRestart, dotRestart, doh3Restart);
     }
 
     @Transactional
@@ -115,7 +120,7 @@ public class RelayRouteService {
         row.setAnswerAddress(answer);
         row.setEnabled(form.isEnabled());
         RelayRoute saved = repository.save(row);
-        afterCommit(false, false, false, false, false);
+        afterCommit(false, false, false, false, false, false);
         return saved;
     }
 
@@ -125,10 +130,11 @@ public class RelayRouteService {
             throw new IllegalArgumentException("Route not found");
         }
         repository.deleteById(id);
-        afterCommit(false, false, false, false, false);
+        afterCommit(false, false, false, false, false, false);
     }
 
-    private void afterCommit(boolean dnsRestart, boolean tcpRestart, boolean dohRestart, boolean doqRestart, boolean dotRestart) {
+    private void afterCommit(boolean dnsRestart, boolean tcpRestart, boolean dohRestart, boolean doqRestart,
+                             boolean dotRestart, boolean doh3Restart) {
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {
@@ -148,6 +154,9 @@ public class RelayRouteService {
                 if (dotRestart) {
                     runtime.restartDot();
                 }
+                if (doh3Restart) {
+                    runtime.restartDoh3();
+                }
             }
         });
     }
@@ -163,6 +172,8 @@ public class RelayRouteService {
         form.setRelayDoqBindHost(requiredHost(form.getRelayDoqBindHost(), "DoQ bind address"));
         form.setRelayDotPort(HostPort.parsePort(Integer.toString(form.getRelayDotPort())));
         form.setRelayDotBindHost(requiredHost(form.getRelayDotBindHost(), "DoT bind address"));
+        form.setRelayDoh3Port(HostPort.parsePort(Integer.toString(form.getRelayDoh3Port())));
+        form.setRelayDoh3BindHost(requiredHost(form.getRelayDoh3BindHost(), "DoH3 bind address"));
         if (sameEndpoint(form.getRelayTcpBindHost(), form.getRelayTcpPort(),
                 form.getRelayDohBindHost(), form.getRelayDohPort())) {
             throw new IllegalArgumentException("DoH and the TCP relay cannot listen on the same address and port");
@@ -172,6 +183,10 @@ public class RelayRouteService {
                 || sameEndpoint(form.getRelayDohBindHost(), form.getRelayDohPort(),
                 form.getRelayDotBindHost(), form.getRelayDotPort())) {
             throw new IllegalArgumentException("DoT cannot listen on the same address and port as DoH or the TCP relay");
+        }
+        if (sameEndpoint(form.getRelayDoh3BindHost(), form.getRelayDoh3Port(),
+                form.getRelayDoqBindHost(), form.getRelayDoqPort())) {
+            throw new IllegalArgumentException("DoH3 and DoQ cannot listen on the same address and port");
         }
         HostPort.parse(form.getRelayUpstreamResolver(), 53);
         if (StringUtils.isNotBlank(form.getRelayAdvertisedAddress())
