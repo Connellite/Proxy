@@ -27,6 +27,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.net.InetSocketAddress;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Reads SNI and opens the upstream connection. One instance per accepted socket.
@@ -39,6 +40,7 @@ final class RelayTcpAcceptHandler extends AbstractSniHandler<InetSocketAddress> 
     private final ProxyProperties properties;
     private final OutboundConnector outboundConnector;
     private final UpstreamProxyService upstreamProxyService;
+    private final AtomicBoolean connectStarted = new AtomicBoolean();
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
@@ -95,6 +97,10 @@ final class RelayTcpAcceptHandler extends AbstractSniHandler<InetSocketAddress> 
 
     @Override
     protected void onLookupComplete(ChannelHandlerContext ctx, String hostname, Future<InetSocketAddress> future) {
+        // The SNI handler can complete a lookup more than once for the same socket.
+        if (!connectStarted.compareAndSet(false, true)) {
+            return;
+        }
         if (!future.isSuccess()) {
             ctx.close();
             return;
@@ -139,6 +145,7 @@ final class RelayTcpAcceptHandler extends AbstractSniHandler<InetSocketAddress> 
         outboundConnector.openTunnel(ctx.channel(), host, port, new TunnelCallback() {
             @Override
             public void onSuccess(Channel outbound) {
+                outbound.config().setAutoRead(false);
                 outbound.pipeline().addLast(new IdleStateHandler(
                         0, 0, properties.getIdleTimeoutSeconds(), TimeUnit.SECONDS));
                 outbound.pipeline().addLast(new IdleCloseHandler());
