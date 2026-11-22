@@ -77,9 +77,6 @@ public class RelayDnsServer {
                     protected void channelRead0(ChannelHandlerContext ctx, DatagramPacket packet) {
                         byte[] query = new byte[packet.content().readableBytes()];
                         packet.content().readBytes(query);
-                        if (!catalog.current().dnsAllows(packet.sender().getAddress())) {
-                            return;
-                        }
                         exchange(query, packet.sender(), wire -> {
                             ByteBuf buf = Unpooled.wrappedBuffer(wire);
                             ctx.writeAndFlush(new DatagramPacket(buf, packet.sender()));
@@ -100,16 +97,14 @@ public class RelayDnsServer {
                                 msg.readBytes(query);
                                 InetSocketAddress client = ctx.channel().remoteAddress() instanceof InetSocketAddress remote
                                         ? remote : null;
-                                if (!catalog.current().dnsAllows(client == null ? null : client.getAddress())) {
-                                    ctx.close();
-                                    return;
-                                }
-                                exchange(query, client, wire -> {
+                                if (!exchange(query, client, wire -> {
                                     ByteBuf out = ctx.alloc().buffer(2 + wire.length);
                                     out.writeShort(wire.length);
                                     out.writeBytes(wire);
                                     ctx.writeAndFlush(out).addListener(future -> ctx.close());
-                                });
+                                })) {
+                                    ctx.close();
+                                }
                             }
                         });
                     }
@@ -133,20 +128,24 @@ public class RelayDnsServer {
         }
     }
 
-    public void exchange(byte[] query, InetSocketAddress client, Consumer<byte[]> send) {
+    /** @return {@code false} when the client address is not on the DNS allowlist. Nothing is sent or logged. */
+    public boolean exchange(byte[] query, InetSocketAddress client, Consumer<byte[]> send) {
+        if (!catalog.current().dnsAllows(client == null ? null : client.getAddress())) {
+            return false;
+        }
         long started = System.nanoTime();
         Message message;
         try {
             message = new Message(query);
         } catch (Exception ex) {
             queryLog.record(client, "", "", "FORMERR", "FORMERR", started);
-            return;
+            return true;
         }
         Record question = message.getQuestion();
         if (question == null) {
             send.accept(error(message, Rcode.FORMERR));
             queryLog.record(client, "", "", "FORMERR", "FORMERR", started);
-            return;
+            return true;
         }
         String name = question.getName().toString(true);
         String type = Type.string(question.getType());
@@ -156,12 +155,12 @@ public class RelayDnsServer {
         RelayAnswers decision = RelayAnswers.decide(route, question.getType(), relayAddress);
         if (decision == RelayAnswers.FORWARD) {
             forward(snapshot, message, question, client, started, send);
-            return;
+            return true;
         }
         if (decision == RelayAnswers.SERVFAIL || route == null) {
             send.accept(error(message, Rcode.SERVFAIL));
             queryLog.record(client, name, type, "SERVFAIL", "SERVFAIL", started);
-            return;
+            return true;
         }
         InetAddress address = route.getMode() == RelayRouteMode.RELAY ? relayAddress : route.getAnswerAddress();
         boolean answered = decision == RelayAnswers.ANSWER && address != null;
@@ -173,6 +172,7 @@ public class RelayDnsServer {
         } else {
             queryLog.record(client, name, type, "Address", address.getHostAddress(), started);
         }
+        return true;
     }
 
     private void forward(RelaySnapshot snapshot, Message query, Record question, InetSocketAddress client,
