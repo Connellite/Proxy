@@ -480,7 +480,7 @@
                                 <buildArg>--add-opens=java.base/java.lang=ALL-UNNAMED</buildArg>
                                 <buildArg>--add-opens=java.base/java.util=ALL-UNNAMED</buildArg>
                                 <buildArg>--add-opens=java.base/sun.nio.ch=ALL-UNNAMED</buildArg>
-                                <buildArg>--initialize-at-run-time=java.awt,sun.awt,sun.java2d,sun.font,sun.swing,org.apache.sshd.common.digest.BuiltinDigests,org.bouncycastle.jcajce.provider.drbg</buildArg>
+                                <buildArg>--initialize-at-run-time=java.awt,sun.awt,sun.java2d,sun.font,sun.swing,org.apache.sshd.common.digest.BuiltinDigests,org.bouncycastle.jcajce.provider.drbg,com.github.benmanes.caffeine.cache.SSMS</buildArg>
                                 <buildArg>-H:+UnlockExperimentalVMOptions</buildArg>
                                 <buildArg>-H:-AddAllFileSystemProviders</buildArg>
                                 <buildArg>--features=io.github.connellite.proxy.config.feature.BouncyCastleFeature</buildArg>
