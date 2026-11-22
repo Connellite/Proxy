@@ -11,12 +11,7 @@ import io.github.connellite.proxy.relay.UpstreamResolver;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.ByteBuf;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
-import io.netty.channel.EventLoopGroup;
-import io.netty.channel.MultiThreadIoEventLoopGroup;
+import io.netty.channel.*;
 import io.netty.channel.nio.NioIoHandler;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
@@ -141,7 +136,7 @@ public class RelayTcpServer {
                             QuietCloseHandlerAdapter.installLast(ch.pipeline());
                         }
                     });
-            bootstrap.connect(target).addListener((io.netty.channel.ChannelFutureListener) connect -> {
+            bootstrap.connect(target).addListener((ChannelFutureListener) connect -> {
                 if (!connect.isSuccess()) {
                     ctx.close();
                     return;

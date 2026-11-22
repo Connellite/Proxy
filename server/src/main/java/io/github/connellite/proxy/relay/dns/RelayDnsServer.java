@@ -37,6 +37,7 @@ import org.xbill.DNS.Section;
 import org.xbill.DNS.SimpleResolver;
 import org.xbill.DNS.Type;
 
+import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.concurrent.CompletableFuture;
@@ -218,7 +219,7 @@ public class RelayDnsServer {
         if (address != null) {
             try {
                 Name name = question.getName();
-                Record answer = address instanceof java.net.Inet4Address
+                Record answer = address instanceof Inet4Address
                         ? new ARecord(name, DClass.IN, RelaySnapshot.ANSWER_TTL_SECONDS, address)
                         : new AAAARecord(name, DClass.IN, RelaySnapshot.ANSWER_TTL_SECONDS, address);
                 response.addRecord(answer, Section.ANSWER);
