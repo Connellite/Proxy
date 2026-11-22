@@ -193,7 +193,7 @@ public class RelayPage extends Composite {
             }
         });
         routesPanel.add(Forms.formActions(add));
-        tableHost.setStyleName("table-wrap");
+        tableHost.setVisible(false);
         routesPanel.add(tableHost);
         root.add(routesPanel);
 
@@ -358,6 +358,13 @@ public class RelayPage extends Composite {
 
     private void render(RelayPageDto page) {
         tableHost.clear();
+        if (page.getRoutes() == null || page.getRoutes().isEmpty()) {
+            tableHost.setStyleName("");
+            tableHost.setVisible(false);
+            return;
+        }
+        tableHost.setStyleName("table-wrap");
+        tableHost.setVisible(true);
         FlexTable table = new FlexTable();
         table.setStyleName("users-table");
         String[] headers = {"Name", "Mode", "Upstream", "Answer", "Enabled", ""};
@@ -370,8 +377,7 @@ public class RelayPage extends Composite {
             table.getCellFormatter().getElement(0, i).getStyle().setProperty("color", "#6b645a");
         }
         int row = 1;
-        if (page.getRoutes() != null) {
-            for (RelayRouteRowDto route : page.getRoutes()) {
+        for (RelayRouteRowDto route : page.getRoutes()) {
                 table.setText(row, 0, route.getName());
                 table.setText(row, 1, "ADDRESS".equals(route.getMode()) ? "Address" : "Relay");
                 String upstream = route.getUpstreamHost() == null ? "" : route.getUpstreamHost();
@@ -393,7 +399,6 @@ public class RelayPage extends Composite {
                 actions.add(remove);
                 table.setWidget(row, 5, actions);
                 row++;
-            }
         }
         tableHost.add(table);
     }
@@ -421,7 +426,7 @@ public class RelayPage extends Composite {
             return;
         }
         FlexTable table = new FlexTable();
-        table.setStyleName("users-table");
+        table.setStyleName("users-table query-log");
         String[] headers = {"Time", "Client", "Name", "Type", "Result", "Answer", "Elapsed"};
         for (int i = 0; i < headers.length; i++) {
             table.setText(0, i, headers[i]);

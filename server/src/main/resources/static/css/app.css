@@ -168,6 +168,15 @@ table.users-table {
   border-spacing: 0;
   min-width: 920px;
 }
+table.users-table.query-log {
+  table-layout: auto;
+  width: max-content;
+  min-width: 100%;
+}
+table.users-table.query-log th,
+table.users-table.query-log td {
+  white-space: nowrap;
+}
 .users-table .col-user { width: 14%; }
 .users-table .col-status { width: 10%; }
 .users-table .col-conn { width: 9%; }
