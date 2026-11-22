@@ -60,7 +60,21 @@ public class SettingsService {
             throw new IllegalArgumentException("Outbound TTL must be between 0 and 255 (0 = OS default)");
         }
         repository.saveAll(toEntries(settings));
-        invalidateAfterCompletion();
+        // Publish before other afterCommit callbacks. They restart listeners and must not
+        // read the previous cache; afterCompletion still drops it so the next get() loads the database.
+        AppSettings committed = appSettingsMapper.copy(settings);
+        long seen = generation;
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                store(seen, committed);
+            }
+
+            @Override
+            public void afterCompletion(int status) {
+                invalidate();
+            }
+        });
         return settings;
     }
 
