@@ -181,6 +181,7 @@ public class SettingsService {
         settings.setRelayTcpEnabled(ParseUtils.parseBoolean(map.get(ConfigEntry.RELAY_TCP_ENABLED), settings.isRelayTcpEnabled()));
         settings.setRelayTcpBindHost(ParseUtils.parseString(map.get(ConfigEntry.RELAY_TCP_BIND_HOST), settings.getRelayTcpBindHost()));
         settings.setRelayTcpPort(ParseUtils.parseInt(map.get(ConfigEntry.RELAY_TCP_PORT), settings.getRelayTcpPort()));
+        settings.setRelayTcpUseUpstream(ParseUtils.parseBoolean(map.get(ConfigEntry.RELAY_TCP_USE_UPSTREAM), settings.isRelayTcpUseUpstream()));
         settings.setRelayDohEnabled(ParseUtils.parseBoolean(map.get(ConfigEntry.RELAY_DOH_ENABLED), settings.isRelayDohEnabled()));
         settings.setRelayDohBindHost(ParseUtils.parseString(map.get(ConfigEntry.RELAY_DOH_BIND_HOST), settings.getRelayDohBindHost()));
         settings.setRelayDohPort(ParseUtils.parseInt(map.get(ConfigEntry.RELAY_DOH_PORT), settings.getRelayDohPort()));
@@ -224,6 +225,7 @@ public class SettingsService {
         entries.add(new ConfigEntry(ConfigEntry.RELAY_TCP_ENABLED, Boolean.toString(settings.isRelayTcpEnabled())));
         entries.add(new ConfigEntry(ConfigEntry.RELAY_TCP_BIND_HOST, settings.getRelayTcpBindHost()));
         entries.add(new ConfigEntry(ConfigEntry.RELAY_TCP_PORT, Integer.toString(settings.getRelayTcpPort())));
+        entries.add(new ConfigEntry(ConfigEntry.RELAY_TCP_USE_UPSTREAM, Boolean.toString(settings.isRelayTcpUseUpstream())));
         entries.add(new ConfigEntry(ConfigEntry.RELAY_DOH_ENABLED, Boolean.toString(settings.isRelayDohEnabled())));
         entries.add(new ConfigEntry(ConfigEntry.RELAY_DOH_BIND_HOST, settings.getRelayDohBindHost()));
         entries.add(new ConfigEntry(ConfigEntry.RELAY_DOH_PORT, Integer.toString(settings.getRelayDohPort())));

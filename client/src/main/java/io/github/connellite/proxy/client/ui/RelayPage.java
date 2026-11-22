@@ -32,6 +32,7 @@ public class RelayPage extends Composite {
     private final AppShell shell;
     private final CheckBox dnsEnabled = Forms.checkbox("Enable DNS");
     private final CheckBox tcpEnabled = Forms.checkbox("Enable TCP relay");
+    private final CheckBox tcpUseUpstream = Forms.checkbox("Use the selected upstream proxy");
     private final CheckBox dohEnabled = Forms.checkbox("Enable DoH");
     private final CheckBox doqEnabled = Forms.checkbox("Enable DoQ");
     private final ListBox dnsBind = BindHostList.create();
@@ -150,6 +151,7 @@ public class RelayPage extends Composite {
         tcpPanel.setStyleName("panel form");
         tcpPanel.add(new HTML("<h2>TCP relay</h2>"));
         tcpPanel.add(tcpEnabled);
+        tcpPanel.add(tcpUseUpstream);
         tcpPanel.add(Forms.twoCol(
                 Forms.field("TCP bind address", tcpBind,
                         "0.0.0.0 = all interfaces; 127.0.0.1 = this PC only."),
@@ -236,6 +238,7 @@ public class RelayPage extends Composite {
             public void onSuccess(RelayPageDto result) {
                 dnsEnabled.setValue(result.isDnsEnabled());
                 tcpEnabled.setValue(result.isTcpEnabled());
+                tcpUseUpstream.setValue(result.isTcpUseUpstream());
                 BindHostList.fill(dnsBind, result.getBindHostOptions(), result.getDnsBindHost());
                 BindHostList.fill(tcpBind, result.getBindHostOptions(), result.getTcpBindHost());
                 BindHostList.fill(dohBind, result.getBindHostOptions(), result.getDohBindHost());
@@ -456,6 +459,7 @@ public class RelayPage extends Composite {
         form.setDnsBindHost(BindHostList.selected(dnsBind));
         form.setDnsPort(portOrZero(dnsPort));
         form.setTcpEnabled(tcpEnabled.getValue());
+        form.setTcpUseUpstream(tcpUseUpstream.getValue());
         form.setTcpBindHost(BindHostList.selected(tcpBind));
         form.setTcpPort(portOrZero(tcpPort));
         form.setDohEnabled(dohEnabled.getValue());

@@ -71,6 +71,9 @@ public class AppSettings {
 
     private int relayTcpPort = 443;
 
+    /** When true, new TCP relay connections use the selected upstream proxy if one is set. */
+    private boolean relayTcpUseUpstream = false;
+
     private boolean relayDohEnabled = false;
 
     private String relayDohBindHost = "0.0.0.0";

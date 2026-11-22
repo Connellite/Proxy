@@ -19,6 +19,7 @@ public class RelayPageDto implements IsSerializable {
     private boolean tcpEnabled;
     private String tcpBindHost;
     private int tcpPort;
+    private boolean tcpUseUpstream;
     private boolean dohEnabled;
     private String dohBindHost;
     private int dohPort;

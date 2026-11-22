@@ -586,6 +586,7 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
         page.setTcpEnabled(settings.isRelayTcpEnabled());
         page.setTcpBindHost(settings.getRelayTcpBindHost());
         page.setTcpPort(settings.getRelayTcpPort());
+        page.setTcpUseUpstream(settings.isRelayTcpUseUpstream());
         page.setDohEnabled(settings.isRelayDohEnabled());
         page.setDohBindHost(settings.getRelayDohBindHost());
         page.setDohPort(settings.getRelayDohPort());
@@ -619,6 +620,7 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
             settings.setRelayTcpEnabled(form.isTcpEnabled());
             settings.setRelayTcpBindHost(form.getTcpBindHost());
             settings.setRelayTcpPort(form.getTcpPort());
+            settings.setRelayTcpUseUpstream(form.isTcpUseUpstream());
             settings.setRelayDohEnabled(form.isDohEnabled());
             settings.setRelayDohBindHost(form.getDohBindHost());
             settings.setRelayDohPort(form.getDohPort());

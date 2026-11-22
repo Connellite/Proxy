@@ -8,6 +8,9 @@ import io.github.connellite.proxy.proxy.RelayHandler;
 import io.github.connellite.proxy.relay.RelayCatalog;
 import io.github.connellite.proxy.relay.RelaySnapshot;
 import io.github.connellite.proxy.relay.UpstreamResolver;
+import io.github.connellite.proxy.proxy.outbound.OutboundConnector;
+import io.github.connellite.proxy.proxy.outbound.TunnelCallback;
+import io.github.connellite.proxy.service.UpstreamProxyService;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
@@ -43,6 +46,8 @@ public class RelayTcpServer {
 
     private final RelayCatalog catalog;
     private final ProxyProperties properties;
+    private final OutboundConnector outboundConnector;
+    private final UpstreamProxyService upstreamProxyService;
 
     private EventLoopGroup bossGroup;
     private EventLoopGroup workerGroup;
@@ -112,6 +117,10 @@ public class RelayTcpServer {
                     ? route.getUpstreamPort()
                     : ((InetSocketAddress) ctx.channel().localAddress()).getPort();
             String host = route.getUpstreamHost();
+            if (snapshot.tcpUseUpstream() && upstreamProxyService.currentSelected().isPresent()) {
+                promise.setSuccess(InetSocketAddress.createUnresolved(host, port));
+                return promise;
+            }
             UpstreamResolver.resolve(host, snapshot.resolverHost(), snapshot.resolverPort(),
                             properties.getConnectTimeoutMs())
                     .whenComplete((address, error) -> {
@@ -131,6 +140,10 @@ public class RelayTcpServer {
                 return;
             }
             InetSocketAddress target = future.getNow();
+            if (target.isUnresolved()) {
+                connectViaUpstream(ctx, target.getHostString(), target.getPort());
+                return;
+            }
             Bootstrap bootstrap = new Bootstrap().group(ctx.channel().eventLoop())
                     .channel(NioSocketChannel.class)
                     .option(ChannelOption.AUTO_READ, false)
@@ -157,6 +170,28 @@ public class RelayTcpServer {
                 ctx.pipeline().remove(AcceptHandler.this);
                 upstream.read();
                 ctx.read();
+            });
+        }
+
+        private void connectViaUpstream(ChannelHandlerContext ctx, String host, int port) {
+            outboundConnector.openTunnel(ctx.channel(), host, port, new TunnelCallback() {
+                @Override
+                public void onSuccess(Channel outbound) {
+                    outbound.pipeline().addLast(new IdleStateHandler(
+                            0, 0, properties.getIdleTimeoutSeconds(), TimeUnit.SECONDS));
+                    outbound.pipeline().addLast(new IdleCloseHandler());
+                    outbound.pipeline().addLast(new RelayHandler(ctx.channel(), null));
+                    QuietCloseHandlerAdapter.installLast(outbound.pipeline());
+                    ctx.pipeline().addLast(new RelayHandler(outbound, null));
+                    ctx.pipeline().remove(AcceptHandler.this);
+                    outbound.read();
+                    ctx.read();
+                }
+
+                @Override
+                public void onFailure(Throwable cause) {
+                    ctx.close();
+                }
             });
         }
     }

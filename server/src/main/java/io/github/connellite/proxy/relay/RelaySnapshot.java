@@ -27,7 +27,8 @@ public record RelaySnapshot(List<Route> routes,
                             String doqBindHost,
                             int doqPort,
                             RelayNetworks dnsAllow,
-                            RelayNetworks tcpAllow) {
+                            RelayNetworks tcpAllow,
+                            boolean tcpUseUpstream) {
 
     public static final int ANSWER_TTL_SECONDS = 30;
     public static final int MAX_FORWARDS = 32;
@@ -37,7 +38,7 @@ public record RelaySnapshot(List<Route> routes,
                          boolean tcpEnabled, String tcpBindHost, int tcpPort,
                          boolean dohEnabled, String dohBindHost, int dohPort,
                          boolean doqEnabled, String doqBindHost, int doqPort,
-                         RelayNetworks dnsAllow, RelayNetworks tcpAllow) {
+                         RelayNetworks dnsAllow, RelayNetworks tcpAllow, boolean tcpUseUpstream) {
         this.routes = List.copyOf(routes);
         this.advertisedAddress = advertisedAddress;
         this.resolverHost = resolverHost;
@@ -56,13 +57,14 @@ public record RelaySnapshot(List<Route> routes,
         this.doqPort = doqPort;
         this.dnsAllow = dnsAllow == null ? RelayNetworks.everyone() : dnsAllow;
         this.tcpAllow = tcpAllow == null ? RelayNetworks.everyone() : tcpAllow;
+        this.tcpUseUpstream = tcpUseUpstream;
     }
 
     public static RelaySnapshot defaults() {
         return new RelaySnapshot(List.of(), null, "1.1.1.1", 53,
                 false, "0.0.0.0", 53, false, "0.0.0.0", 443,
                 false, "0.0.0.0", 8443, false, "0.0.0.0", 853,
-                RelayNetworks.everyone(), RelayNetworks.everyone());
+                RelayNetworks.everyone(), RelayNetworks.everyone(), false);
     }
 
     /**

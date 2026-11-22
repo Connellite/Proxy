@@ -54,6 +54,7 @@ public class ConfigEntry {
     public static final String RELAY_TCP_ENABLED = "relay_tcp_enabled";
     public static final String RELAY_TCP_BIND_HOST = "relay_tcp_bind_host";
     public static final String RELAY_TCP_PORT = "relay_tcp_port";
+    public static final String RELAY_TCP_USE_UPSTREAM = "relay_tcp_use_upstream";
     public static final String RELAY_DOH_ENABLED = "relay_doh_enabled";
     public static final String RELAY_DOH_BIND_HOST = "relay_doh_bind_host";
     public static final String RELAY_DOH_PORT = "relay_doh_port";

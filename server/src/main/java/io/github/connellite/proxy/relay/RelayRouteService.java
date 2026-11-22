@@ -47,6 +47,7 @@ public class RelayRouteService {
         current.setRelayTcpEnabled(form.isRelayTcpEnabled());
         current.setRelayTcpBindHost(form.getRelayTcpBindHost());
         current.setRelayTcpPort(form.getRelayTcpPort());
+        current.setRelayTcpUseUpstream(form.isRelayTcpUseUpstream());
         current.setRelayDohEnabled(form.isRelayDohEnabled());
         current.setRelayDohBindHost(form.getRelayDohBindHost());
         current.setRelayDohPort(form.getRelayDohPort());
