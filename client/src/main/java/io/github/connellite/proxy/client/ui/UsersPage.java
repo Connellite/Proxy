@@ -13,6 +13,7 @@ import com.google.gwt.user.client.ui.Label;
 import io.github.connellite.proxy.client.rpc.dto.UserRowDto;
 import io.github.connellite.proxy.client.rpc.dto.UsersPageDto;
 import io.github.connellite.proxy.client.util.AutoRefresh;
+import io.github.connellite.proxy.client.util.CellCopy;
 import io.github.connellite.proxy.client.util.Formatters;
 import io.github.connellite.proxy.client.util.Rpc;
 
@@ -146,6 +147,7 @@ public class UsersPage extends Composite {
             table.getCellFormatter().setStyleName(1, 0, "empty");
         }
 
+        CellCopy.install(table);
         tableHost.add(table);
     }
 

@@ -17,6 +17,7 @@ import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.TextBox;
 import io.github.connellite.proxy.client.rpc.dto.SftpPageDto;
 import io.github.connellite.proxy.client.rpc.dto.SftpUserRowDto;
+import io.github.connellite.proxy.client.util.CellCopy;
 import io.github.connellite.proxy.client.util.Rpc;
 
 /**
@@ -99,6 +100,7 @@ public class SftpPage extends Composite {
             table.getFlexCellFormatter().setColSpan(1, 0, headers.length);
             table.getCellFormatter().setStyleName(1, 0, "empty");
         }
+        CellCopy.install(table);
         tableHost.add(table);
     }
 

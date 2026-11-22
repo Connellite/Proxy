@@ -1,24 +1,24 @@
 package io.github.connellite.proxy.client.ui;
 
-import com.google.gwt.user.client.rpc.AsyncCallback;
+import com.google.gwt.event.dom.client.ClickEvent;
+import com.google.gwt.event.dom.client.ClickHandler;
+import com.google.gwt.user.client.ui.Anchor;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.FlowPanel;
 import com.google.gwt.user.client.ui.HTML;
-import com.google.gwt.user.client.ui.Label;
-import io.github.connellite.proxy.client.rpc.dto.DashboardDto;
 import io.github.connellite.proxy.client.util.AutoRefresh;
-import io.github.connellite.proxy.client.util.Formatters;
-import io.github.connellite.proxy.client.util.Rpc;
 
+/** Dashboard shell with Proxy and DNS tabs. */
 public class DashboardPage extends Composite {
 
-    private final AppShell shell;
-    private final FlowPanel stats = new FlowPanel();
-    private final Label errorLabel = new Label();
-    private final HTML zeroOmega = new HTML();
+    private final DashboardProxyPage proxyPage;
+    private final DashboardDnsPage dnsPage;
+    private final Anchor proxyTab = new Anchor("Proxy");
+    private final Anchor dnsTab = new Anchor("DNS");
 
     public DashboardPage(AppShell shell) {
-        this.shell = shell;
+        proxyPage = new DashboardProxyPage(shell);
+        dnsPage = new DashboardDnsPage(shell);
 
         FlowPanel root = new FlowPanel();
         FlowPanel header = new FlowPanel();
@@ -33,81 +33,53 @@ public class DashboardPage extends Composite {
         shell.attachRefresh(refresh);
         header.add(refresh);
 
-        stats.setStyleName("grid stats");
-        errorLabel.setStyleName("flash err");
-        errorLabel.setVisible(false);
-
-        FlowPanel zeroPanel = new FlowPanel();
-        zeroPanel.setStyleName("panel");
-        zeroPanel.add(new HTML("<h2>ZeroOmega</h2>"));
-        zeroPanel.add(zeroOmega);
+        FlowPanel tabs = new FlowPanel();
+        tabs.setStyleName("dash-tabs");
+        proxyTab.setHref("#");
+        dnsTab.setHref("#");
+        proxyTab.addClickHandler(new ClickHandler() {
+            @Override
+            public void onClick(ClickEvent event) {
+                event.preventDefault();
+                showProxy();
+            }
+        });
+        dnsTab.addClickHandler(new ClickHandler() {
+            @Override
+            public void onClick(ClickEvent event) {
+                event.preventDefault();
+                showDns();
+            }
+        });
+        tabs.add(proxyTab);
+        tabs.add(dnsTab);
 
         root.add(header);
-        root.add(stats);
-        root.add(errorLabel);
-        root.add(zeroPanel);
+        root.add(tabs);
+        root.add(proxyPage);
+        root.add(dnsPage);
         initWidget(root);
+
+        showProxy();
         load();
     }
 
     private void load() {
-        shell.getRpc().getDashboard(new AsyncCallback<DashboardDto>() {
-            @Override
-            public void onFailure(Throwable caught) {
-                Rpc.showFailure(caught);
-            }
-
-            @Override
-            public void onSuccess(DashboardDto dto) {
-                render(dto);
-            }
-        });
+        proxyPage.refresh();
+        dnsPage.refresh();
     }
 
-    private void render(DashboardDto dto) {
-        stats.clear();
-        addStat("HTTP proxy", dto.isHttpRunning() ? dto.getHttpBind() : "stopped",
-                dto.isHttpRunning() ? "up" : "down");
-        addStat("HTTPS proxy (TLS)", dto.isHttpsRunning() ? dto.getHttpsBind() : "stopped",
-                dto.isHttpsRunning() ? "up" : "down");
-        addStat("SOCKS4/5 proxy", dto.isSocksRunning() ? dto.getSocksBind() : "stopped",
-                dto.isSocksRunning() ? "up" : "down");
-        addStat("SSH tunnel proxy", dto.isSshRunning() ? dto.getSshBind() : "stopped",
-                dto.isSshRunning() ? "up" : "down");
-        addStat("Active client TCP channels", String.valueOf(dto.getActiveConnections()), null);
-        addStat("Users", dto.getEnabledUsers() + " / " + dto.getUserCount(), null);
-        addStat("Traffic up (since start)", Formatters.formatBytes(dto.getSessionBytesUp()), null);
-        addStat("Traffic down (since start)", Formatters.formatBytes(dto.getSessionBytesDown()), null);
-        addStat("Traffic up (all time)", Formatters.formatBytes(dto.getTotalBytesUp()), null);
-        addStat("Traffic down (all time)", Formatters.formatBytes(dto.getTotalBytesDown()), null);
-
-        if (dto.getLastError() != null && !dto.getLastError().isEmpty()) {
-            errorLabel.setText(dto.getLastError());
-            errorLabel.setVisible(true);
-        } else {
-            errorLabel.setVisible(false);
-        }
-
-        zeroOmega.setHTML(
-                "<p>HTTP → protocol <code>HTTP</code>, port <strong>" + dto.getHttpPort() + "</strong>.</p>"
-                        + "<p>HTTPS → protocol <code>HTTPS</code>, port <strong>" + dto.getHttpsPort()
-                        + "</strong> (enable in Settings; self-signed cert).</p>"
-                        + "<p>SOCKS5 / SOCKS4 → same host, port <strong>" + dto.getSocksPort() + "</strong>. "
-                        + "SOCKS4 only when SOCKS auth is <em>off</em>. Chrome often lacks SOCKS password auth.</p>"
-                        + "<p>SSH tunnels → host + port <strong>" + dto.getSshPort()
-                        + "</strong> (enable in Settings). Password or a key from the user SSH page. "
-                        + "Use PuTTY/OpenSSH local/remote port forward; shell is disabled.</p>");
+    private void showProxy() {
+        proxyPage.setVisible(true);
+        dnsPage.setVisible(false);
+        proxyTab.setStyleName("dash-tab active");
+        dnsTab.setStyleName("dash-tab");
     }
 
-    private void addStat(String label, String value, String valueStyle) {
-        FlowPanel card = new FlowPanel();
-        card.setStyleName("stat");
-        Label lbl = new Label(label);
-        lbl.setStyleName("label");
-        Label val = new Label(value == null ? "" : value);
-        val.setStyleName(valueStyle == null ? "value" : "value " + valueStyle);
-        card.add(lbl);
-        card.add(val);
-        stats.add(card);
+    private void showDns() {
+        proxyPage.setVisible(false);
+        dnsPage.setVisible(true);
+        proxyTab.setStyleName("dash-tab");
+        dnsTab.setStyleName("dash-tab active");
     }
 }

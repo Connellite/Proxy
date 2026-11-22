@@ -71,6 +71,25 @@ button:hover, .button:hover { filter: brightness(0.98); }
 .container { max-width: 1100px; margin: 0 auto; padding: 1.5rem; }
 .container:has(.users-table) { max-width: 1280px; }
 .row-between { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.dash-tabs {
+  display: flex;
+  gap: 0.35rem;
+  margin: 0 0 1.25rem;
+  border-bottom: 1px solid var(--line);
+}
+.dash-tab {
+  color: var(--muted);
+  font-weight: 600;
+  padding: 0.55rem 0.9rem;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  text-decoration: none;
+}
+.dash-tab:hover { color: var(--ink); text-decoration: none; }
+.dash-tab.active {
+  color: var(--ink);
+  border-bottom-color: var(--accent);
+}
 h1 { margin: 0 0 1rem; font-size: 1.7rem; }
 h2 { margin: 0 0 1rem; font-size: 1.15rem; }
 .muted, .hint { color: var(--muted); }
@@ -158,12 +177,24 @@ h2 { margin: 0 0 1rem; font-size: 1.15rem; }
 .table-wrap + .panel {
   margin-top: 1.25rem;
 }
+.panel > .table-wrap {
+  margin-top: 1.25rem;
+}
 table { width: 100%; border-collapse: collapse; }
 table.users-table {
   table-layout: fixed;
   border-collapse: collapse;
   border-spacing: 0;
   min-width: 920px;
+}
+table.users-table.query-log {
+  table-layout: auto;
+  width: max-content;
+  min-width: 100%;
+}
+table.users-table.query-log th,
+table.users-table.query-log td {
+  white-space: nowrap;
 }
 .users-table .col-user { width: 14%; }
 .users-table .col-status { width: 10%; }
@@ -198,6 +229,12 @@ th, td {
 }
 .users-table tbody tr:hover td {
   background: #faf7f1;
+}
+table.users-table tr.route-row {
+  cursor: pointer;
+}
+table.users-table tr.route-selected td {
+  background: #e4f0e6;
 }
 th { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
 td.empty { color: var(--muted); text-align: center; padding: 2rem; }

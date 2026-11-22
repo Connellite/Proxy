@@ -17,6 +17,7 @@ import com.google.gwt.user.client.ui.TextBox;
 import io.github.connellite.proxy.client.rpc.dto.SshAccessDto;
 import io.github.connellite.proxy.client.rpc.dto.SshIssuedKeyDto;
 import io.github.connellite.proxy.client.rpc.dto.SshUserKeyRowDto;
+import io.github.connellite.proxy.client.util.CellCopy;
 import io.github.connellite.proxy.client.util.Forms;
 import io.github.connellite.proxy.client.util.Rpc;
 
@@ -165,6 +166,7 @@ public class SshAccessPage extends Composite {
             table.getFlexCellFormatter().setColSpan(1, 0, 4);
             table.getCellFormatter().setStyleName(1, 0, "empty");
         }
+        CellCopy.install(table);
         tableHost.add(table);
     }
 

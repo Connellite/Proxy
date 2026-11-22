@@ -12,6 +12,7 @@ import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.Label;
 import io.github.connellite.proxy.client.rpc.dto.UpstreamProxiesPageDto;
 import io.github.connellite.proxy.client.rpc.dto.UpstreamProxyRowDto;
+import io.github.connellite.proxy.client.util.CellCopy;
 import io.github.connellite.proxy.client.util.Rpc;
 
 public class UpstreamProxiesPage extends Composite {
@@ -131,6 +132,7 @@ public class UpstreamProxiesPage extends Composite {
             table.getCellFormatter().setStyleName(1, 0, "empty");
         }
 
+        CellCopy.install(table);
         tableHost.add(table);
     }
 

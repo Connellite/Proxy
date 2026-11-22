@@ -21,12 +21,18 @@ import com.google.gwt.user.server.rpc.core.java.util.LinkedList_ServerCustomFiel
 import com.google.gwt.user.server.rpc.core.java.util.Vector_ServerCustomFieldSerializer;
 import io.github.connellite.proxy.client.rpc.AdminRpcException;
 import io.github.connellite.proxy.client.rpc.AdminService;
-import io.github.connellite.proxy.client.rpc.dto.DashboardDto;
+import io.github.connellite.proxy.client.rpc.dto.DashboardDnsDto;
+import io.github.connellite.proxy.client.rpc.dto.DashboardProxyDto;
 import io.github.connellite.proxy.client.rpc.dto.DirectoryListingDto;
 import io.github.connellite.proxy.client.rpc.dto.EncryptionDto;
 import io.github.connellite.proxy.client.rpc.dto.HttpStripHeaderRowDto;
 import io.github.connellite.proxy.client.rpc.dto.HttpStripHeadersPageDto;
 import io.github.connellite.proxy.client.rpc.dto.PasswordChangeDto;
+import io.github.connellite.proxy.client.rpc.dto.RelayAllowRowDto;
+import io.github.connellite.proxy.client.rpc.dto.RelayPageDto;
+import io.github.connellite.proxy.client.rpc.dto.RelayQueryRowDto;
+import io.github.connellite.proxy.client.rpc.dto.RelayRouteRowDto;
+import io.github.connellite.proxy.client.rpc.dto.RelayTcpSessionRowDto;
 import io.github.connellite.proxy.client.rpc.dto.SettingsDto;
 import io.github.connellite.proxy.client.rpc.dto.SftpPageDto;
 import io.github.connellite.proxy.client.rpc.dto.SftpUserRowDto;
@@ -82,7 +88,8 @@ public class GwtRpcNativeConfiguration {
                 AdminService.class,
                 AdminServiceImpl.class,
                 AdminRpcException.class,
-                DashboardDto.class,
+                DashboardProxyDto.class,
+                DashboardDnsDto.class,
                 UsersPageDto.class,
                 UserRowDto.class,
                 UserFormDto.class,
@@ -101,6 +108,11 @@ public class GwtRpcNativeConfiguration {
                 SftpPageDto.class,
                 SftpUserRowDto.class,
                 DirectoryListingDto.class,
+                RelayPageDto.class,
+                RelayRouteRowDto.class,
+                RelayAllowRowDto.class,
+                RelayQueryRowDto.class,
+                RelayTcpSessionRowDto.class,
                 ArrayList.class,
                 LinkedList.class,
                 Vector.class,

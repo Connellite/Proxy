@@ -2,11 +2,16 @@ package io.github.connellite.proxy.client.rpc;
 
 import com.google.gwt.user.client.rpc.RemoteService;
 import com.google.gwt.user.client.rpc.RemoteServiceRelativePath;
-import io.github.connellite.proxy.client.rpc.dto.DashboardDto;
+import io.github.connellite.proxy.client.rpc.dto.DashboardDnsDto;
+import io.github.connellite.proxy.client.rpc.dto.DashboardProxyDto;
 import io.github.connellite.proxy.client.rpc.dto.DirectoryListingDto;
 import io.github.connellite.proxy.client.rpc.dto.EncryptionDto;
 import io.github.connellite.proxy.client.rpc.dto.HttpStripHeadersPageDto;
 import io.github.connellite.proxy.client.rpc.dto.PasswordChangeDto;
+import io.github.connellite.proxy.client.rpc.dto.RelayPageDto;
+import io.github.connellite.proxy.client.rpc.dto.RelayQueryRowDto;
+import io.github.connellite.proxy.client.rpc.dto.RelayRouteRowDto;
+import io.github.connellite.proxy.client.rpc.dto.RelayTcpSessionRowDto;
 import io.github.connellite.proxy.client.rpc.dto.SettingsDto;
 import io.github.connellite.proxy.client.rpc.dto.SftpPageDto;
 import io.github.connellite.proxy.client.rpc.dto.SshAccessDto;
@@ -17,10 +22,14 @@ import io.github.connellite.proxy.client.rpc.dto.UpstreamProxyFormDto;
 import io.github.connellite.proxy.client.rpc.dto.UserFormDto;
 import io.github.connellite.proxy.client.rpc.dto.UsersPageDto;
 
+import java.util.List;
+
 @RemoteServiceRelativePath("rpc/admin")
 public interface AdminService extends RemoteService {
 
-    DashboardDto getDashboard();
+    DashboardProxyDto getDashboardProxy();
+
+    DashboardDnsDto getDashboardDns();
 
     UsersPageDto getUsers();
 
@@ -90,4 +99,24 @@ public interface AdminService extends RemoteService {
     TlsStatusDto previewEncryption(EncryptionDto form) throws AdminRpcException;
 
     void saveEncryption(EncryptionDto form) throws AdminRpcException;
+
+    RelayPageDto getRelayPage();
+
+    void saveRelaySettings(RelayPageDto form) throws AdminRpcException;
+
+    void saveRelayRoute(RelayRouteRowDto row) throws AdminRpcException;
+
+    void deleteRelayRoute(long id) throws AdminRpcException;
+
+    void saveRelayDnsAllow(String cidr) throws AdminRpcException;
+
+    void deleteRelayDnsAllow(long id) throws AdminRpcException;
+
+    void saveRelayTcpAllow(String cidr) throws AdminRpcException;
+
+    void deleteRelayTcpAllow(long id) throws AdminRpcException;
+
+    List<RelayQueryRowDto> getRelayQueryLog();
+
+    List<RelayTcpSessionRowDto> getRelayTcpSessionLog();
 }

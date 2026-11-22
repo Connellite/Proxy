@@ -16,6 +16,9 @@ import io.github.connellite.proxy.client.rpc.dto.SettingsDto;
 import io.github.connellite.proxy.client.util.AutoRefresh;
 import lombok.Getter;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class AppShell extends Composite {
 
     @Getter
@@ -25,7 +28,7 @@ public class AppShell extends Composite {
     private Anchor sftpLink;
     /** Mirrors the saved "SSH enabled" setting; SFTP needs the SSH listener. */
     private boolean sshEnabled = true;
-    private AutoRefresh autoRefresh;
+    private final List<AutoRefresh> autoRefresh = new ArrayList<>();
 
     public AppShell(AdminServiceAsync rpc) {
         this.rpc = rpc;
@@ -109,6 +112,14 @@ public class AppShell extends Composite {
             }
         });
         nav.add(sftpLink);
+        nav.add(navLink("DNS Relay", new ClickHandler() {
+            @Override
+            public void onClick(ClickEvent event) {
+                event.preventDefault();
+                clearFlash();
+                showRelay();
+            }
+        }));
 
         FlowPanel logout = new FlowPanel();
         logout.setStyleName("logout");
@@ -227,16 +238,20 @@ public class AppShell extends Composite {
         content.setWidget(new EncryptionPage(this));
     }
 
-    void attachRefresh(AutoRefresh refresh) {
+    public void showRelay() {
         stopRefresh();
-        this.autoRefresh = refresh;
+        content.setWidget(new RelayPage(this));
+    }
+
+    void attachRefresh(AutoRefresh refresh) {
+        autoRefresh.add(refresh);
     }
 
     private void stopRefresh() {
-        if (autoRefresh != null) {
-            autoRefresh.stop();
-            autoRefresh = null;
+        for (AutoRefresh refresh : autoRefresh) {
+            refresh.stop();
         }
+        autoRefresh.clear();
     }
 
     private Anchor navLink(String text, ClickHandler handler) {

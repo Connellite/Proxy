@@ -60,7 +60,21 @@ public class SettingsService {
             throw new IllegalArgumentException("Outbound TTL must be between 0 and 255 (0 = OS default)");
         }
         repository.saveAll(toEntries(settings));
-        invalidateAfterCompletion();
+        // Publish before other afterCommit callbacks. They restart listeners and must not
+        // read the previous cache; afterCompletion still drops it so the next get() loads the database.
+        AppSettings committed = appSettingsMapper.copy(settings);
+        long seen = generation;
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                store(seen, committed);
+            }
+
+            @Override
+            public void afterCompletion(int status) {
+                invalidate();
+            }
+        });
         return settings;
     }
 
@@ -133,6 +147,7 @@ public class SettingsService {
         settings.setSshBindHost(properties.getSsh().getBindHost());
         settings.setSshPort(properties.getSsh().getPort());
         settings.setOutboundTtl(properties.getOutboundTtl());
+        settings.setRelayUpstreamResolver("1.1.1.1:53");
         return settings;
     }
 
@@ -160,6 +175,27 @@ public class SettingsService {
         settings.setSshEnabled(ParseUtils.parseBoolean(map.get(ConfigEntry.SSH_ENABLED), settings.isSshEnabled()));
         settings.setSshBindHost(ParseUtils.parseString(map.get(ConfigEntry.SSH_BIND_HOST), settings.getSshBindHost()));
         settings.setSshPort(ParseUtils.parseInt(map.get(ConfigEntry.SSH_PORT), settings.getSshPort()));
+        settings.setRelayDnsEnabled(ParseUtils.parseBoolean(map.get(ConfigEntry.RELAY_DNS_ENABLED), settings.isRelayDnsEnabled()));
+        settings.setRelayDnsBindHost(ParseUtils.parseString(map.get(ConfigEntry.RELAY_DNS_BIND_HOST), settings.getRelayDnsBindHost()));
+        settings.setRelayDnsPort(ParseUtils.parseInt(map.get(ConfigEntry.RELAY_DNS_PORT), settings.getRelayDnsPort()));
+        settings.setRelayTcpEnabled(ParseUtils.parseBoolean(map.get(ConfigEntry.RELAY_TCP_ENABLED), settings.isRelayTcpEnabled()));
+        settings.setRelayTcpBindHost(ParseUtils.parseString(map.get(ConfigEntry.RELAY_TCP_BIND_HOST), settings.getRelayTcpBindHost()));
+        settings.setRelayTcpPort(ParseUtils.parseInt(map.get(ConfigEntry.RELAY_TCP_PORT), settings.getRelayTcpPort()));
+        settings.setRelayTcpUseUpstream(ParseUtils.parseBoolean(map.get(ConfigEntry.RELAY_TCP_USE_UPSTREAM), settings.isRelayTcpUseUpstream()));
+        settings.setRelayDohEnabled(ParseUtils.parseBoolean(map.get(ConfigEntry.RELAY_DOH_ENABLED), settings.isRelayDohEnabled()));
+        settings.setRelayDohBindHost(ParseUtils.parseString(map.get(ConfigEntry.RELAY_DOH_BIND_HOST), settings.getRelayDohBindHost()));
+        settings.setRelayDohPort(ParseUtils.parseInt(map.get(ConfigEntry.RELAY_DOH_PORT), settings.getRelayDohPort()));
+        settings.setRelayDoqEnabled(ParseUtils.parseBoolean(map.get(ConfigEntry.RELAY_DOQ_ENABLED), settings.isRelayDoqEnabled()));
+        settings.setRelayDoqBindHost(ParseUtils.parseString(map.get(ConfigEntry.RELAY_DOQ_BIND_HOST), settings.getRelayDoqBindHost()));
+        settings.setRelayDoqPort(ParseUtils.parseInt(map.get(ConfigEntry.RELAY_DOQ_PORT), settings.getRelayDoqPort()));
+        settings.setRelayDotEnabled(ParseUtils.parseBoolean(map.get(ConfigEntry.RELAY_DOT_ENABLED), settings.isRelayDotEnabled()));
+        settings.setRelayDotBindHost(ParseUtils.parseString(map.get(ConfigEntry.RELAY_DOT_BIND_HOST), settings.getRelayDotBindHost()));
+        settings.setRelayDotPort(ParseUtils.parseInt(map.get(ConfigEntry.RELAY_DOT_PORT), settings.getRelayDotPort()));
+        settings.setRelayDoh3Enabled(ParseUtils.parseBoolean(map.get(ConfigEntry.RELAY_DOH3_ENABLED), settings.isRelayDoh3Enabled()));
+        settings.setRelayDoh3BindHost(ParseUtils.parseString(map.get(ConfigEntry.RELAY_DOH3_BIND_HOST), settings.getRelayDoh3BindHost()));
+        settings.setRelayDoh3Port(ParseUtils.parseInt(map.get(ConfigEntry.RELAY_DOH3_PORT), settings.getRelayDoh3Port()));
+        settings.setRelayAdvertisedAddress(StringUtils.trimToNull(map.get(ConfigEntry.RELAY_ADVERTISED_ADDRESS)));
+        settings.setRelayUpstreamResolver(ParseUtils.parseString(map.get(ConfigEntry.RELAY_UPSTREAM_RESOLVER), settings.getRelayUpstreamResolver()));
         settings.setOutboundTtl(ParseUtils.parseInt(map.get(ConfigEntry.OUTBOUND_TTL), settings.getOutboundTtl()));
         settings.setBytesUpTotal(ParseUtils.parseLong(map.get(ConfigEntry.BYTES_UP_TOTAL), 0L));
         settings.setBytesDownTotal(ParseUtils.parseLong(map.get(ConfigEntry.BYTES_DOWN_TOTAL), 0L));
@@ -189,6 +225,27 @@ public class SettingsService {
         entries.add(new ConfigEntry(ConfigEntry.SSH_ENABLED, Boolean.toString(settings.isSshEnabled())));
         entries.add(new ConfigEntry(ConfigEntry.SSH_BIND_HOST, settings.getSshBindHost()));
         entries.add(new ConfigEntry(ConfigEntry.SSH_PORT, Integer.toString(settings.getSshPort())));
+        entries.add(new ConfigEntry(ConfigEntry.RELAY_DNS_ENABLED, Boolean.toString(settings.isRelayDnsEnabled())));
+        entries.add(new ConfigEntry(ConfigEntry.RELAY_DNS_BIND_HOST, settings.getRelayDnsBindHost()));
+        entries.add(new ConfigEntry(ConfigEntry.RELAY_DNS_PORT, Integer.toString(settings.getRelayDnsPort())));
+        entries.add(new ConfigEntry(ConfigEntry.RELAY_TCP_ENABLED, Boolean.toString(settings.isRelayTcpEnabled())));
+        entries.add(new ConfigEntry(ConfigEntry.RELAY_TCP_BIND_HOST, settings.getRelayTcpBindHost()));
+        entries.add(new ConfigEntry(ConfigEntry.RELAY_TCP_PORT, Integer.toString(settings.getRelayTcpPort())));
+        entries.add(new ConfigEntry(ConfigEntry.RELAY_TCP_USE_UPSTREAM, Boolean.toString(settings.isRelayTcpUseUpstream())));
+        entries.add(new ConfigEntry(ConfigEntry.RELAY_DOH_ENABLED, Boolean.toString(settings.isRelayDohEnabled())));
+        entries.add(new ConfigEntry(ConfigEntry.RELAY_DOH_BIND_HOST, settings.getRelayDohBindHost()));
+        entries.add(new ConfigEntry(ConfigEntry.RELAY_DOH_PORT, Integer.toString(settings.getRelayDohPort())));
+        entries.add(new ConfigEntry(ConfigEntry.RELAY_DOQ_ENABLED, Boolean.toString(settings.isRelayDoqEnabled())));
+        entries.add(new ConfigEntry(ConfigEntry.RELAY_DOQ_BIND_HOST, settings.getRelayDoqBindHost()));
+        entries.add(new ConfigEntry(ConfigEntry.RELAY_DOQ_PORT, Integer.toString(settings.getRelayDoqPort())));
+        entries.add(new ConfigEntry(ConfigEntry.RELAY_DOT_ENABLED, Boolean.toString(settings.isRelayDotEnabled())));
+        entries.add(new ConfigEntry(ConfigEntry.RELAY_DOT_BIND_HOST, settings.getRelayDotBindHost()));
+        entries.add(new ConfigEntry(ConfigEntry.RELAY_DOT_PORT, Integer.toString(settings.getRelayDotPort())));
+        entries.add(new ConfigEntry(ConfigEntry.RELAY_DOH3_ENABLED, Boolean.toString(settings.isRelayDoh3Enabled())));
+        entries.add(new ConfigEntry(ConfigEntry.RELAY_DOH3_BIND_HOST, settings.getRelayDoh3BindHost()));
+        entries.add(new ConfigEntry(ConfigEntry.RELAY_DOH3_PORT, Integer.toString(settings.getRelayDoh3Port())));
+        entries.add(new ConfigEntry(ConfigEntry.RELAY_ADVERTISED_ADDRESS, settings.getRelayAdvertisedAddress()));
+        entries.add(new ConfigEntry(ConfigEntry.RELAY_UPSTREAM_RESOLVER, settings.getRelayUpstreamResolver()));
         entries.add(new ConfigEntry(ConfigEntry.OUTBOUND_TTL, Integer.toString(settings.getOutboundTtl())));
         entries.add(new ConfigEntry(ConfigEntry.BYTES_UP_TOTAL, Long.toString(settings.getBytesUpTotal())));
         entries.add(new ConfigEntry(ConfigEntry.BYTES_DOWN_TOTAL, Long.toString(settings.getBytesDownTotal())));

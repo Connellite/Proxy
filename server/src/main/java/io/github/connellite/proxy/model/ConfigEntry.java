@@ -48,6 +48,27 @@ public class ConfigEntry {
     public static final String SSH_ENABLED = "ssh_enabled";
     public static final String SSH_BIND_HOST = "ssh_bind_host";
     public static final String SSH_PORT = "ssh_port";
+    public static final String RELAY_DNS_ENABLED = "relay_dns_enabled";
+    public static final String RELAY_DNS_BIND_HOST = "relay_dns_bind_host";
+    public static final String RELAY_DNS_PORT = "relay_dns_port";
+    public static final String RELAY_TCP_ENABLED = "relay_tcp_enabled";
+    public static final String RELAY_TCP_BIND_HOST = "relay_tcp_bind_host";
+    public static final String RELAY_TCP_PORT = "relay_tcp_port";
+    public static final String RELAY_TCP_USE_UPSTREAM = "relay_tcp_use_upstream";
+    public static final String RELAY_DOH_ENABLED = "relay_doh_enabled";
+    public static final String RELAY_DOH_BIND_HOST = "relay_doh_bind_host";
+    public static final String RELAY_DOH_PORT = "relay_doh_port";
+    public static final String RELAY_DOQ_ENABLED = "relay_doq_enabled";
+    public static final String RELAY_DOQ_BIND_HOST = "relay_doq_bind_host";
+    public static final String RELAY_DOQ_PORT = "relay_doq_port";
+    public static final String RELAY_DOT_ENABLED = "relay_dot_enabled";
+    public static final String RELAY_DOT_BIND_HOST = "relay_dot_bind_host";
+    public static final String RELAY_DOT_PORT = "relay_dot_port";
+    public static final String RELAY_DOH3_ENABLED = "relay_doh3_enabled";
+    public static final String RELAY_DOH3_BIND_HOST = "relay_doh3_bind_host";
+    public static final String RELAY_DOH3_PORT = "relay_doh3_port";
+    public static final String RELAY_ADVERTISED_ADDRESS = "relay_advertised_address";
+    public static final String RELAY_UPSTREAM_RESOLVER = "relay_upstream_resolver";
     /** Outbound IP TTL (0 = OS default, 1–255 = override on proxy→direct/upstream sockets). */
     public static final String OUTBOUND_TTL = "outbound_ttl";
     public static final String BYTES_UP_TOTAL = "bytes_up_total";

@@ -12,12 +12,18 @@ import com.google.gwt.user.server.rpc.SerializationPolicy;
 import com.google.gwt.user.server.rpc.SerializationPolicyLoader;
 import io.github.connellite.proxy.client.rpc.AdminRpcException;
 import io.github.connellite.proxy.client.rpc.AdminService;
-import io.github.connellite.proxy.client.rpc.dto.DashboardDto;
+import io.github.connellite.proxy.client.rpc.dto.DashboardDnsDto;
+import io.github.connellite.proxy.client.rpc.dto.DashboardProxyDto;
 import io.github.connellite.proxy.client.rpc.dto.DirectoryListingDto;
 import io.github.connellite.proxy.client.rpc.dto.EncryptionDto;
 import io.github.connellite.proxy.client.rpc.dto.HttpStripHeaderRowDto;
 import io.github.connellite.proxy.client.rpc.dto.HttpStripHeadersPageDto;
 import io.github.connellite.proxy.client.rpc.dto.PasswordChangeDto;
+import io.github.connellite.proxy.client.rpc.dto.RelayAllowRowDto;
+import io.github.connellite.proxy.client.rpc.dto.RelayPageDto;
+import io.github.connellite.proxy.client.rpc.dto.RelayQueryRowDto;
+import io.github.connellite.proxy.client.rpc.dto.RelayRouteRowDto;
+import io.github.connellite.proxy.client.rpc.dto.RelayTcpSessionRowDto;
 import io.github.connellite.proxy.client.rpc.dto.SettingsDto;
 import io.github.connellite.proxy.client.rpc.dto.SftpPageDto;
 import io.github.connellite.proxy.client.rpc.dto.SftpUserRowDto;
@@ -44,12 +50,27 @@ import io.github.connellite.proxy.mapper.UpstreamProxyFormMapper;
 import io.github.connellite.proxy.model.HttpStripHeader;
 import io.github.connellite.proxy.model.SftpAccess;
 import io.github.connellite.proxy.model.ProxyUser;
+import io.github.connellite.proxy.model.RelayDnsAllow;
+import io.github.connellite.proxy.model.RelayRoute;
+import io.github.connellite.proxy.model.RelayRouteMode;
+import io.github.connellite.proxy.model.RelayTcpAllow;
 import io.github.connellite.proxy.model.SshUserKey;
 import io.github.connellite.proxy.model.UpstreamProxy;
 import io.github.connellite.proxy.model.UpstreamProxyType;
 import io.github.connellite.proxy.proxy.ProxyServerManager;
 import io.github.connellite.proxy.proxy.http.ProxyTlsService;
 import io.github.connellite.proxy.service.HttpStripHeaderService;
+import io.github.connellite.proxy.relay.HostPort;
+import io.github.connellite.proxy.relay.RelayAllowService;
+import io.github.connellite.proxy.relay.RelayRouteService;
+import io.github.connellite.proxy.relay.dns.RelayDnsServer;
+import io.github.connellite.proxy.relay.dns.RelayDoh3Server;
+import io.github.connellite.proxy.relay.dns.RelayDohServer;
+import io.github.connellite.proxy.relay.dns.RelayDoqServer;
+import io.github.connellite.proxy.relay.dns.RelayDotServer;
+import io.github.connellite.proxy.relay.dns.RelayQueryLog;
+import io.github.connellite.proxy.relay.tcp.RelayTcpServer;
+import io.github.connellite.proxy.relay.tcp.RelayTcpSessionLog;
 import io.github.connellite.proxy.service.ProxyMetrics;
 import io.github.connellite.proxy.service.ProxyUserService;
 import io.github.connellite.proxy.service.ServerDirectoryService;
@@ -58,6 +79,7 @@ import io.github.connellite.proxy.service.SshUserKeyService;
 import io.github.connellite.proxy.service.SettingsService;
 import io.github.connellite.proxy.service.TrafficStatsService;
 import io.github.connellite.proxy.service.UpstreamProxyService;
+import io.github.connellite.proxy.util.LocalBindAddresses;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -82,6 +104,7 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
 
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private static final DateTimeFormatter DATE_TIME_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+    private static final DateTimeFormatter QUERY_TIME_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private final ProxyUserService userService;
     private final SshUserKeyService sshUserKeyService;
@@ -101,6 +124,16 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
     private final TlsStatusMapper tlsStatusMapper;
     private final AdminRpcManualMapper adminRpcManualMapper;
     private final ZoneId appZoneId;
+    private final RelayRouteService relayRouteService;
+    private final RelayAllowService relayAllowService;
+    private final RelayQueryLog relayQueryLog;
+    private final RelayTcpSessionLog relayTcpSessionLog;
+    private final RelayDnsServer relayDnsServer;
+    private final RelayTcpServer relayTcpServer;
+    private final RelayDohServer relayDohServer;
+    private final RelayDoh3Server relayDoh3Server;
+    private final RelayDotServer relayDotServer;
+    private final RelayDoqServer relayDoqServer;
 
     /**
      * Spring Boot serves {@code *.gwt.rpc} from the classpath ({@code static/proxyAdmin/}),
@@ -127,10 +160,10 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
     }
 
     @Override
-    public DashboardDto getDashboard() {
+    public DashboardProxyDto getDashboardProxy() {
         AppSettings settings = settingsService.get();
         List<ProxyUser> users = userService.findAll();
-        DashboardDto dto = new DashboardDto();
+        DashboardProxyDto dto = new DashboardProxyDto();
         dto.setHttpRunning(proxyServerManager.isHttpRunning());
         dto.setHttpsRunning(proxyServerManager.isHttpsRunning());
         dto.setSocksRunning(proxyServerManager.isSocksRunning());
@@ -151,6 +184,43 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
         dto.setTotalBytesDown(proxyMetrics.getBytesDownTotal());
         dto.setSessionBytesUp(proxyMetrics.getBytesUpSession());
         dto.setSessionBytesDown(proxyMetrics.getBytesDownSession());
+        return dto;
+    }
+
+    @Override
+    public DashboardDnsDto getDashboardDns() {
+        AppSettings settings = settingsService.get();
+        List<RelayRoute> routes = relayRouteService.findAll();
+        DashboardDnsDto dto = new DashboardDnsDto();
+        dto.setDnsRunning(relayDnsServer.isRunning());
+        dto.setTcpRunning(relayTcpServer.isRunning());
+        dto.setDohRunning(relayDohServer.isRunning());
+        dto.setDoh3Running(relayDoh3Server.isRunning());
+        dto.setDotRunning(relayDotServer.isRunning());
+        dto.setDoqRunning(relayDoqServer.isRunning());
+        dto.setDnsBind(bindLabel(dto.isDnsRunning(), settings.getRelayDnsBindHost(), settings.getRelayDnsPort()));
+        dto.setTcpBind(bindLabel(dto.isTcpRunning(), settings.getRelayTcpBindHost(), settings.getRelayTcpPort()));
+        dto.setDohBind(bindLabel(dto.isDohRunning(), settings.getRelayDohBindHost(), settings.getRelayDohPort()));
+        dto.setDoh3Bind(bindLabel(dto.isDoh3Running(), settings.getRelayDoh3BindHost(), settings.getRelayDoh3Port()));
+        dto.setDotBind(bindLabel(dto.isDotRunning(), settings.getRelayDotBindHost(), settings.getRelayDotPort()));
+        dto.setDoqBind(bindLabel(dto.isDoqRunning(), settings.getRelayDoqBindHost(), settings.getRelayDoqPort()));
+        dto.setDnsPort(settings.getRelayDnsPort());
+        dto.setTcpPort(settings.getRelayTcpPort());
+        dto.setDohPort(settings.getRelayDohPort());
+        dto.setDoh3Port(settings.getRelayDoh3Port());
+        dto.setDotPort(settings.getRelayDotPort());
+        dto.setDoqPort(settings.getRelayDoqPort());
+        dto.setRouteCount(routes.size());
+        dto.setEnabledRouteCount((int) routes.stream().filter(RelayRoute::isEnabled).count());
+        dto.setAdvertisedAddress(settings.getRelayAdvertisedAddress() == null ? "" : settings.getRelayAdvertisedAddress());
+        dto.setUpstreamResolver(settings.getRelayUpstreamResolver() == null ? "" : settings.getRelayUpstreamResolver());
+        dto.setTcpUseUpstream(settings.isRelayTcpUseUpstream());
+        String publicHost = dnsPublicHost(settings);
+        dto.setDnsEndpoint(dnsPlainEndpoint(publicHost, settings.getRelayDnsPort()));
+        dto.setDohEndpoint(dnsUrlEndpoint("https", publicHost, settings.getRelayDohPort(), 443, "/dns-query"));
+        dto.setDoh3Endpoint(dnsUrlEndpoint("h3", publicHost, settings.getRelayDoh3Port(), 443, "/dns-query"));
+        dto.setDotEndpoint(dnsUrlEndpoint("tls", publicHost, settings.getRelayDotPort(), 853, null));
+        dto.setDoqEndpoint(dnsUrlEndpoint("quic", publicHost, settings.getRelayDoqPort(), 853, null));
         return dto;
     }
 
@@ -559,6 +629,199 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
         }
     }
 
+    @Override
+    public RelayPageDto getRelayPage() {
+        AppSettings settings = settingsService.get();
+        RelayPageDto page = new RelayPageDto();
+        page.setDnsEnabled(settings.isRelayDnsEnabled());
+        page.setDnsBindHost(settings.getRelayDnsBindHost());
+        page.setDnsPort(settings.getRelayDnsPort());
+        page.setTcpEnabled(settings.isRelayTcpEnabled());
+        page.setTcpBindHost(settings.getRelayTcpBindHost());
+        page.setTcpPort(settings.getRelayTcpPort());
+        page.setTcpUseUpstream(settings.isRelayTcpUseUpstream());
+        page.setDohEnabled(settings.isRelayDohEnabled());
+        page.setDohBindHost(settings.getRelayDohBindHost());
+        page.setDohPort(settings.getRelayDohPort());
+        page.setDoh3Enabled(settings.isRelayDoh3Enabled());
+        page.setDoh3BindHost(settings.getRelayDoh3BindHost());
+        page.setDoh3Port(settings.getRelayDoh3Port());
+        page.setDotEnabled(settings.isRelayDotEnabled());
+        page.setDotBindHost(settings.getRelayDotBindHost());
+        page.setDotPort(settings.getRelayDotPort());
+        page.setDoqEnabled(settings.isRelayDoqEnabled());
+        page.setDoqBindHost(settings.getRelayDoqBindHost());
+        page.setDoqPort(settings.getRelayDoqPort());
+        page.setAdvertisedAddress(settings.getRelayAdvertisedAddress() == null ? "" : settings.getRelayAdvertisedAddress());
+        page.setUpstreamResolver(settings.getRelayUpstreamResolver());
+        page.setBindHostOptions(new ArrayList<>(LocalBindAddresses.optionsIncluding(
+                settings.getRelayDnsBindHost(), settings.getRelayTcpBindHost(),
+                settings.getRelayDohBindHost(), settings.getRelayDoh3BindHost(),
+                settings.getRelayDotBindHost(), settings.getRelayDoqBindHost())));
+        for (RelayDnsAllow allow : relayAllowService.dnsAllows()) {
+            page.getDnsAllows().add(allowRow(allow.getId(), allow.getCidr()));
+        }
+        for (RelayTcpAllow allow : relayAllowService.tcpAllows()) {
+            page.getTcpAllows().add(allowRow(allow.getId(), allow.getCidr()));
+        }
+        for (RelayRoute route : relayRouteService.findAll()) {
+            page.getRoutes().add(toRow(route));
+        }
+        return page;
+    }
+
+    @Override
+    public void saveRelaySettings(RelayPageDto form) throws AdminRpcException {
+        try {
+            AppSettings settings = new AppSettings();
+            settings.setRelayDnsEnabled(form.isDnsEnabled());
+            settings.setRelayDnsBindHost(form.getDnsBindHost());
+            settings.setRelayDnsPort(form.getDnsPort());
+            settings.setRelayTcpEnabled(form.isTcpEnabled());
+            settings.setRelayTcpBindHost(form.getTcpBindHost());
+            settings.setRelayTcpPort(form.getTcpPort());
+            settings.setRelayTcpUseUpstream(form.isTcpUseUpstream());
+            settings.setRelayDohEnabled(form.isDohEnabled());
+            settings.setRelayDohBindHost(form.getDohBindHost());
+            settings.setRelayDohPort(form.getDohPort());
+            settings.setRelayDoh3Enabled(form.isDoh3Enabled());
+            settings.setRelayDoh3BindHost(form.getDoh3BindHost());
+            settings.setRelayDoh3Port(form.getDoh3Port());
+            settings.setRelayDotEnabled(form.isDotEnabled());
+            settings.setRelayDotBindHost(form.getDotBindHost());
+            settings.setRelayDotPort(form.getDotPort());
+            settings.setRelayDoqEnabled(form.isDoqEnabled());
+            settings.setRelayDoqBindHost(form.getDoqBindHost());
+            settings.setRelayDoqPort(form.getDoqPort());
+            settings.setRelayAdvertisedAddress(form.getAdvertisedAddress());
+            settings.setRelayUpstreamResolver(form.getUpstreamResolver());
+            relayRouteService.saveSettings(settings);
+        } catch (RuntimeException ex) {
+            throw toRpcException("Failed to save relay settings", ex);
+        }
+    }
+
+    @Override
+    public void saveRelayRoute(RelayRouteRowDto row) throws AdminRpcException {
+        try {
+            RelayRoute route = new RelayRoute();
+            route.setId(row.getId());
+            route.setName(row.getName());
+            route.setMode(RelayRouteMode.valueOf(row.getMode()));
+            route.setUpstreamHost(row.getUpstreamHost());
+            route.setUpstreamPort(portOrNull(row.getUpstreamPort()));
+            route.setAnswerAddress(row.getAnswerAddress());
+            route.setEnabled(row.isEnabled());
+            relayRouteService.saveRoute(route);
+        } catch (RuntimeException ex) {
+            throw toRpcException("Failed to save relay route", ex);
+        }
+    }
+
+    @Override
+    public void saveRelayDnsAllow(String cidr) throws AdminRpcException {
+        try {
+            relayAllowService.saveDns(cidr);
+        } catch (RuntimeException ex) {
+            throw toRpcException("Failed to save DNS allowlist entry", ex);
+        }
+    }
+
+    @Override
+    public void deleteRelayDnsAllow(long id) throws AdminRpcException {
+        try {
+            relayAllowService.deleteDns(id);
+        } catch (RuntimeException ex) {
+            throw toRpcException("Failed to delete DNS allowlist entry", ex);
+        }
+    }
+
+    @Override
+    public void saveRelayTcpAllow(String cidr) throws AdminRpcException {
+        try {
+            relayAllowService.saveTcp(cidr);
+        } catch (RuntimeException ex) {
+            throw toRpcException("Failed to save TCP allowlist entry", ex);
+        }
+    }
+
+    @Override
+    public void deleteRelayTcpAllow(long id) throws AdminRpcException {
+        try {
+            relayAllowService.deleteTcp(id);
+        } catch (RuntimeException ex) {
+            throw toRpcException("Failed to delete TCP allowlist entry", ex);
+        }
+    }
+
+    private static RelayAllowRowDto allowRow(Long id, String cidr) {
+        RelayAllowRowDto row = new RelayAllowRowDto();
+        row.setId(id);
+        row.setCidr(cidr);
+        return row;
+    }
+
+    @Override
+    public void deleteRelayRoute(long id) throws AdminRpcException {
+        try {
+            relayRouteService.delete(id);
+        } catch (RuntimeException ex) {
+            throw toRpcException("Failed to delete relay route", ex);
+        }
+    }
+
+    @Override
+    public List<RelayQueryRowDto> getRelayQueryLog() {
+        List<RelayQueryRowDto> rows = new ArrayList<>();
+        for (RelayQueryLog.Entry entry : relayQueryLog.recent()) {
+            RelayQueryRowDto row = new RelayQueryRowDto();
+            row.setTime(QUERY_TIME_FMT.format(entry.at().atZone(appZoneId)));
+            row.setClient(entry.client());
+            row.setProtocol(entry.protocol());
+            row.setName(entry.name());
+            row.setType(entry.type());
+            row.setOutcome(entry.outcome());
+            row.setAnswer(entry.answer());
+            row.setElapsed(entry.millis() + " ms");
+            rows.add(row);
+        }
+        return rows;
+    }
+
+    @Override
+    public List<RelayTcpSessionRowDto> getRelayTcpSessionLog() {
+        List<RelayTcpSessionRowDto> rows = new ArrayList<>();
+        for (RelayTcpSessionLog.Entry entry : relayTcpSessionLog.recent()) {
+            RelayTcpSessionRowDto row = new RelayTcpSessionRowDto();
+            row.setTime(QUERY_TIME_FMT.format(entry.at().atZone(appZoneId)));
+            row.setClient(entry.client());
+            row.setHostname(entry.hostname());
+            row.setOutcome(entry.outcome());
+            row.setElapsed(entry.millis() + " ms");
+            rows.add(row);
+        }
+        return rows;
+    }
+
+    private static RelayRouteRowDto toRow(RelayRoute route) {
+        RelayRouteRowDto row = new RelayRouteRowDto();
+        row.setId(route.getId());
+        row.setName(route.getName());
+        row.setMode(route.getMode() == null ? RelayRouteMode.RELAY.name() : route.getMode().name());
+        row.setUpstreamHost(route.getUpstreamHost() == null ? "" : route.getUpstreamHost());
+        row.setUpstreamPort(route.getUpstreamPort() == null ? "" : Integer.toString(route.getUpstreamPort()));
+        row.setAnswerAddress(route.getAnswerAddress() == null ? "" : route.getAnswerAddress());
+        row.setEnabled(route.isEnabled());
+        return row;
+    }
+
+    private static Integer portOrNull(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        return HostPort.parsePort(raw);
+    }
+
     private AdminRpcException toRpcException(String action, Throwable ex) {
         log.error(action, ex);
         Throwable root = ex;
@@ -581,5 +844,44 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
 
     private static String bindLabel(boolean running, String host, int port) {
         return running ? host + ":" + port : "stopped";
+    }
+
+    private static String dnsPublicHost(AppSettings settings) {
+        String serverName = settings.getHttpsServerName();
+        if (serverName != null && !serverName.isBlank()) {
+            return serverName.trim();
+        }
+        String advertised = settings.getRelayAdvertisedAddress();
+        if (advertised != null && !advertised.isBlank()) {
+            return advertised.trim();
+        }
+        return "";
+    }
+
+    private static String dnsPlainEndpoint(String host, int port) {
+        if (host == null || host.isEmpty()) {
+            return "";
+        }
+        String authority = dnsAuthority(host, port, 53);
+        return authority;
+    }
+
+    private static String dnsUrlEndpoint(String scheme, String host, int port, int defaultPort, String path) {
+        if (host == null || host.isEmpty()) {
+            return "";
+        }
+        String authority = dnsAuthority(host, port, defaultPort);
+        if (path == null || path.isEmpty()) {
+            return scheme + "://" + authority;
+        }
+        return scheme + "://" + authority + path;
+    }
+
+    private static String dnsAuthority(String host, int port, int defaultPort) {
+        String bracketed = host.indexOf(':') >= 0 && !host.startsWith("[") ? "[" + host + "]" : host;
+        if (port == defaultPort) {
+            return bracketed;
+        }
+        return bracketed + ":" + port;
     }
 }

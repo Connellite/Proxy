@@ -59,6 +59,50 @@ public class AppSettings {
 
     private int sshPort = 2222;
 
+    private boolean relayDnsEnabled = false;
+
+    private String relayDnsBindHost = "0.0.0.0";
+
+    private int relayDnsPort = 53;
+
+    private boolean relayTcpEnabled = false;
+
+    private String relayTcpBindHost = "0.0.0.0";
+
+    private int relayTcpPort = 443;
+
+    /** When true, new TCP relay connections use the selected upstream proxy if one is set. */
+    private boolean relayTcpUseUpstream = false;
+
+    private boolean relayDohEnabled = false;
+
+    private String relayDohBindHost = "0.0.0.0";
+
+    private int relayDohPort = 8443;
+
+    private boolean relayDoqEnabled = false;
+
+    private String relayDoqBindHost = "0.0.0.0";
+
+    private int relayDoqPort = 853;
+
+    private boolean relayDotEnabled = false;
+
+    private String relayDotBindHost = "0.0.0.0";
+
+    private int relayDotPort = 853;
+
+    private boolean relayDoh3Enabled = false;
+
+    private String relayDoh3BindHost = "0.0.0.0";
+
+    private int relayDoh3Port = 443;
+
+    /** Address DNS returns for relay-mode names. Empty until the operator saves one. */
+    private String relayAdvertisedAddress;
+
+    private String relayUpstreamResolver = "1.1.1.1:53";
+
     /**
      * IP TTL / IPv6 hop limit on sockets this proxy opens toward the internet or an upstream.
      * {@code 0} = OS default (no override).

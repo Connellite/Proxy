@@ -15,6 +15,7 @@ import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.TextBox;
 import io.github.connellite.proxy.client.rpc.dto.HttpStripHeaderRowDto;
 import io.github.connellite.proxy.client.rpc.dto.HttpStripHeadersPageDto;
+import io.github.connellite.proxy.client.util.CellCopy;
 import io.github.connellite.proxy.client.util.Rpc;
 
 public class HttpStripHeadersPage extends Composite {
@@ -93,6 +94,7 @@ public class HttpStripHeadersPage extends Composite {
         table.setWidget(row, 0, nameInput);
         table.setWidget(row, 1, plusButton());
 
+        CellCopy.install(table);
         tableHost.add(table);
         nameInput.setFocus(true);
     }

@@ -1,11 +1,16 @@
 package io.github.connellite.proxy.client.rpc;
 
 import com.google.gwt.user.client.rpc.AsyncCallback;
-import io.github.connellite.proxy.client.rpc.dto.DashboardDto;
+import io.github.connellite.proxy.client.rpc.dto.DashboardDnsDto;
+import io.github.connellite.proxy.client.rpc.dto.DashboardProxyDto;
 import io.github.connellite.proxy.client.rpc.dto.DirectoryListingDto;
 import io.github.connellite.proxy.client.rpc.dto.EncryptionDto;
 import io.github.connellite.proxy.client.rpc.dto.HttpStripHeadersPageDto;
 import io.github.connellite.proxy.client.rpc.dto.PasswordChangeDto;
+import io.github.connellite.proxy.client.rpc.dto.RelayPageDto;
+import io.github.connellite.proxy.client.rpc.dto.RelayQueryRowDto;
+import io.github.connellite.proxy.client.rpc.dto.RelayRouteRowDto;
+import io.github.connellite.proxy.client.rpc.dto.RelayTcpSessionRowDto;
 import io.github.connellite.proxy.client.rpc.dto.SettingsDto;
 import io.github.connellite.proxy.client.rpc.dto.SftpPageDto;
 import io.github.connellite.proxy.client.rpc.dto.SshAccessDto;
@@ -16,9 +21,13 @@ import io.github.connellite.proxy.client.rpc.dto.UpstreamProxyFormDto;
 import io.github.connellite.proxy.client.rpc.dto.UserFormDto;
 import io.github.connellite.proxy.client.rpc.dto.UsersPageDto;
 
+import java.util.List;
+
 public interface AdminServiceAsync {
 
-    void getDashboard(AsyncCallback<DashboardDto> callback);
+    void getDashboardProxy(AsyncCallback<DashboardProxyDto> callback);
+
+    void getDashboardDns(AsyncCallback<DashboardDnsDto> callback);
 
     void getUsers(AsyncCallback<UsersPageDto> callback);
 
@@ -85,4 +94,24 @@ public interface AdminServiceAsync {
     void previewEncryption(EncryptionDto form, AsyncCallback<TlsStatusDto> callback);
 
     void saveEncryption(EncryptionDto form, AsyncCallback<Void> callback);
+
+    void getRelayPage(AsyncCallback<RelayPageDto> callback);
+
+    void saveRelaySettings(RelayPageDto form, AsyncCallback<Void> callback);
+
+    void saveRelayRoute(RelayRouteRowDto row, AsyncCallback<Void> callback);
+
+    void deleteRelayRoute(long id, AsyncCallback<Void> callback);
+
+    void saveRelayDnsAllow(String cidr, AsyncCallback<Void> callback);
+
+    void deleteRelayDnsAllow(long id, AsyncCallback<Void> callback);
+
+    void saveRelayTcpAllow(String cidr, AsyncCallback<Void> callback);
+
+    void deleteRelayTcpAllow(long id, AsyncCallback<Void> callback);
+
+    void getRelayQueryLog(AsyncCallback<List<RelayQueryRowDto>> callback);
+
+    void getRelayTcpSessionLog(AsyncCallback<List<RelayTcpSessionRowDto>> callback);
 }
