@@ -60,7 +60,8 @@ public class RelayPage extends Composite {
     private final TextBox upstreamPort = new TextBox();
     private final TextBox answerAddress = new TextBox();
     private final FlowPanel upstreamFields = Forms.twoCol(
-            Forms.field("Upstream host", upstreamHost, "Host only, not host:port."),
+            Forms.field("Upstream host", upstreamHost,
+                    "Empty uses the real address of the name the client opened. Host only, not host:port."),
             Forms.field("Upstream port", upstreamPort, "Empty uses the port the client opened."));
     private final FlowPanel answerField = Forms.field("Answer IP", answerAddress, "One IPv4 or IPv6.");
     private final CheckBox routeEnabled = Forms.checkbox("Enabled");
@@ -179,7 +180,7 @@ public class RelayPage extends Composite {
                         "0.0.0.0 = all interfaces; 127.0.0.1 = this PC only."),
                 Forms.field("TCP port", tcpPort)));
         Label tcpHint = new Label("Reads the name from ClientHello and copies the bytes unchanged. "
-                + "The upstream must be the server for that name.");
+                + "An empty upstream host is looked up through the resolver above.");
         tcpHint.setStyleName("muted");
         tcpPanel.add(tcpHint);
         tcpPanel.add(allowEditor(tcpAllowHost, tcpAllowInput, false));
@@ -410,8 +411,11 @@ public class RelayPage extends Composite {
         for (RelayRouteRowDto route : routes) {
                 table.setText(row, 0, route.getName());
                 table.setText(row, 1, "ADDRESS".equals(route.getMode()) ? "Address" : "Relay");
-                String upstream = route.getUpstreamHost() == null ? "" : route.getUpstreamHost();
-                if (route.getUpstreamPort() != null && !route.getUpstreamPort().isEmpty()) {
+                String upstream = route.getUpstreamHost() == null || route.getUpstreamHost().isEmpty()
+                        ? "real address" : route.getUpstreamHost();
+                if ("ADDRESS".equals(route.getMode())) {
+                    upstream = "";
+                } else if (route.getUpstreamPort() != null && !route.getUpstreamPort().isEmpty()) {
                     upstream = upstream + ":" + route.getUpstreamPort();
                 }
                 table.setText(row, 2, upstream);

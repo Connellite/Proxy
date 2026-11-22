@@ -81,6 +81,14 @@ public class RelayRouteService {
                 throw new IllegalArgumentException("Set the address clients should receive before adding a relay route");
             }
             upstreamHost = normalizeHost(form.getUpstreamHost());
+            if (upstreamHost != null) {
+                InetAddress upstreamAddress = RelayCatalog.parseAddress(upstreamHost);
+                InetAddress advertised = RelayCatalog.parseAddress(settings.getRelayAdvertisedAddress());
+                if (upstreamAddress != null && upstreamAddress.equals(advertised)) {
+                    String msg =  "That address is this server. Leave the upstream host empty to use the real address of the name";
+                    throw new IllegalArgumentException(msg);
+                }
+            }
             upstreamPort = form.getUpstreamPort();
             if (upstreamPort != null) {
                 HostPort.parsePort(Integer.toString(upstreamPort));
@@ -182,7 +190,7 @@ public class RelayRouteService {
 
     private static String normalizeHost(String raw) {
         if (raw == null || raw.isBlank()) {
-            throw new IllegalArgumentException("Relay mode requires an upstream host");
+            return null;
         }
         String host = raw.trim();
         int colon = host.lastIndexOf(':');

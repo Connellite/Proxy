@@ -109,7 +109,7 @@ public class RelayTcpServer {
                 return promise;
             }
             RelaySnapshot.Route route = snapshot.match(hostname);
-            if (route == null || route.getMode() != RelayRouteMode.RELAY || route.getUpstreamHost() == null) {
+            if (route == null || route.getMode() != RelayRouteMode.RELAY) {
                 promise.setFailure(new IllegalStateException("no route"));
                 return promise;
             }
@@ -117,6 +117,9 @@ public class RelayTcpServer {
                     ? route.getUpstreamPort()
                     : ((InetSocketAddress) ctx.channel().localAddress()).getPort();
             String host = route.getUpstreamHost();
+            if (host == null || host.isBlank()) {
+                host = hostname;
+            }
             if (snapshot.tcpUseUpstream() && upstreamProxyService.currentSelected().isPresent()) {
                 promise.setSuccess(InetSocketAddress.createUnresolved(host, port));
                 return promise;
