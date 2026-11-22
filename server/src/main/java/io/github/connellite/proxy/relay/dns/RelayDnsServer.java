@@ -8,16 +8,11 @@ import io.github.connellite.proxy.relay.RelaySnapshot;
 import io.github.connellite.proxy.relay.UpstreamResolver;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
-import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.MultiThreadIoEventLoopGroup;
-import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.nio.NioIoHandler;
-import io.netty.channel.socket.DatagramPacket;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
@@ -72,17 +67,7 @@ public class RelayDnsServer {
         group = new MultiThreadIoEventLoopGroup(NioIoHandler.newFactory());
         udp = new Bootstrap().group(group)
                 .channel(NioDatagramChannel.class)
-                .handler(new SimpleChannelInboundHandler<DatagramPacket>() {
-                    @Override
-                    protected void channelRead0(ChannelHandlerContext ctx, DatagramPacket packet) {
-                        byte[] query = new byte[packet.content().readableBytes()];
-                        packet.content().readBytes(query);
-                        exchange(query, packet.sender(), wire -> {
-                            ByteBuf buf = Unpooled.wrappedBuffer(wire);
-                            ctx.writeAndFlush(new DatagramPacket(buf, packet.sender()));
-                        });
-                    }
-                })
+                .handler(new RelayDnsUdpHandler(this))
                 .bind(new InetSocketAddress(bindHost, port)).sync().channel();
         tcp = new ServerBootstrap().group(group)
                 .channel(NioServerSocketChannel.class)
@@ -90,23 +75,7 @@ public class RelayDnsServer {
                     @Override
                     protected void initChannel(SocketChannel ch) {
                         ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(65535, 0, 2, 0, 2));
-                        ch.pipeline().addLast(new SimpleChannelInboundHandler<ByteBuf>() {
-                            @Override
-                            protected void channelRead0(ChannelHandlerContext ctx, ByteBuf msg) {
-                                byte[] query = new byte[msg.readableBytes()];
-                                msg.readBytes(query);
-                                InetSocketAddress client = ctx.channel().remoteAddress() instanceof InetSocketAddress remote
-                                        ? remote : null;
-                                if (!exchange(query, client, wire -> {
-                                    ByteBuf out = ctx.alloc().buffer(2 + wire.length);
-                                    out.writeShort(wire.length);
-                                    out.writeBytes(wire);
-                                    ctx.writeAndFlush(out).addListener(future -> ctx.close());
-                                })) {
-                                    ctx.close();
-                                }
-                            }
-                        });
+                        ch.pipeline().addLast(new RelayDnsTcpHandler(RelayDnsServer.this));
                     }
                 })
                 .bind(new InetSocketAddress(bindHost, port)).sync().channel();
@@ -128,8 +97,10 @@ public class RelayDnsServer {
         }
     }
 
-    /** @return {@code false} when the client address is not on the DNS allowlist. Nothing is sent or logged. */
-    public boolean exchange(byte[] query, InetSocketAddress client, Consumer<byte[]> send) {
+    /**
+     * @return {@code false} when the client address is not on the DNS allowlist. Nothing is sent or logged.
+     */
+    public boolean exchange(byte[] query, InetSocketAddress client, String protocol, Consumer<byte[]> send) {
         if (!catalog.current().dnsAllows(client == null ? null : client.getAddress())) {
             return false;
         }
@@ -138,13 +109,13 @@ public class RelayDnsServer {
         try {
             message = new Message(query);
         } catch (Exception ex) {
-            queryLog.record(client, "", "", "FORMERR", "FORMERR", started);
+            queryLog.record(client, protocol, "", "", "FORMERR", "FORMERR", started);
             return true;
         }
         Record question = message.getQuestion();
         if (question == null) {
             send.accept(error(message, Rcode.FORMERR));
-            queryLog.record(client, "", "", "FORMERR", "FORMERR", started);
+            queryLog.record(client, protocol, "", "", "FORMERR", "FORMERR", started);
             return true;
         }
         String name = question.getName().toString(true);
@@ -154,34 +125,34 @@ public class RelayDnsServer {
         InetAddress relayAddress = snapshot.advertisedAddress();
         RelayAnswers decision = RelayAnswers.decide(route, question.getType(), relayAddress);
         if (decision == RelayAnswers.FORWARD) {
-            forward(snapshot, message, question, client, started, send);
+            forward(snapshot, message, question, client, protocol, started, send);
             return true;
         }
         if (decision == RelayAnswers.SERVFAIL || route == null) {
             send.accept(error(message, Rcode.SERVFAIL));
-            queryLog.record(client, name, type, "SERVFAIL", "SERVFAIL", started);
+            queryLog.record(client, protocol, name, type, "SERVFAIL", "SERVFAIL", started);
             return true;
         }
         InetAddress address = route.getMode() == RelayRouteMode.RELAY ? relayAddress : route.getAnswerAddress();
         boolean answered = decision == RelayAnswers.ANSWER && address != null;
         send.accept(synthetic(message, question, answered ? address : null));
         if (!answered) {
-            queryLog.record(client, name, type, "No data", "NOERROR", started);
+            queryLog.record(client, protocol, name, type, "No data", "NOERROR", started);
         } else if (route.getMode() == RelayRouteMode.RELAY) {
-            queryLog.record(client, name, type, "Relay", address.getHostAddress(), started);
+            queryLog.record(client, protocol, name, type, "Relay", address.getHostAddress(), started);
         } else {
-            queryLog.record(client, name, type, "Address", address.getHostAddress(), started);
+            queryLog.record(client, protocol, name, type, "Address", address.getHostAddress(), started);
         }
         return true;
     }
 
     private void forward(RelaySnapshot snapshot, Message query, Record question, InetSocketAddress client,
-                         long started, java.util.function.Consumer<byte[]> send) {
+                         String protocol, long started, Consumer<byte[]> send) {
         String name = question.getName().toString(true);
         String type = Type.string(question.getType());
         if (!forwards.tryAcquire()) {
             send.accept(error(query, Rcode.SERVFAIL));
-            queryLog.record(client, name, type, "SERVFAIL", "SERVFAIL", started);
+            queryLog.record(client, protocol, name, type, "SERVFAIL", "SERVFAIL", started);
             return;
         }
         try {
@@ -194,22 +165,23 @@ public class RelayDnsServer {
                         if (error != null || response == null) {
                             log.debug("DNS forward failed: {}", error == null ? "empty" : error.toString());
                             send.accept(error(query, Rcode.SERVFAIL));
-                            queryLog.record(client, name, type, "SERVFAIL", "SERVFAIL", started);
+                            queryLog.record(client, protocol, name, type, "SERVFAIL", "SERVFAIL", started);
                             return;
                         }
                         try {
                             send.accept(response.toWire(65535));
-                            queryLog.record(client, name, type, "Forwarded", RelayQueryLog.answers(response), started);
+                            queryLog.record(client, protocol, name, type, "Forwarded",
+                                    RelayQueryLog.answers(response), started);
                         } catch (Exception ex) {
                             send.accept(error(query, Rcode.SERVFAIL));
-                            queryLog.record(client, name, type, "SERVFAIL", "SERVFAIL", started);
+                            queryLog.record(client, protocol, name, type, "SERVFAIL", "SERVFAIL", started);
                         }
                     });
         } catch (Exception ex) {
             forwards.release();
             log.debug("DNS forward failed: {}", ex.toString());
             send.accept(error(query, Rcode.SERVFAIL));
-            queryLog.record(client, name, type, "SERVFAIL", "SERVFAIL", started);
+            queryLog.record(client, protocol, name, type, "SERVFAIL", "SERVFAIL", started);
         }
     }
 

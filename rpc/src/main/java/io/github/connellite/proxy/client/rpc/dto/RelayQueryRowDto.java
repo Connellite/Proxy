@@ -12,6 +12,7 @@ public class RelayQueryRowDto implements IsSerializable {
 
     private String time;
     private String client;
+    private String protocol;
     private String name;
     private String type;
     private String outcome;

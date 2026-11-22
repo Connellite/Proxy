@@ -33,4 +33,9 @@ public class DashboardDnsDto implements IsSerializable {
     private String advertisedAddress;
     private String upstreamResolver;
     private boolean tcpUseUpstream;
+    private String dnsEndpoint;
+    private String dohEndpoint;
+    private String doh3Endpoint;
+    private String dotEndpoint;
+    private String doqEndpoint;
 }

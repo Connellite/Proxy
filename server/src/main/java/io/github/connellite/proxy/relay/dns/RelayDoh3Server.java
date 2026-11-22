@@ -37,13 +37,17 @@ public class RelayDoh3Server {
         return server != null && server.isActive();
     }
 
+    public String getProtocol() {
+        return "DoH3";
+    }
+
     public synchronized void start(String bindHost, int port, QuicSslContext ssl) throws InterruptedException {
         if (!Quic.isAvailable()) {
             Throwable cause = Quic.unavailabilityCause();
             throw new IllegalStateException("DoH3 native library is not available", cause);
         }
         stop();
-        RelayDoh3StreamHandler streams = new RelayDoh3StreamHandler(dns);
+        RelayDoh3StreamHandler streams = new RelayDoh3StreamHandler(dns, getProtocol());
         group = new MultiThreadIoEventLoopGroup(NioIoHandler.newFactory());
         long idleMillis = Math.max(1, properties.getIdleTimeoutSeconds()) * 1000L;
         server = new Bootstrap().group(group)

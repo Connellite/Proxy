@@ -43,6 +43,10 @@ public class RelayDoqServer {
         return server != null && server.isActive();
     }
 
+    public String getProtocol() {
+        return "DoQ";
+    }
+
     public synchronized void start(String bindHost, int port, QuicSslContext ssl) throws InterruptedException {
         if (!Quic.isAvailable()) {
             Throwable cause = Quic.unavailabilityCause();
@@ -97,7 +101,7 @@ public class RelayDoqServer {
             SocketAddress remote = parent.remoteSocketAddress();
             InetSocketAddress client = remote instanceof InetSocketAddress inet ? inet : null;
             //noinspection resource
-            if (!dns.exchange(query, client, wire -> ctx.channel().eventLoop().execute(() -> {
+            if (!dns.exchange(query, client, getProtocol(), wire -> ctx.channel().eventLoop().execute(() -> {
                 if (!ctx.channel().isActive()) {
                     return;
                 }

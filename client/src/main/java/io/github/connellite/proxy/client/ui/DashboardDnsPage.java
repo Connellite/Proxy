@@ -1,10 +1,12 @@
 package io.github.connellite.proxy.client.ui;
 
+import com.google.gwt.safehtml.shared.SafeHtmlUtils;
 import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.FlowPanel;
 import com.google.gwt.user.client.ui.HTML;
 import io.github.connellite.proxy.client.rpc.dto.DashboardDnsDto;
+import io.github.connellite.proxy.client.util.CellCopy;
 import io.github.connellite.proxy.client.util.Rpc;
 
 /**
@@ -26,6 +28,7 @@ public class DashboardDnsPage extends Composite {
         helpPanel.setStyleName("panel");
         helpPanel.add(new HTML("<h2>DNS Relay</h2>"));
         helpPanel.add(help);
+        CellCopy.installCode(help);
 
         root.add(stats);
         root.add(helpPanel);
@@ -68,16 +71,28 @@ public class DashboardDnsPage extends Composite {
         DashboardStats.addStat(stats, "TCP via upstream",
                 dto.isTcpUseUpstream() ? "yes" : "no", null);
 
-        help.setHTML(
-                "<p>Plain DNS → UDP/TCP port <strong>" + dto.getDnsPort() + "</strong>.</p>"
-                        + "<p>TCP SNI relay → port <strong>" + dto.getTcpPort()
-                        + "</strong> (TLS passthrough by hostname).</p>"
-                        + "<p>DoH → HTTPS <code>/dns-query</code> on port <strong>" + dto.getDohPort()
-                        + "</strong>.</p>"
-                        + "<p>DoH3 → HTTP/3 <code>/dns-query</code> on port <strong>" + dto.getDoh3Port()
-                        + "</strong>.</p>"
-                        + "<p>DoT → TLS DNS on port <strong>" + dto.getDotPort() + "</strong>.</p>"
-                        + "<p>DoQ → QUIC DNS on port <strong>" + dto.getDoqPort() + "</strong>.</p>");
+        StringBuilder html = new StringBuilder();
+        html.append("<p><strong>Connection strings</strong></p>");
+        boolean any = false;
+        any |= appendEndpoint(html, "Plain DNS", dto.isDnsRunning(), dto.getDnsEndpoint());
+        any |= appendEndpoint(html, "DoH", dto.isDohRunning(), dto.getDohEndpoint());
+        any |= appendEndpoint(html, "DoH3", dto.isDoh3Running(), dto.getDoh3Endpoint());
+        any |= appendEndpoint(html, "DoT", dto.isDotRunning(), dto.getDotEndpoint());
+        any |= appendEndpoint(html, "DoQ", dto.isDoqRunning(), dto.getDoqEndpoint());
+        if (!any) {
+            html.append("<p class=\"muted\">No running DNS listeners with a public host yet. "
+                    + "Set the TLS server name or advertised address, then enable a listener.</p>");
+        }
+        help.setHTML(html.toString());
+    }
+
+    private static boolean appendEndpoint(StringBuilder html, String label, boolean running, String endpoint) {
+        if (!running || endpoint == null || endpoint.isEmpty()) {
+            return false;
+        }
+        html.append("<p>").append(SafeHtmlUtils.htmlEscape(label)).append(" → <code>")
+                .append(SafeHtmlUtils.htmlEscape(endpoint)).append("</code></p>");
+        return true;
     }
 
     private static String blank(String value) {

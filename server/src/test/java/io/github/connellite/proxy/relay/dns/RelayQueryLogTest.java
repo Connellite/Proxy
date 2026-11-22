@@ -20,11 +20,13 @@ class RelayQueryLogTest {
         RelayQueryLog log = new RelayQueryLog();
         InetSocketAddress client = new InetSocketAddress("203.0.113.8", 53000);
         for (int i = 0; i < RelayQueryLog.LIMIT + 5; i++) {
-            log.record(client, "n" + i + ".example", "A", "Forwarded", "192.0.2." + (i % 200), System.nanoTime());
+            log.record(client, "UDP", "n" + i + ".example", "A", "Forwarded", "192.0.2." + (i % 200),
+                    System.nanoTime());
         }
         assertThat(log.recent()).hasSize(RelayQueryLog.LIMIT);
         assertThat(log.recent().get(0).name()).isEqualTo("n" + (RelayQueryLog.LIMIT + 4) + ".example");
         assertThat(log.recent().get(0).client()).isEqualTo("203.0.113.8:53000");
+        assertThat(log.recent().get(0).protocol()).isEqualTo("UDP");
     }
 
     @Test

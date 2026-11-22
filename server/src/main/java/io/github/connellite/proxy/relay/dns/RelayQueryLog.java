@@ -31,9 +31,11 @@ public class RelayQueryLog {
     private final AtomicLong ids = new AtomicLong();
     private final Cache<Long, Entry> cache = Caffeine.newBuilder().maximumSize(LIMIT).build();
 
-    public void record(InetSocketAddress client, String name, String type, String outcome, String answer, long startedNanos) {
+    public void record(InetSocketAddress client, String protocol, String name, String type, String outcome,
+                       String answer, long startedNanos) {
         long millis = Math.max(0, TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedNanos));
         cache.put(ids.incrementAndGet(), new Entry(Instant.now(), client(client),
+                protocol == null ? "" : protocol,
                 name == null ? "" : name, type == null ? "" : type, outcome, answer == null ? "" : answer, millis));
     }
 
@@ -80,7 +82,7 @@ public class RelayQueryLog {
         return host + ":" + address.getPort();
     }
 
-    public record Entry(Instant at, String client, String name, String type, String outcome, String answer,
-                        long millis) {
+    public record Entry(Instant at, String client, String protocol, String name, String type, String outcome,
+                        String answer, long millis) {
     }
 }

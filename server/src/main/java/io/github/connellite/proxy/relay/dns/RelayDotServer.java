@@ -40,6 +40,10 @@ public class RelayDotServer {
         return server != null && server.isActive();
     }
 
+    public String getProtocol() {
+        return "DoT";
+    }
+
     public synchronized void start(String bindHost, int port, SslContext ssl) throws InterruptedException {
         stop();
         group = new MultiThreadIoEventLoopGroup(NioIoHandler.newFactory());
@@ -59,7 +63,7 @@ public class RelayDotServer {
                                 msg.readBytes(query);
                                 InetSocketAddress client = ctx.channel().remoteAddress() instanceof InetSocketAddress remote
                                         ? remote : null;
-                                if (!dns.exchange(query, client, wire -> {
+                                if (!dns.exchange(query, client, getProtocol(), wire -> {
                                     ByteBuf out = ctx.alloc().buffer(2 + wire.length);
                                     out.writeShort(wire.length);
                                     out.writeBytes(wire);

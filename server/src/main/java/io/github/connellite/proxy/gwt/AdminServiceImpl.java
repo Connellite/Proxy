@@ -215,6 +215,12 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
         dto.setAdvertisedAddress(settings.getRelayAdvertisedAddress() == null ? "" : settings.getRelayAdvertisedAddress());
         dto.setUpstreamResolver(settings.getRelayUpstreamResolver() == null ? "" : settings.getRelayUpstreamResolver());
         dto.setTcpUseUpstream(settings.isRelayTcpUseUpstream());
+        String publicHost = dnsPublicHost(settings);
+        dto.setDnsEndpoint(dnsPlainEndpoint(publicHost, settings.getRelayDnsPort()));
+        dto.setDohEndpoint(dnsUrlEndpoint("https", publicHost, settings.getRelayDohPort(), 443, "/dns-query"));
+        dto.setDoh3Endpoint(dnsUrlEndpoint("h3", publicHost, settings.getRelayDoh3Port(), 443, "/dns-query"));
+        dto.setDotEndpoint(dnsUrlEndpoint("tls", publicHost, settings.getRelayDotPort(), 853, null));
+        dto.setDoqEndpoint(dnsUrlEndpoint("quic", publicHost, settings.getRelayDoqPort(), 853, null));
         return dto;
     }
 
@@ -771,6 +777,7 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
             RelayQueryRowDto row = new RelayQueryRowDto();
             row.setTime(QUERY_TIME_FMT.format(entry.at().atZone(appZoneId)));
             row.setClient(entry.client());
+            row.setProtocol(entry.protocol());
             row.setName(entry.name());
             row.setType(entry.type());
             row.setOutcome(entry.outcome());
@@ -837,5 +844,44 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
 
     private static String bindLabel(boolean running, String host, int port) {
         return running ? host + ":" + port : "stopped";
+    }
+
+    private static String dnsPublicHost(AppSettings settings) {
+        String serverName = settings.getHttpsServerName();
+        if (serverName != null && !serverName.isBlank()) {
+            return serverName.trim();
+        }
+        String advertised = settings.getRelayAdvertisedAddress();
+        if (advertised != null && !advertised.isBlank()) {
+            return advertised.trim();
+        }
+        return "";
+    }
+
+    private static String dnsPlainEndpoint(String host, int port) {
+        if (host == null || host.isEmpty()) {
+            return "";
+        }
+        String authority = dnsAuthority(host, port, 53);
+        return authority;
+    }
+
+    private static String dnsUrlEndpoint(String scheme, String host, int port, int defaultPort, String path) {
+        if (host == null || host.isEmpty()) {
+            return "";
+        }
+        String authority = dnsAuthority(host, port, defaultPort);
+        if (path == null || path.isEmpty()) {
+            return scheme + "://" + authority;
+        }
+        return scheme + "://" + authority + path;
+    }
+
+    private static String dnsAuthority(String host, int port, int defaultPort) {
+        String bracketed = host.indexOf(':') >= 0 && !host.startsWith("[") ? "[" + host + "]" : host;
+        if (port == defaultPort) {
+            return bracketed;
+        }
+        return bracketed + ":" + port;
     }
 }

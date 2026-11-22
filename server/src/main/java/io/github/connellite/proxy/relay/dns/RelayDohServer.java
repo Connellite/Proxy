@@ -40,6 +40,10 @@ public class RelayDohServer {
         return server != null && server.isActive();
     }
 
+    public String getProtocol() {
+        return "DoH";
+    }
+
     public synchronized void start(String bindHost, int port, SslContext ssl) throws InterruptedException {
         stop();
         group = new MultiThreadIoEventLoopGroup(NioIoHandler.newFactory());
@@ -59,14 +63,14 @@ public class RelayDohServer {
                                         protected void initChannel(Http2StreamChannel stream) {
                                             stream.pipeline().addLast(new Http2StreamFrameToHttpObjectCodec(true));
                                             stream.pipeline().addLast(new HttpObjectAggregator(65535));
-                                            stream.pipeline().addLast(new RelayDohHandler(dns));
+                                            stream.pipeline().addLast(new RelayDohHandler(dns, getProtocol()));
                                         }
                                     }));
                                     return;
                                 }
                                 ctx.pipeline().addLast(new HttpServerCodec());
                                 ctx.pipeline().addLast(new HttpObjectAggregator(65535));
-                                ctx.pipeline().addLast(new RelayDohHandler(dns));
+                                ctx.pipeline().addLast(new RelayDohHandler(dns, getProtocol()));
                             }
                         });
                     }

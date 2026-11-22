@@ -36,6 +36,7 @@ final class RelayDoh3StreamHandler extends Http3RequestStreamInboundHandler {
     private static final AttributeKey<Request> REQUEST = AttributeKey.newInstance("doh3Request");
 
     private final RelayDnsServer dns;
+    private final String protocol;
 
     @Override
     protected void channelRead(ChannelHandlerContext ctx, Http3HeadersFrame frame) {
@@ -116,7 +117,7 @@ final class RelayDoh3StreamHandler extends Http3RequestStreamInboundHandler {
             }
             InetSocketAddress client = client(ctx);
             //noinspection resource
-            if (!dns.exchange(query, client, wire -> ctx.channel().eventLoop().execute(() -> {
+            if (!dns.exchange(query, client, protocol, wire -> ctx.channel().eventLoop().execute(() -> {
                 if (ctx.channel().isActive()) {
                     respond(ctx, "200", wire);
                 }

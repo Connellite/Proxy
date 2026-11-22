@@ -23,12 +23,14 @@ import java.util.Locale;
 /**
  * One DNS-over-HTTPS request: GET or POST {@code /dns-query}.
  */
-@RequiredArgsConstructor final class RelayDohHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
+@RequiredArgsConstructor 
+final class RelayDohHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
 
     private static final String PATH = "/dns-query";
     private static final String DNS_MESSAGE = "application/dns-message";
 
     private final RelayDnsServer dns;
+    private final String protocol;
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest request) {
@@ -49,7 +51,7 @@ import java.util.Locale;
         }
         InetSocketAddress client = ctx.channel().remoteAddress() instanceof InetSocketAddress remote ? remote : null;
         //noinspection resource
-        if (!dns.exchange(query, client, wire -> ctx.channel().eventLoop().execute(() -> {
+        if (!dns.exchange(query, client, protocol, wire -> ctx.channel().eventLoop().execute(() -> {
             if (ctx.channel().isActive()) {
                 write(ctx, request, HttpResponseStatus.OK, wire);
             }

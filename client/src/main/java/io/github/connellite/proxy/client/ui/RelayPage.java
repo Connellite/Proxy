@@ -527,7 +527,7 @@ public class RelayPage extends Composite {
         }
         FlexTable table = new FlexTable();
         table.setStyleName("users-table query-log");
-        String[] headers = {"Time", "Client", "Name", "Type", "Result", "Answer", "Elapsed"};
+        String[] headers = {"Time", "Client", "Proto", "Name", "Type", "Result", "Answer", "Elapsed"};
         for (int i = 0; i < headers.length; i++) {
             table.setText(0, i, headers[i]);
             styleHeader(table, i);
@@ -536,11 +536,12 @@ public class RelayPage extends Composite {
         for (RelayQueryRowDto query : rows) {
             table.setText(row, 0, text(query.getTime()));
             table.setText(row, 1, text(query.getClient()));
-            table.setText(row, 2, text(query.getName()));
-            table.setText(row, 3, text(query.getType()));
-            table.setText(row, 4, text(query.getOutcome()));
-            table.setText(row, 5, text(query.getAnswer()));
-            table.setText(row, 6, text(query.getElapsed()));
+            table.setText(row, 2, text(query.getProtocol()));
+            table.setText(row, 3, text(query.getName()));
+            table.setText(row, 4, text(query.getType()));
+            table.setText(row, 5, text(query.getOutcome()));
+            table.setText(row, 6, text(query.getAnswer()));
+            table.setText(row, 7, text(query.getElapsed()));
             row++;
         }
         CellCopy.install(table);
