@@ -87,6 +87,7 @@ public class RelayTcpServer {
         @Override
         protected Future<InetSocketAddress> lookup(ChannelHandlerContext ctx, ByteBuf clientHello) {
             String sni = clientHello == null ? "" : SniNames.read(clientHello);
+            //noinspection resource
             Promise<InetSocketAddress> promise = ctx.executor().newPromise();
             if (sni == null || sni.isEmpty()) {
                 promise.setFailure(new IllegalStateException("no sni"));

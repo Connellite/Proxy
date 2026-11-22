@@ -92,6 +92,7 @@ public class RelayDoqServer {
             QuicChannel parent = ((QuicStreamChannel) ctx.channel()).parent();
             SocketAddress remote = parent.remoteSocketAddress();
             InetSocketAddress client = remote instanceof InetSocketAddress inet ? inet : null;
+            //noinspection resource
             dns.exchange(query, client, wire -> ctx.channel().eventLoop().execute(() -> {
                 if (!ctx.channel().isActive()) {
                     return;
