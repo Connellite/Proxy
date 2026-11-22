@@ -10,6 +10,7 @@ import com.google.gwt.user.client.ui.CheckBox;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.FlexTable;
 import com.google.gwt.user.client.ui.FlowPanel;
+import com.google.gwt.user.client.ui.HTMLTable;
 import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.ListBox;
@@ -64,6 +65,7 @@ public class RelayPage extends Composite {
     private final FlowPanel answerField = Forms.field("Answer IP", answerAddress, "One IPv4 or IPv6.");
     private final CheckBox routeEnabled = Forms.checkbox("Enabled");
     private final FlowPanel tableHost = new FlowPanel();
+    private Long editingRouteId;
     private final FlowPanel logTable = new FlowPanel();
 
     public RelayPage(AppShell shell) {
@@ -213,6 +215,9 @@ public class RelayPage extends Composite {
             }
         });
         routesPanel.add(Forms.formActions(add));
+        Label routeHint = new Label("Click a row to fill the form. Save updates that route.");
+        routeHint.setStyleName("muted");
+        routesPanel.add(routeHint);
         tableHost.setVisible(false);
         routesPanel.add(tableHost);
         root.add(routesPanel);
@@ -390,7 +395,7 @@ public class RelayPage extends Composite {
         tableHost.setStyleName("table-wrap");
         tableHost.setVisible(true);
         FlexTable table = new FlexTable();
-        table.setStyleName("users-table");
+        table.setStyleName("users-table route-table");
         String[] headers = {"Name", "Mode", "Upstream", "Answer", "Enabled", ""};
         for (int i = 0; i < headers.length; i++) {
             table.setText(0, i, headers[i]);
@@ -401,7 +406,8 @@ public class RelayPage extends Composite {
             table.getCellFormatter().getElement(0, i).getStyle().setProperty("color", "#6b645a");
         }
         int row = 1;
-        for (RelayRouteRowDto route : page.getRoutes()) {
+        final List<RelayRouteRowDto> routes = page.getRoutes();
+        for (RelayRouteRowDto route : routes) {
                 table.setText(row, 0, route.getName());
                 table.setText(row, 1, "ADDRESS".equals(route.getMode()) ? "Address" : "Relay");
                 String upstream = route.getUpstreamHost() == null ? "" : route.getUpstreamHost();
@@ -422,8 +428,30 @@ public class RelayPage extends Composite {
                 });
                 actions.add(remove);
                 table.setWidget(row, 5, actions);
+                table.getRowFormatter().addStyleName(row, "route-row");
+                if (editingRouteId != null && editingRouteId.equals(route.getId())) {
+                    table.getRowFormatter().addStyleName(row, "route-selected");
+                }
                 row++;
         }
+        table.addClickHandler(new ClickHandler() {
+            @Override
+            public void onClick(ClickEvent event) {
+                HTMLTable.Cell cell = table.getCellForEvent(event);
+                if (cell == null || cell.getRowIndex() < 1 || cell.getCellIndex() == 5) {
+                    return;
+                }
+                int index = cell.getRowIndex() - 1;
+                if (index >= routes.size()) {
+                    return;
+                }
+                fillRoute(routes.get(index));
+                for (int i = 1; i < table.getRowCount(); i++) {
+                    table.getRowFormatter().removeStyleName(i, "route-selected");
+                }
+                table.getRowFormatter().addStyleName(cell.getRowIndex(), "route-selected");
+            }
+        });
         CellCopy.install(table);
         tableHost.add(table);
     }
@@ -518,8 +546,41 @@ public class RelayPage extends Composite {
         });
     }
 
+    private void fillRoute(RelayRouteRowDto route) {
+        editingRouteId = route.getId();
+        routeName.setText(text(route.getName()));
+        selectMode(route.getMode());
+        upstreamHost.setText(text(route.getUpstreamHost()));
+        upstreamPort.setText(text(route.getUpstreamPort()));
+        answerAddress.setText(text(route.getAnswerAddress()));
+        routeEnabled.setValue(route.isEnabled());
+        applyRouteMode();
+    }
+
+    private void selectMode(String mode) {
+        String value = mode == null || mode.isEmpty() ? "RELAY" : mode;
+        for (int i = 0; i < routeMode.getItemCount(); i++) {
+            if (value.equals(routeMode.getValue(i))) {
+                routeMode.setSelectedIndex(i);
+                return;
+            }
+        }
+    }
+
+    private void clearRouteForm() {
+        editingRouteId = null;
+        routeName.setText("");
+        upstreamHost.setText("");
+        upstreamPort.setText("");
+        answerAddress.setText("");
+        routeEnabled.setValue(true);
+        selectMode("RELAY");
+        applyRouteMode();
+    }
+
     private void saveRoute() {
         RelayRouteRowDto row = new RelayRouteRowDto();
+        row.setId(editingRouteId);
         row.setName(routeName.getText());
         row.setMode(routeMode.getValue(routeMode.getSelectedIndex()));
         row.setUpstreamHost(upstreamHost.getText());
@@ -535,10 +596,7 @@ public class RelayPage extends Composite {
             @Override
             public void onSuccess(Void result) {
                 shell.showFlash("Route saved", true);
-                routeName.setText("");
-                upstreamHost.setText("");
-                upstreamPort.setText("");
-                answerAddress.setText("");
+                clearRouteForm();
                 load();
             }
         });
@@ -548,6 +606,7 @@ public class RelayPage extends Composite {
         if (id == null) {
             return;
         }
+        final Long removed = id;
         shell.getRpc().deleteRelayRoute(id, new AsyncCallback<Void>() {
             @Override
             public void onFailure(Throwable caught) {
@@ -557,6 +616,9 @@ public class RelayPage extends Composite {
             @Override
             public void onSuccess(Void result) {
                 shell.showFlash("Route deleted", true);
+                if (removed.equals(editingRouteId)) {
+                    clearRouteForm();
+                }
                 load();
             }
         });

@@ -211,6 +211,12 @@ th, td {
 .users-table tbody tr:hover td {
   background: #faf7f1;
 }
+table.users-table tr.route-row {
+  cursor: pointer;
+}
+table.users-table tr.route-selected td {
+  background: #e4f0e6;
+}
 th { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
 td.empty { color: var(--muted); text-align: center; padding: 2rem; }
 td.cell-ellipsis {
