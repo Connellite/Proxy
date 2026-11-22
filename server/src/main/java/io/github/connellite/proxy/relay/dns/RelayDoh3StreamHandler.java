@@ -27,7 +27,8 @@ import java.util.Locale;
  * One DNS-over-HTTP/3 request stream. Shared across streams of every connection.
  */
 @ChannelHandler.Sharable
-@RequiredArgsConstructor final class RelayDoh3StreamHandler extends Http3RequestStreamInboundHandler {
+@RequiredArgsConstructor
+final class RelayDoh3StreamHandler extends Http3RequestStreamInboundHandler {
 
     private static final String PATH = "/dns-query";
     private static final String DNS_MESSAGE = "application/dns-message";

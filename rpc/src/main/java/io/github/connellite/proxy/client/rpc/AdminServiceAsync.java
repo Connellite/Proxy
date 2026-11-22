@@ -9,6 +9,7 @@ import io.github.connellite.proxy.client.rpc.dto.PasswordChangeDto;
 import io.github.connellite.proxy.client.rpc.dto.RelayPageDto;
 import io.github.connellite.proxy.client.rpc.dto.RelayQueryRowDto;
 import io.github.connellite.proxy.client.rpc.dto.RelayRouteRowDto;
+import io.github.connellite.proxy.client.rpc.dto.RelayTcpSessionRowDto;
 import io.github.connellite.proxy.client.rpc.dto.SettingsDto;
 import io.github.connellite.proxy.client.rpc.dto.SftpPageDto;
 import io.github.connellite.proxy.client.rpc.dto.SshAccessDto;
@@ -108,4 +109,6 @@ public interface AdminServiceAsync {
     void deleteRelayTcpAllow(long id, AsyncCallback<Void> callback);
 
     void getRelayQueryLog(AsyncCallback<List<RelayQueryRowDto>> callback);
+
+    void getRelayTcpSessionLog(AsyncCallback<List<RelayTcpSessionRowDto>> callback);
 }

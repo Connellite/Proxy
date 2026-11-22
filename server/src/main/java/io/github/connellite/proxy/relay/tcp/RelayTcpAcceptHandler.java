@@ -40,10 +40,19 @@ final class RelayTcpAcceptHandler extends AbstractSniHandler<InetSocketAddress> 
     private final ProxyProperties properties;
     private final OutboundConnector outboundConnector;
     private final UpstreamProxyService upstreamProxyService;
+    private final RelayTcpSessionLog sessionLog;
     private final AtomicBoolean connectStarted = new AtomicBoolean();
+    private final AtomicBoolean logged = new AtomicBoolean();
+    private long startedNanos = System.nanoTime();
+    private InetSocketAddress clientAddress;
+    private String sessionHostname = "";
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
+        startedNanos = System.nanoTime();
+        if (ctx.channel().remoteAddress() instanceof InetSocketAddress inet) {
+            clientAddress = inet;
+        }
         super.channelActive(ctx);
         // AUTO_READ is off, so nothing reads the ClientHello unless this asks for it.
         ctx.read();
@@ -54,6 +63,9 @@ final class RelayTcpAcceptHandler extends AbstractSniHandler<InetSocketAddress> 
         //noinspection resource
         Promise<InetSocketAddress> promise = ctx.executor().newPromise();
         InetSocketAddress remote = ctx.channel().remoteAddress() instanceof InetSocketAddress inet ? inet : null;
+        if (remote != null) {
+            clientAddress = remote;
+        }
         RelaySnapshot snapshot = catalog.current();
         if (!snapshot.tcpAllows(remote == null ? null : remote.getAddress())) {
             promise.setFailure(new IllegalStateException("address not allowed"));
@@ -63,6 +75,7 @@ final class RelayTcpAcceptHandler extends AbstractSniHandler<InetSocketAddress> 
             promise.setFailure(new IllegalStateException("no sni"));
             return promise;
         }
+        sessionHostname = hostname;
         RelaySnapshot.Route route = snapshot.match(hostname);
         if (route == null || route.getMode() != RelayRouteMode.RELAY) {
             promise.setFailure(new IllegalStateException("no route"));
@@ -101,7 +114,11 @@ final class RelayTcpAcceptHandler extends AbstractSniHandler<InetSocketAddress> 
         if (!connectStarted.compareAndSet(false, true)) {
             return;
         }
+        if (hostname != null && !hostname.isEmpty()) {
+            sessionHostname = hostname;
+        }
         if (!future.isSuccess()) {
+            recordOutcome(outcomeForLookupFailure(future.cause()));
             ctx.close();
             return;
         }
@@ -129,10 +146,12 @@ final class RelayTcpAcceptHandler extends AbstractSniHandler<InetSocketAddress> 
             if (!connect.isSuccess()) {
                 log.warn("TCP relay connect {}:{} failed: {}", target.getAddress().getHostAddress(),
                         target.getPort(), connect.cause().toString());
+                recordOutcome("Connect failed");
                 ctx.close();
                 return;
             }
             Channel upstream = connect.channel();
+            upstream.closeFuture().addListener(f -> recordOutcome("Relay"));
             ctx.pipeline().addLast(new RelayHandler(upstream, null));
             // Removing the hello handler releases the original records, SNI included, to the relay.
             ctx.pipeline().remove(RelayTcpAcceptHandler.this);
@@ -146,6 +165,7 @@ final class RelayTcpAcceptHandler extends AbstractSniHandler<InetSocketAddress> 
             @Override
             public void onSuccess(Channel outbound) {
                 outbound.config().setAutoRead(false);
+                outbound.closeFuture().addListener(f -> recordOutcome("Relay"));
                 outbound.pipeline().addLast(new IdleStateHandler(
                         0, 0, properties.getIdleTimeoutSeconds(), TimeUnit.SECONDS));
                 outbound.pipeline().addLast(new IdleCloseHandler());
@@ -159,8 +179,30 @@ final class RelayTcpAcceptHandler extends AbstractSniHandler<InetSocketAddress> 
 
             @Override
             public void onFailure(Throwable cause) {
+                recordOutcome("Tunnel failed");
                 ctx.close();
             }
         });
+    }
+
+    private void recordOutcome(String outcome) {
+        if (!logged.compareAndSet(false, true)) {
+            return;
+        }
+        sessionLog.record(clientAddress, sessionHostname, outcome, startedNanos);
+    }
+
+    private static String outcomeForLookupFailure(Throwable cause) {
+        String message = cause == null || cause.getMessage() == null ? "" : cause.getMessage();
+        if (message.contains("address not allowed")) {
+            return "Denied";
+        }
+        if (message.contains("no sni")) {
+            return "No SNI";
+        }
+        if (message.contains("no route")) {
+            return "No route";
+        }
+        return "Unresolved";
     }
 }

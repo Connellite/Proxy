@@ -36,6 +36,7 @@ public class RelayTcpServer {
     private final ProxyProperties properties;
     private final OutboundConnector outboundConnector;
     private final UpstreamProxyService upstreamProxyService;
+    private final RelayTcpSessionLog sessionLog;
 
     private EventLoopGroup bossGroup;
     private EventLoopGroup workerGroup;
@@ -59,7 +60,7 @@ public class RelayTcpServer {
                         ch.pipeline().addLast(new IdleStateHandler(0, 0, properties.getIdleTimeoutSeconds(), TimeUnit.SECONDS));
                         ch.pipeline().addLast(new IdleCloseHandler());
                         ch.pipeline().addLast(new RelayTcpAcceptHandler(
-                                catalog, properties, outboundConnector, upstreamProxyService));
+                                catalog, properties, outboundConnector, upstreamProxyService, sessionLog));
                         QuietCloseHandlerAdapter.installLast(ch.pipeline());
                     }
                 })

@@ -21,6 +21,7 @@ import io.github.connellite.proxy.client.rpc.dto.RelayAllowRowDto;
 import io.github.connellite.proxy.client.rpc.dto.RelayPageDto;
 import io.github.connellite.proxy.client.rpc.dto.RelayQueryRowDto;
 import io.github.connellite.proxy.client.rpc.dto.RelayRouteRowDto;
+import io.github.connellite.proxy.client.rpc.dto.RelayTcpSessionRowDto;
 import io.github.connellite.proxy.client.util.AutoRefresh;
 import io.github.connellite.proxy.client.util.BindHostList;
 import io.github.connellite.proxy.client.util.CellCopy;
@@ -71,6 +72,7 @@ public class RelayPage extends Composite {
     private final FlowPanel tableHost = new FlowPanel();
     private Long editingRouteId;
     private final FlowPanel logTable = new FlowPanel();
+    private final FlowPanel tcpLogTable = new FlowPanel();
 
     public RelayPage(AppShell shell) {
         this.shell = shell;
@@ -260,9 +262,28 @@ public class RelayPage extends Composite {
         logPanel.add(logTable);
         root.add(logPanel);
 
+        FlowPanel tcpLogPanel = new FlowPanel();
+        tcpLogPanel.setStyleName("panel form");
+        FlowPanel tcpLogHeader = new FlowPanel();
+        tcpLogHeader.setStyleName("row-between");
+        tcpLogHeader.add(new HTML("<h2>Recent TCP connections</h2>"));
+        AutoRefresh tcpRefresh = new AutoRefresh(new AutoRefresh.Callback() {
+            @Override
+            public void onRefresh() {
+                loadTcpLog();
+            }
+        });
+        shell.attachRefresh(tcpRefresh);
+        tcpLogHeader.add(tcpRefresh);
+        tcpLogPanel.add(tcpLogHeader);
+        tcpLogTable.setStyleName("table-wrap");
+        tcpLogPanel.add(tcpLogTable);
+        root.add(tcpLogPanel);
+
         initWidget(root);
         load();
         loadLog();
+        loadTcpLog();
     }
 
     private void applyRouteMode() {
@@ -524,6 +545,48 @@ public class RelayPage extends Composite {
         }
         CellCopy.install(table);
         logTable.add(table);
+    }
+
+    private void loadTcpLog() {
+        shell.getRpc().getRelayTcpSessionLog(new AsyncCallback<List<RelayTcpSessionRowDto>>() {
+            @Override
+            public void onFailure(Throwable caught) {
+                Rpc.showFailure(caught);
+            }
+
+            @Override
+            public void onSuccess(List<RelayTcpSessionRowDto> result) {
+                renderTcpLog(result);
+            }
+        });
+    }
+
+    private void renderTcpLog(List<RelayTcpSessionRowDto> rows) {
+        tcpLogTable.clear();
+        if (rows == null || rows.isEmpty()) {
+            Label empty = new Label("No TCP sessions yet.");
+            empty.setStyleName("muted");
+            tcpLogTable.add(empty);
+            return;
+        }
+        FlexTable table = new FlexTable();
+        table.setStyleName("users-table query-log");
+        String[] headers = {"Time", "Client", "Host", "Result", "Elapsed"};
+        for (int i = 0; i < headers.length; i++) {
+            table.setText(0, i, headers[i]);
+            styleHeader(table, i);
+        }
+        int row = 1;
+        for (RelayTcpSessionRowDto session : rows) {
+            table.setText(row, 0, text(session.getTime()));
+            table.setText(row, 1, text(session.getClient()));
+            table.setText(row, 2, text(session.getHostname()));
+            table.setText(row, 3, text(session.getOutcome()));
+            table.setText(row, 4, text(session.getElapsed()));
+            row++;
+        }
+        CellCopy.install(table);
+        tcpLogTable.add(table);
     }
 
     private static void styleHeader(FlexTable table, int column) {

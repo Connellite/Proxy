@@ -10,6 +10,7 @@ import io.github.connellite.proxy.client.rpc.dto.PasswordChangeDto;
 import io.github.connellite.proxy.client.rpc.dto.RelayPageDto;
 import io.github.connellite.proxy.client.rpc.dto.RelayQueryRowDto;
 import io.github.connellite.proxy.client.rpc.dto.RelayRouteRowDto;
+import io.github.connellite.proxy.client.rpc.dto.RelayTcpSessionRowDto;
 import io.github.connellite.proxy.client.rpc.dto.SettingsDto;
 import io.github.connellite.proxy.client.rpc.dto.SftpPageDto;
 import io.github.connellite.proxy.client.rpc.dto.SshAccessDto;
@@ -113,4 +114,6 @@ public interface AdminService extends RemoteService {
     void deleteRelayTcpAllow(long id) throws AdminRpcException;
 
     List<RelayQueryRowDto> getRelayQueryLog();
+
+    List<RelayTcpSessionRowDto> getRelayTcpSessionLog();
 }

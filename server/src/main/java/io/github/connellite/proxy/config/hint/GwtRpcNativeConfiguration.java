@@ -31,6 +31,7 @@ import io.github.connellite.proxy.client.rpc.dto.RelayAllowRowDto;
 import io.github.connellite.proxy.client.rpc.dto.RelayPageDto;
 import io.github.connellite.proxy.client.rpc.dto.RelayQueryRowDto;
 import io.github.connellite.proxy.client.rpc.dto.RelayRouteRowDto;
+import io.github.connellite.proxy.client.rpc.dto.RelayTcpSessionRowDto;
 import io.github.connellite.proxy.client.rpc.dto.SettingsDto;
 import io.github.connellite.proxy.client.rpc.dto.SftpPageDto;
 import io.github.connellite.proxy.client.rpc.dto.SftpUserRowDto;
@@ -109,6 +110,7 @@ public class GwtRpcNativeConfiguration {
                 RelayRouteRowDto.class,
                 RelayAllowRowDto.class,
                 RelayQueryRowDto.class,
+                RelayTcpSessionRowDto.class,
                 ArrayList.class,
                 LinkedList.class,
                 Vector.class,

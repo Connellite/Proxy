@@ -22,6 +22,7 @@ import io.github.connellite.proxy.client.rpc.dto.RelayAllowRowDto;
 import io.github.connellite.proxy.client.rpc.dto.RelayPageDto;
 import io.github.connellite.proxy.client.rpc.dto.RelayQueryRowDto;
 import io.github.connellite.proxy.client.rpc.dto.RelayRouteRowDto;
+import io.github.connellite.proxy.client.rpc.dto.RelayTcpSessionRowDto;
 import io.github.connellite.proxy.client.rpc.dto.SettingsDto;
 import io.github.connellite.proxy.client.rpc.dto.SftpPageDto;
 import io.github.connellite.proxy.client.rpc.dto.SftpUserRowDto;
@@ -62,6 +63,7 @@ import io.github.connellite.proxy.relay.HostPort;
 import io.github.connellite.proxy.relay.RelayAllowService;
 import io.github.connellite.proxy.relay.RelayRouteService;
 import io.github.connellite.proxy.relay.dns.RelayQueryLog;
+import io.github.connellite.proxy.relay.tcp.RelayTcpSessionLog;
 import io.github.connellite.proxy.service.ProxyMetrics;
 import io.github.connellite.proxy.service.ProxyUserService;
 import io.github.connellite.proxy.service.ServerDirectoryService;
@@ -118,6 +120,7 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
     private final RelayRouteService relayRouteService;
     private final RelayAllowService relayAllowService;
     private final RelayQueryLog relayQueryLog;
+    private final RelayTcpSessionLog relayTcpSessionLog;
 
     /**
      * Spring Boot serves {@code *.gwt.rpc} from the classpath ({@code static/proxyAdmin/}),
@@ -728,6 +731,21 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
             row.setType(entry.type());
             row.setOutcome(entry.outcome());
             row.setAnswer(entry.answer());
+            row.setElapsed(entry.millis() + " ms");
+            rows.add(row);
+        }
+        return rows;
+    }
+
+    @Override
+    public List<RelayTcpSessionRowDto> getRelayTcpSessionLog() {
+        List<RelayTcpSessionRowDto> rows = new ArrayList<>();
+        for (RelayTcpSessionLog.Entry entry : relayTcpSessionLog.recent()) {
+            RelayTcpSessionRowDto row = new RelayTcpSessionRowDto();
+            row.setTime(QUERY_TIME_FMT.format(entry.at().atZone(appZoneId)));
+            row.setClient(entry.client());
+            row.setHostname(entry.hostname());
+            row.setOutcome(entry.outcome());
             row.setElapsed(entry.millis() + " ms");
             rows.add(row);
         }
