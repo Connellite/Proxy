@@ -35,6 +35,7 @@ import org.xbill.DNS.Rcode;
 import org.xbill.DNS.Record;
 import org.xbill.DNS.Section;
 import org.xbill.DNS.SimpleResolver;
+import org.xbill.DNS.Type;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -53,6 +54,7 @@ public class RelayDnsServer {
 
     private final RelayCatalog catalog;
     private final ProxyProperties properties;
+    private final RelayQueryLog queryLog;
     private final Semaphore forwards = new Semaphore(RelaySnapshot.MAX_FORWARDS);
 
     private EventLoopGroup group;
@@ -73,7 +75,7 @@ public class RelayDnsServer {
                     protected void channelRead0(ChannelHandlerContext ctx, DatagramPacket packet) {
                         byte[] query = new byte[packet.content().readableBytes()];
                         packet.content().readBytes(query);
-                        handle(query, wire -> {
+                        handle(query, packet.sender(), wire -> {
                             ByteBuf buf = Unpooled.wrappedBuffer(wire);
                             ctx.writeAndFlush(new DatagramPacket(buf, packet.sender()));
                         });
@@ -91,7 +93,9 @@ public class RelayDnsServer {
                             protected void channelRead0(ChannelHandlerContext ctx, ByteBuf msg) {
                                 byte[] query = new byte[msg.readableBytes()];
                                 msg.readBytes(query);
-                                handle(query, wire -> {
+                                InetSocketAddress client = ctx.channel().remoteAddress() instanceof InetSocketAddress remote
+                                        ? remote : null;
+                                handle(query, client, wire -> {
                                     ByteBuf out = ctx.alloc().buffer(2 + wire.length);
                                     out.writeShort(wire.length);
                                     out.writeBytes(wire);
@@ -120,37 +124,55 @@ public class RelayDnsServer {
         }
     }
 
-    private void handle(byte[] query, java.util.function.Consumer<byte[]> send) {
+    private void handle(byte[] query, InetSocketAddress client, java.util.function.Consumer<byte[]> send) {
+        long started = System.nanoTime();
         Message message;
         try {
             message = new Message(query);
         } catch (Exception ex) {
+            queryLog.record(client, "", "", "FORMERR", "FORMERR", started);
             return;
         }
         Record question = message.getQuestion();
         if (question == null) {
             send.accept(error(message, Rcode.FORMERR));
+            queryLog.record(client, "", "", "FORMERR", "FORMERR", started);
             return;
         }
+        String name = question.getName().toString(true);
+        String type = Type.string(question.getType());
         RelaySnapshot snapshot = catalog.current();
         RelaySnapshot.Route route = snapshot.match(question.getName().toString());
         InetAddress relayAddress = snapshot.advertisedAddress();
         RelayAnswers decision = RelayAnswers.decide(route, question.getType(), relayAddress);
         if (decision == RelayAnswers.FORWARD) {
-            forward(snapshot, message, send);
+            forward(snapshot, message, question, client, started, send);
             return;
         }
         if (decision == RelayAnswers.SERVFAIL || route == null) {
             send.accept(error(message, Rcode.SERVFAIL));
+            queryLog.record(client, name, type, "SERVFAIL", "SERVFAIL", started);
             return;
         }
         InetAddress address = route.getMode() == RelayRouteMode.RELAY ? relayAddress : route.getAnswerAddress();
-        send.accept(synthetic(message, question, decision == RelayAnswers.ANSWER ? address : null));
+        boolean answered = decision == RelayAnswers.ANSWER && address != null;
+        send.accept(synthetic(message, question, answered ? address : null));
+        if (!answered) {
+            queryLog.record(client, name, type, "No data", "NOERROR", started);
+        } else if (route.getMode() == RelayRouteMode.RELAY) {
+            queryLog.record(client, name, type, "Relay", address.getHostAddress(), started);
+        } else {
+            queryLog.record(client, name, type, "Address", address.getHostAddress(), started);
+        }
     }
 
-    private void forward(RelaySnapshot snapshot, Message query, java.util.function.Consumer<byte[]> send) {
+    private void forward(RelaySnapshot snapshot, Message query, Record question, InetSocketAddress client,
+                         long started, java.util.function.Consumer<byte[]> send) {
+        String name = question.getName().toString(true);
+        String type = Type.string(question.getType());
         if (!forwards.tryAcquire()) {
             send.accept(error(query, Rcode.SERVFAIL));
+            queryLog.record(client, name, type, "SERVFAIL", "SERVFAIL", started);
             return;
         }
         try {
@@ -163,18 +185,22 @@ public class RelayDnsServer {
                         if (error != null || response == null) {
                             log.debug("DNS forward failed: {}", error == null ? "empty" : error.toString());
                             send.accept(error(query, Rcode.SERVFAIL));
+                            queryLog.record(client, name, type, "SERVFAIL", "SERVFAIL", started);
                             return;
                         }
                         try {
                             send.accept(response.toWire(65535));
+                            queryLog.record(client, name, type, "Forwarded", RelayQueryLog.answers(response), started);
                         } catch (Exception ex) {
                             send.accept(error(query, Rcode.SERVFAIL));
+                            queryLog.record(client, name, type, "SERVFAIL", "SERVFAIL", started);
                         }
                     });
         } catch (Exception ex) {
             forwards.release();
             log.debug("DNS forward failed: {}", ex.toString());
             send.accept(error(query, Rcode.SERVFAIL));
+            queryLog.record(client, name, type, "SERVFAIL", "SERVFAIL", started);
         }
     }
 

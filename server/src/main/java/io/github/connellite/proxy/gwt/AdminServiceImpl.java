@@ -19,6 +19,7 @@ import io.github.connellite.proxy.client.rpc.dto.HttpStripHeaderRowDto;
 import io.github.connellite.proxy.client.rpc.dto.HttpStripHeadersPageDto;
 import io.github.connellite.proxy.client.rpc.dto.PasswordChangeDto;
 import io.github.connellite.proxy.client.rpc.dto.RelayPageDto;
+import io.github.connellite.proxy.client.rpc.dto.RelayQueryRowDto;
 import io.github.connellite.proxy.client.rpc.dto.RelayRouteRowDto;
 import io.github.connellite.proxy.client.rpc.dto.SettingsDto;
 import io.github.connellite.proxy.client.rpc.dto.SftpPageDto;
@@ -56,6 +57,7 @@ import io.github.connellite.proxy.proxy.http.ProxyTlsService;
 import io.github.connellite.proxy.service.HttpStripHeaderService;
 import io.github.connellite.proxy.relay.HostPort;
 import io.github.connellite.proxy.relay.RelayRouteService;
+import io.github.connellite.proxy.relay.dns.RelayQueryLog;
 import io.github.connellite.proxy.service.ProxyMetrics;
 import io.github.connellite.proxy.service.ProxyUserService;
 import io.github.connellite.proxy.service.ServerDirectoryService;
@@ -89,6 +91,7 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
 
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private static final DateTimeFormatter DATE_TIME_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+    private static final DateTimeFormatter QUERY_TIME_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private final ProxyUserService userService;
     private final SshUserKeyService sshUserKeyService;
@@ -109,6 +112,7 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
     private final AdminRpcManualMapper adminRpcManualMapper;
     private final ZoneId appZoneId;
     private final RelayRouteService relayRouteService;
+    private final RelayQueryLog relayQueryLog;
 
     /**
      * Spring Boot serves {@code *.gwt.rpc} from the classpath ({@code static/proxyAdmin/}),
@@ -628,6 +632,23 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
         } catch (RuntimeException ex) {
             throw toRpcException("Failed to delete relay route", ex);
         }
+    }
+
+    @Override
+    public List<RelayQueryRowDto> getRelayQueryLog() {
+        List<RelayQueryRowDto> rows = new ArrayList<>();
+        for (RelayQueryLog.Entry entry : relayQueryLog.recent()) {
+            RelayQueryRowDto row = new RelayQueryRowDto();
+            row.setTime(QUERY_TIME_FMT.format(entry.at().atZone(appZoneId)));
+            row.setClient(entry.client());
+            row.setName(entry.name());
+            row.setType(entry.type());
+            row.setOutcome(entry.outcome());
+            row.setAnswer(entry.answer());
+            row.setElapsed(entry.millis() + " ms");
+            rows.add(row);
+        }
+        return rows;
     }
 
     private static RelayRouteRowDto toRow(RelayRoute route) {

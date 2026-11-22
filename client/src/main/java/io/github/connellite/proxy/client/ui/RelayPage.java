@@ -14,8 +14,12 @@ import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.ListBox;
 import com.google.gwt.user.client.ui.TextBox;
+
+import java.util.List;
 import io.github.connellite.proxy.client.rpc.dto.RelayPageDto;
+import io.github.connellite.proxy.client.rpc.dto.RelayQueryRowDto;
 import io.github.connellite.proxy.client.rpc.dto.RelayRouteRowDto;
+import io.github.connellite.proxy.client.util.AutoRefresh;
 import io.github.connellite.proxy.client.util.BindHostList;
 import io.github.connellite.proxy.client.util.Forms;
 import io.github.connellite.proxy.client.util.PlainIntegerBox;
@@ -44,6 +48,7 @@ public class RelayPage extends Composite {
     private final FlowPanel answerField = Forms.field("Answer IP", answerAddress, "One IPv4 or IPv6.");
     private final CheckBox routeEnabled = Forms.checkbox("Enabled");
     private final FlowPanel tableHost = new FlowPanel();
+    private final FlowPanel logTable = new FlowPanel();
 
     public RelayPage(AppShell shell) {
         this.shell = shell;
@@ -145,8 +150,27 @@ public class RelayPage extends Composite {
         routesPanel.add(tableHost);
         root.add(routesPanel);
 
+        FlowPanel logPanel = new FlowPanel();
+        logPanel.setStyleName("panel form");
+        FlowPanel logHeader = new FlowPanel();
+        logHeader.setStyleName("row-between");
+        logHeader.add(new HTML("<h2>Recent queries</h2>"));
+        AutoRefresh refresh = new AutoRefresh(new AutoRefresh.Callback() {
+            @Override
+            public void onRefresh() {
+                loadLog();
+            }
+        });
+        shell.attachRefresh(refresh);
+        logHeader.add(refresh);
+        logPanel.add(logHeader);
+        logTable.setStyleName("table-wrap");
+        logPanel.add(logTable);
+        root.add(logPanel);
+
         initWidget(root);
         load();
+        loadLog();
     }
 
     private void applyRouteMode() {
@@ -218,6 +242,61 @@ public class RelayPage extends Composite {
             }
         }
         tableHost.add(table);
+    }
+
+    private void loadLog() {
+        shell.getRpc().getRelayQueryLog(new AsyncCallback<List<RelayQueryRowDto>>() {
+            @Override
+            public void onFailure(Throwable caught) {
+                Rpc.showFailure(caught);
+            }
+
+            @Override
+            public void onSuccess(List<RelayQueryRowDto> result) {
+                renderLog(result);
+            }
+        });
+    }
+
+    private void renderLog(List<RelayQueryRowDto> rows) {
+        logTable.clear();
+        if (rows == null || rows.isEmpty()) {
+            Label empty = new Label("No queries yet.");
+            empty.setStyleName("muted");
+            logTable.add(empty);
+            return;
+        }
+        FlexTable table = new FlexTable();
+        table.setStyleName("users-table");
+        String[] headers = {"Time", "Client", "Name", "Type", "Result", "Answer", "Elapsed"};
+        for (int i = 0; i < headers.length; i++) {
+            table.setText(0, i, headers[i]);
+            styleHeader(table, i);
+        }
+        int row = 1;
+        for (RelayQueryRowDto query : rows) {
+            table.setText(row, 0, text(query.getTime()));
+            table.setText(row, 1, text(query.getClient()));
+            table.setText(row, 2, text(query.getName()));
+            table.setText(row, 3, text(query.getType()));
+            table.setText(row, 4, text(query.getOutcome()));
+            table.setText(row, 5, text(query.getAnswer()));
+            table.setText(row, 6, text(query.getElapsed()));
+            row++;
+        }
+        logTable.add(table);
+    }
+
+    private static void styleHeader(FlexTable table, int column) {
+        table.getCellFormatter().getElement(0, column).getStyle().setProperty("background", "#efe8dc");
+        table.getCellFormatter().getElement(0, column).getStyle().setProperty("fontSize", "0.75rem");
+        table.getCellFormatter().getElement(0, column).getStyle().setProperty("textTransform", "uppercase");
+        table.getCellFormatter().getElement(0, column).getStyle().setProperty("fontWeight", "700");
+        table.getCellFormatter().getElement(0, column).getStyle().setProperty("color", "#6b645a");
+    }
+
+    private static String text(String value) {
+        return value == null ? "" : value;
     }
 
     private void saveSettings() {

@@ -7,6 +7,7 @@ import io.github.connellite.proxy.client.rpc.dto.EncryptionDto;
 import io.github.connellite.proxy.client.rpc.dto.HttpStripHeadersPageDto;
 import io.github.connellite.proxy.client.rpc.dto.PasswordChangeDto;
 import io.github.connellite.proxy.client.rpc.dto.RelayPageDto;
+import io.github.connellite.proxy.client.rpc.dto.RelayQueryRowDto;
 import io.github.connellite.proxy.client.rpc.dto.RelayRouteRowDto;
 import io.github.connellite.proxy.client.rpc.dto.SettingsDto;
 import io.github.connellite.proxy.client.rpc.dto.SftpPageDto;
@@ -17,6 +18,8 @@ import io.github.connellite.proxy.client.rpc.dto.UpstreamProxiesPageDto;
 import io.github.connellite.proxy.client.rpc.dto.UpstreamProxyFormDto;
 import io.github.connellite.proxy.client.rpc.dto.UserFormDto;
 import io.github.connellite.proxy.client.rpc.dto.UsersPageDto;
+
+import java.util.List;
 
 public interface AdminServiceAsync {
 
@@ -95,4 +98,6 @@ public interface AdminServiceAsync {
     void saveRelayRoute(RelayRouteRowDto row, AsyncCallback<Void> callback);
 
     void deleteRelayRoute(long id, AsyncCallback<Void> callback);
+
+    void getRelayQueryLog(AsyncCallback<List<RelayQueryRowDto>> callback);
 }
