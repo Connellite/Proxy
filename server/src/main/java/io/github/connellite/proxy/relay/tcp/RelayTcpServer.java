@@ -10,13 +10,18 @@ import io.github.connellite.proxy.relay.RelaySnapshot;
 import io.github.connellite.proxy.relay.UpstreamResolver;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.buffer.ByteBuf;
-import io.netty.channel.*;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelFutureListener;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelOption;
+import io.netty.channel.EventLoopGroup;
+import io.netty.channel.MultiThreadIoEventLoopGroup;
 import io.netty.channel.nio.NioIoHandler;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import io.netty.handler.ssl.SslClientHelloHandler;
+import io.netty.handler.ssl.AbstractSniHandler;
 import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.Promise;
@@ -83,10 +88,9 @@ public class RelayTcpServer {
         }
     }
 
-    private final class AcceptHandler extends SslClientHelloHandler<InetSocketAddress> {
+    private final class AcceptHandler extends AbstractSniHandler<InetSocketAddress> {
         @Override
-        protected Future<InetSocketAddress> lookup(ChannelHandlerContext ctx, ByteBuf clientHello) {
-            String sni = clientHello == null ? "" : SniNames.read(clientHello);
+        protected Future<InetSocketAddress> lookup(ChannelHandlerContext ctx, String hostname) {
             //noinspection resource
             Promise<InetSocketAddress> promise = ctx.executor().newPromise();
             InetSocketAddress remote = ctx.channel().remoteAddress() instanceof InetSocketAddress inet ? inet : null;
@@ -95,11 +99,11 @@ public class RelayTcpServer {
                 promise.setFailure(new IllegalStateException("address not allowed"));
                 return promise;
             }
-            if (sni == null || sni.isEmpty()) {
+            if (hostname == null || hostname.isEmpty()) {
                 promise.setFailure(new IllegalStateException("no sni"));
                 return promise;
             }
-            RelaySnapshot.Route route = snapshot.match(sni);
+            RelaySnapshot.Route route = snapshot.match(hostname);
             if (route == null || route.getMode() != RelayRouteMode.RELAY || route.getUpstreamHost() == null) {
                 promise.setFailure(new IllegalStateException("no route"));
                 return promise;
@@ -121,7 +125,7 @@ public class RelayTcpServer {
         }
 
         @Override
-        protected void onLookupComplete(ChannelHandlerContext ctx, Future<InetSocketAddress> future) {
+        protected void onLookupComplete(ChannelHandlerContext ctx, String hostname, Future<InetSocketAddress> future) {
             if (!future.isSuccess()) {
                 ctx.close();
                 return;

@@ -125,6 +125,7 @@ public class RelayDohServer {
                 write(ctx, request, HttpResponseStatus.FORBIDDEN, null);
                 return;
             }
+            //noinspection resource
             dns.exchange(query, client, wire -> ctx.channel().eventLoop().execute(() -> {
                 if (ctx.channel().isActive()) {
                     write(ctx, request, HttpResponseStatus.OK, wire);
