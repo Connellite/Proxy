@@ -1,15 +1,14 @@
 package io.github.connellite.proxy.client.rpc.dto;
 
+import com.google.gwt.user.client.rpc.IsSerializable;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import com.google.gwt.user.client.rpc.IsSerializable;
-
 @Getter
 @Setter
 @NoArgsConstructor
-public class DashboardDto implements IsSerializable {
+public class DashboardProxyDto implements IsSerializable {
 
     private boolean httpRunning;
     private boolean httpsRunning;

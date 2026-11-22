@@ -2,7 +2,8 @@ package io.github.connellite.proxy.client.rpc;
 
 import com.google.gwt.user.client.rpc.RemoteService;
 import com.google.gwt.user.client.rpc.RemoteServiceRelativePath;
-import io.github.connellite.proxy.client.rpc.dto.DashboardDto;
+import io.github.connellite.proxy.client.rpc.dto.DashboardDnsDto;
+import io.github.connellite.proxy.client.rpc.dto.DashboardProxyDto;
 import io.github.connellite.proxy.client.rpc.dto.DirectoryListingDto;
 import io.github.connellite.proxy.client.rpc.dto.EncryptionDto;
 import io.github.connellite.proxy.client.rpc.dto.HttpStripHeadersPageDto;
@@ -26,7 +27,9 @@ import java.util.List;
 @RemoteServiceRelativePath("rpc/admin")
 public interface AdminService extends RemoteService {
 
-    DashboardDto getDashboard();
+    DashboardProxyDto getDashboardProxy();
+
+    DashboardDnsDto getDashboardDns();
 
     UsersPageDto getUsers();
 

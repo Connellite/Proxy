@@ -12,7 +12,8 @@ import com.google.gwt.user.server.rpc.SerializationPolicy;
 import com.google.gwt.user.server.rpc.SerializationPolicyLoader;
 import io.github.connellite.proxy.client.rpc.AdminRpcException;
 import io.github.connellite.proxy.client.rpc.AdminService;
-import io.github.connellite.proxy.client.rpc.dto.DashboardDto;
+import io.github.connellite.proxy.client.rpc.dto.DashboardDnsDto;
+import io.github.connellite.proxy.client.rpc.dto.DashboardProxyDto;
 import io.github.connellite.proxy.client.rpc.dto.DirectoryListingDto;
 import io.github.connellite.proxy.client.rpc.dto.EncryptionDto;
 import io.github.connellite.proxy.client.rpc.dto.HttpStripHeaderRowDto;
@@ -62,7 +63,13 @@ import io.github.connellite.proxy.service.HttpStripHeaderService;
 import io.github.connellite.proxy.relay.HostPort;
 import io.github.connellite.proxy.relay.RelayAllowService;
 import io.github.connellite.proxy.relay.RelayRouteService;
+import io.github.connellite.proxy.relay.dns.RelayDnsServer;
+import io.github.connellite.proxy.relay.dns.RelayDoh3Server;
+import io.github.connellite.proxy.relay.dns.RelayDohServer;
+import io.github.connellite.proxy.relay.dns.RelayDoqServer;
+import io.github.connellite.proxy.relay.dns.RelayDotServer;
 import io.github.connellite.proxy.relay.dns.RelayQueryLog;
+import io.github.connellite.proxy.relay.tcp.RelayTcpServer;
 import io.github.connellite.proxy.relay.tcp.RelayTcpSessionLog;
 import io.github.connellite.proxy.service.ProxyMetrics;
 import io.github.connellite.proxy.service.ProxyUserService;
@@ -121,6 +128,12 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
     private final RelayAllowService relayAllowService;
     private final RelayQueryLog relayQueryLog;
     private final RelayTcpSessionLog relayTcpSessionLog;
+    private final RelayDnsServer relayDnsServer;
+    private final RelayTcpServer relayTcpServer;
+    private final RelayDohServer relayDohServer;
+    private final RelayDoh3Server relayDoh3Server;
+    private final RelayDotServer relayDotServer;
+    private final RelayDoqServer relayDoqServer;
 
     /**
      * Spring Boot serves {@code *.gwt.rpc} from the classpath ({@code static/proxyAdmin/}),
@@ -147,10 +160,10 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
     }
 
     @Override
-    public DashboardDto getDashboard() {
+    public DashboardProxyDto getDashboardProxy() {
         AppSettings settings = settingsService.get();
         List<ProxyUser> users = userService.findAll();
-        DashboardDto dto = new DashboardDto();
+        DashboardProxyDto dto = new DashboardProxyDto();
         dto.setHttpRunning(proxyServerManager.isHttpRunning());
         dto.setHttpsRunning(proxyServerManager.isHttpsRunning());
         dto.setSocksRunning(proxyServerManager.isSocksRunning());
@@ -171,6 +184,37 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
         dto.setTotalBytesDown(proxyMetrics.getBytesDownTotal());
         dto.setSessionBytesUp(proxyMetrics.getBytesUpSession());
         dto.setSessionBytesDown(proxyMetrics.getBytesDownSession());
+        return dto;
+    }
+
+    @Override
+    public DashboardDnsDto getDashboardDns() {
+        AppSettings settings = settingsService.get();
+        List<RelayRoute> routes = relayRouteService.findAll();
+        DashboardDnsDto dto = new DashboardDnsDto();
+        dto.setDnsRunning(relayDnsServer.isRunning());
+        dto.setTcpRunning(relayTcpServer.isRunning());
+        dto.setDohRunning(relayDohServer.isRunning());
+        dto.setDoh3Running(relayDoh3Server.isRunning());
+        dto.setDotRunning(relayDotServer.isRunning());
+        dto.setDoqRunning(relayDoqServer.isRunning());
+        dto.setDnsBind(bindLabel(dto.isDnsRunning(), settings.getRelayDnsBindHost(), settings.getRelayDnsPort()));
+        dto.setTcpBind(bindLabel(dto.isTcpRunning(), settings.getRelayTcpBindHost(), settings.getRelayTcpPort()));
+        dto.setDohBind(bindLabel(dto.isDohRunning(), settings.getRelayDohBindHost(), settings.getRelayDohPort()));
+        dto.setDoh3Bind(bindLabel(dto.isDoh3Running(), settings.getRelayDoh3BindHost(), settings.getRelayDoh3Port()));
+        dto.setDotBind(bindLabel(dto.isDotRunning(), settings.getRelayDotBindHost(), settings.getRelayDotPort()));
+        dto.setDoqBind(bindLabel(dto.isDoqRunning(), settings.getRelayDoqBindHost(), settings.getRelayDoqPort()));
+        dto.setDnsPort(settings.getRelayDnsPort());
+        dto.setTcpPort(settings.getRelayTcpPort());
+        dto.setDohPort(settings.getRelayDohPort());
+        dto.setDoh3Port(settings.getRelayDoh3Port());
+        dto.setDotPort(settings.getRelayDotPort());
+        dto.setDoqPort(settings.getRelayDoqPort());
+        dto.setRouteCount(routes.size());
+        dto.setEnabledRouteCount((int) routes.stream().filter(RelayRoute::isEnabled).count());
+        dto.setAdvertisedAddress(settings.getRelayAdvertisedAddress() == null ? "" : settings.getRelayAdvertisedAddress());
+        dto.setUpstreamResolver(settings.getRelayUpstreamResolver() == null ? "" : settings.getRelayUpstreamResolver());
+        dto.setTcpUseUpstream(settings.isRelayTcpUseUpstream());
         return dto;
     }
 

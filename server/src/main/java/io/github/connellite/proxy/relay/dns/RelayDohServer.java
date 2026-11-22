@@ -36,6 +36,10 @@ public class RelayDohServer {
     private EventLoopGroup group;
     private Channel server;
 
+    public synchronized boolean isRunning() {
+        return server != null && server.isActive();
+    }
+
     public synchronized void start(String bindHost, int port, SslContext ssl) throws InterruptedException {
         stop();
         group = new MultiThreadIoEventLoopGroup(NioIoHandler.newFactory());

@@ -1,7 +1,8 @@
 package io.github.connellite.proxy.client.rpc;
 
 import com.google.gwt.user.client.rpc.AsyncCallback;
-import io.github.connellite.proxy.client.rpc.dto.DashboardDto;
+import io.github.connellite.proxy.client.rpc.dto.DashboardDnsDto;
+import io.github.connellite.proxy.client.rpc.dto.DashboardProxyDto;
 import io.github.connellite.proxy.client.rpc.dto.DirectoryListingDto;
 import io.github.connellite.proxy.client.rpc.dto.EncryptionDto;
 import io.github.connellite.proxy.client.rpc.dto.HttpStripHeadersPageDto;
@@ -24,7 +25,9 @@ import java.util.List;
 
 public interface AdminServiceAsync {
 
-    void getDashboard(AsyncCallback<DashboardDto> callback);
+    void getDashboardProxy(AsyncCallback<DashboardProxyDto> callback);
+
+    void getDashboardDns(AsyncCallback<DashboardDnsDto> callback);
 
     void getUsers(AsyncCallback<UsersPageDto> callback);
 

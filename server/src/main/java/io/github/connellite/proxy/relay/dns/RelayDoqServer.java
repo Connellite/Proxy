@@ -39,6 +39,10 @@ public class RelayDoqServer {
     private EventLoopGroup group;
     private Channel server;
 
+    public synchronized boolean isRunning() {
+        return server != null && server.isActive();
+    }
+
     public synchronized void start(String bindHost, int port, QuicSslContext ssl) throws InterruptedException {
         if (!Quic.isAvailable()) {
             Throwable cause = Quic.unavailabilityCause();
