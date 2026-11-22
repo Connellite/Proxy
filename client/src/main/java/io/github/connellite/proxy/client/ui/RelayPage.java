@@ -31,10 +31,16 @@ public class RelayPage extends Composite {
     private final AppShell shell;
     private final CheckBox dnsEnabled = Forms.checkbox("Enable DNS");
     private final CheckBox tcpEnabled = Forms.checkbox("Enable TCP relay");
+    private final CheckBox dohEnabled = Forms.checkbox("Enable DoH");
+    private final CheckBox doqEnabled = Forms.checkbox("Enable DoQ");
     private final ListBox dnsBind = BindHostList.create();
     private final ListBox tcpBind = BindHostList.create();
+    private final ListBox dohBind = BindHostList.create();
+    private final ListBox doqBind = BindHostList.create();
     private final PlainIntegerBox dnsPort = new PlainIntegerBox();
     private final PlainIntegerBox tcpPort = new PlainIntegerBox();
+    private final PlainIntegerBox dohPort = new PlainIntegerBox();
+    private final PlainIntegerBox doqPort = new PlainIntegerBox();
     private final TextBox advertised = new TextBox();
     private final TextBox resolver = new TextBox();
     private final TextBox routeName = new TextBox();
@@ -56,6 +62,10 @@ public class RelayPage extends Composite {
         dnsPort.setMax(65535);
         tcpPort.setMin(1);
         tcpPort.setMax(65535);
+        dohPort.setMin(1);
+        dohPort.setMax(65535);
+        doqPort.setMin(1);
+        doqPort.setMax(65535);
         upstreamPort.getElement().setAttribute("inputmode", "numeric");
         routeMode.addItem("Relay", "RELAY");
         routeMode.addItem("Address", "ADDRESS");
@@ -101,6 +111,34 @@ public class RelayPage extends Composite {
         dnsHint.setStyleName("muted");
         dnsPanel.add(dnsHint);
         root.add(dnsPanel);
+
+        FlowPanel dohPanel = new FlowPanel();
+        dohPanel.setStyleName("panel form");
+        dohPanel.add(new HTML("<h2>DNS over HTTPS</h2>"));
+        dohPanel.add(dohEnabled);
+        dohPanel.add(Forms.twoCol(
+                Forms.field("DoH bind address", dohBind,
+                        "0.0.0.0 = all interfaces; 127.0.0.1 = this PC only."),
+                Forms.field("DoH port", dohPort)));
+        Label dohHint = new Label("GET and POST /dns-query. Uses the certificate from Encryption. "
+                + "Cannot share an address and port with the TCP relay.");
+        dohHint.setStyleName("muted");
+        dohPanel.add(dohHint);
+        root.add(dohPanel);
+
+        FlowPanel doqPanel = new FlowPanel();
+        doqPanel.setStyleName("panel form");
+        doqPanel.add(new HTML("<h2>DNS over QUIC</h2>"));
+        doqPanel.add(doqEnabled);
+        doqPanel.add(Forms.twoCol(
+                Forms.field("DoQ bind address", doqBind,
+                        "0.0.0.0 = all interfaces; 127.0.0.1 = this PC only."),
+                Forms.field("DoQ port", doqPort)));
+        Label doqHint = new Label("QUIC on UDP. Uses the same certificate. "
+                + "If the native QUIC library is missing, only this listener stays down.");
+        doqHint.setStyleName("muted");
+        doqPanel.add(doqHint);
+        root.add(doqPanel);
 
         FlowPanel tcpPanel = new FlowPanel();
         tcpPanel.setStyleName("panel form");
@@ -193,8 +231,14 @@ public class RelayPage extends Composite {
                 tcpEnabled.setValue(result.isTcpEnabled());
                 BindHostList.fill(dnsBind, result.getBindHostOptions(), result.getDnsBindHost());
                 BindHostList.fill(tcpBind, result.getBindHostOptions(), result.getTcpBindHost());
+                BindHostList.fill(dohBind, result.getBindHostOptions(), result.getDohBindHost());
+                BindHostList.fill(doqBind, result.getBindHostOptions(), result.getDoqBindHost());
                 dnsPort.setIntValue(result.getDnsPort());
                 tcpPort.setIntValue(result.getTcpPort());
+                dohPort.setIntValue(result.getDohPort());
+                doqPort.setIntValue(result.getDoqPort());
+                dohEnabled.setValue(result.isDohEnabled());
+                doqEnabled.setValue(result.isDoqEnabled());
                 advertised.setText(result.getAdvertisedAddress() == null ? "" : result.getAdvertisedAddress());
                 resolver.setText(result.getUpstreamResolver());
                 render(result);
@@ -307,6 +351,12 @@ public class RelayPage extends Composite {
         form.setTcpEnabled(tcpEnabled.getValue());
         form.setTcpBindHost(BindHostList.selected(tcpBind));
         form.setTcpPort(portOrZero(tcpPort));
+        form.setDohEnabled(dohEnabled.getValue());
+        form.setDohBindHost(BindHostList.selected(dohBind));
+        form.setDohPort(portOrZero(dohPort));
+        form.setDoqEnabled(doqEnabled.getValue());
+        form.setDoqBindHost(BindHostList.selected(doqBind));
+        form.setDoqPort(portOrZero(doqPort));
         form.setAdvertisedAddress(advertised.getText());
         form.setUpstreamResolver(resolver.getText());
         shell.getRpc().saveRelaySettings(form, new AsyncCallback<Void>() {

@@ -71,6 +71,18 @@ public class AppSettings {
 
     private int relayTcpPort = 443;
 
+    private boolean relayDohEnabled = false;
+
+    private String relayDohBindHost = "0.0.0.0";
+
+    private int relayDohPort = 8443;
+
+    private boolean relayDoqEnabled = false;
+
+    private String relayDoqBindHost = "0.0.0.0";
+
+    private int relayDoqPort = 853;
+
     /** Address DNS returns for relay-mode names. Empty until the operator saves one. */
     private String relayAdvertisedAddress;
 

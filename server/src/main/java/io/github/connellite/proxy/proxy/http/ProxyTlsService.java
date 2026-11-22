@@ -2,6 +2,10 @@ package io.github.connellite.proxy.proxy.http;
 
 import io.github.connellite.proxy.dto.TlsStatus;
 import io.github.connellite.proxy.dto.AppSettings;
+import io.netty.handler.codec.quic.QuicSslContext;
+import io.netty.handler.codec.quic.QuicSslContextBuilder;
+import io.netty.handler.ssl.ApplicationProtocolConfig;
+import io.netty.handler.ssl.ApplicationProtocolNames;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import lombok.extern.slf4j.Slf4j;
@@ -83,6 +87,52 @@ public class ProxyTlsService {
         }
         log.info("Using TLS certificate (subject={})", validated.status().getSubject());
         return validated.context();
+    }
+
+    /** HTTPS context with ALPN for HTTP/2 and HTTP/1.1. Used by DNS-over-HTTPS. */
+    public synchronized SslContext dohServerContext(AppSettings settings) throws Exception {
+        if (!hasCustomPair(settings)) {
+            throw new IllegalStateException(
+                    "DoH requires a certificate chain and private key (PEM content or file paths)");
+        }
+        TlsMaterial material = loadMaterial(settings);
+        return SslContextBuilder.forServer(
+                        new ByteArrayInputStream(material.certificateChain),
+                        new ByteArrayInputStream(material.privateKey))
+                .applicationProtocolConfig(new ApplicationProtocolConfig(
+                        ApplicationProtocolConfig.Protocol.ALPN,
+                        ApplicationProtocolConfig.SelectorFailureBehavior.NO_ADVERTISE,
+                        ApplicationProtocolConfig.SelectedListenerFailureBehavior.ACCEPT,
+                        ApplicationProtocolNames.HTTP_2,
+                        ApplicationProtocolNames.HTTP_1_1))
+                .build();
+    }
+
+    /** QUIC context with ALPN {@code doq}. */
+    public synchronized QuicSslContext doqServerContext(AppSettings settings) throws Exception {
+        if (!hasCustomPair(settings)) {
+            throw new IllegalStateException(
+                    "DoQ requires a certificate chain and private key (PEM content or file paths)");
+        }
+        TlsMaterial material = loadMaterial(settings);
+        List<X509Certificate> certs = parseCertificates(material.certificateChain);
+        return QuicSslContextBuilder.forServer(readPrivateKey(material.privateKey), null, certs.toArray(X509Certificate[]::new))
+                .applicationProtocols("doq")
+                .build();
+    }
+
+    private static PrivateKey readPrivateKey(byte[] pem) throws Exception {
+        try (PEMParser parser = new PEMParser(new StringReader(new String(pem, StandardCharsets.UTF_8)))) {
+            Object object = parser.readObject();
+            while (object != null) {
+                PrivateKey key = toPrivateKey(object);
+                if (key != null) {
+                    return key;
+                }
+                object = parser.readObject();
+            }
+        }
+        throw new IllegalArgumentException("no valid keys were found");
     }
 
     public synchronized TlsStatus status(AppSettings settings) {

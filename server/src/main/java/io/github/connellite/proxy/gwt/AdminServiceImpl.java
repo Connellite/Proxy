@@ -581,9 +581,17 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
         page.setTcpEnabled(settings.isRelayTcpEnabled());
         page.setTcpBindHost(settings.getRelayTcpBindHost());
         page.setTcpPort(settings.getRelayTcpPort());
+        page.setDohEnabled(settings.isRelayDohEnabled());
+        page.setDohBindHost(settings.getRelayDohBindHost());
+        page.setDohPort(settings.getRelayDohPort());
+        page.setDoqEnabled(settings.isRelayDoqEnabled());
+        page.setDoqBindHost(settings.getRelayDoqBindHost());
+        page.setDoqPort(settings.getRelayDoqPort());
         page.setAdvertisedAddress(settings.getRelayAdvertisedAddress() == null ? "" : settings.getRelayAdvertisedAddress());
         page.setUpstreamResolver(settings.getRelayUpstreamResolver());
-        page.setBindHostOptions(new ArrayList<>(LocalBindAddresses.optionsIncluding(settings.getRelayDnsBindHost(), settings.getRelayTcpBindHost())));
+        page.setBindHostOptions(new ArrayList<>(LocalBindAddresses.optionsIncluding(
+                settings.getRelayDnsBindHost(), settings.getRelayTcpBindHost(),
+                settings.getRelayDohBindHost(), settings.getRelayDoqBindHost())));
         for (RelayRoute route : relayRouteService.findAll()) {
             page.getRoutes().add(toRow(route));
         }
@@ -600,6 +608,12 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
             settings.setRelayTcpEnabled(form.isTcpEnabled());
             settings.setRelayTcpBindHost(form.getTcpBindHost());
             settings.setRelayTcpPort(form.getTcpPort());
+            settings.setRelayDohEnabled(form.isDohEnabled());
+            settings.setRelayDohBindHost(form.getDohBindHost());
+            settings.setRelayDohPort(form.getDohPort());
+            settings.setRelayDoqEnabled(form.isDoqEnabled());
+            settings.setRelayDoqBindHost(form.getDoqBindHost());
+            settings.setRelayDoqPort(form.getDoqPort());
             settings.setRelayAdvertisedAddress(form.getAdvertisedAddress());
             settings.setRelayUpstreamResolver(form.getUpstreamResolver());
             relayRouteService.saveSettings(settings);

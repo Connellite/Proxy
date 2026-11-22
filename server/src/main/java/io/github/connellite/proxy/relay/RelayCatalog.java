@@ -61,7 +61,9 @@ public class RelayCatalog {
         }
         return new RelaySnapshot(routes, advertised, resolver.host(), resolver.port(),
                 settings.isRelayDnsEnabled(), settings.getRelayDnsBindHost(), settings.getRelayDnsPort(),
-                settings.isRelayTcpEnabled(), settings.getRelayTcpBindHost(), settings.getRelayTcpPort());
+                settings.isRelayTcpEnabled(), settings.getRelayTcpBindHost(), settings.getRelayTcpPort(),
+                settings.isRelayDohEnabled(), settings.getRelayDohBindHost(), settings.getRelayDohPort(),
+                settings.isRelayDoqEnabled(), settings.getRelayDoqBindHost(), settings.getRelayDoqPort());
     }
 
     private static HostPort resolver(String raw) {

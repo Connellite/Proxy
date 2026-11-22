@@ -42,6 +42,7 @@ import java.net.InetSocketAddress;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 /**
  * UDP and TCP DNS. A matched name is answered from the snapshot. Every other name is forwarded.
@@ -75,7 +76,7 @@ public class RelayDnsServer {
                     protected void channelRead0(ChannelHandlerContext ctx, DatagramPacket packet) {
                         byte[] query = new byte[packet.content().readableBytes()];
                         packet.content().readBytes(query);
-                        handle(query, packet.sender(), wire -> {
+                        exchange(query, packet.sender(), wire -> {
                             ByteBuf buf = Unpooled.wrappedBuffer(wire);
                             ctx.writeAndFlush(new DatagramPacket(buf, packet.sender()));
                         });
@@ -95,7 +96,7 @@ public class RelayDnsServer {
                                 msg.readBytes(query);
                                 InetSocketAddress client = ctx.channel().remoteAddress() instanceof InetSocketAddress remote
                                         ? remote : null;
-                                handle(query, client, wire -> {
+                                exchange(query, client, wire -> {
                                     ByteBuf out = ctx.alloc().buffer(2 + wire.length);
                                     out.writeShort(wire.length);
                                     out.writeBytes(wire);
@@ -124,7 +125,7 @@ public class RelayDnsServer {
         }
     }
 
-    private void handle(byte[] query, InetSocketAddress client, java.util.function.Consumer<byte[]> send) {
+    public void exchange(byte[] query, InetSocketAddress client, Consumer<byte[]> send) {
         long started = System.nanoTime();
         Message message;
         try {

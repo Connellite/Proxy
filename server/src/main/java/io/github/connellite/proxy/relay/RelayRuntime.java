@@ -1,7 +1,12 @@
 package io.github.connellite.proxy.relay;
 
+import io.github.connellite.proxy.proxy.http.ProxyTlsService;
 import io.github.connellite.proxy.relay.dns.RelayDnsServer;
+import io.github.connellite.proxy.relay.dns.RelayDohServer;
+import io.github.connellite.proxy.relay.dns.RelayDoqServer;
 import io.github.connellite.proxy.relay.tcp.RelayTcpServer;
+import io.github.connellite.proxy.service.SettingsService;
+import io.netty.handler.codec.quic.QuicSslContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -13,8 +18,12 @@ import org.springframework.stereotype.Component;
 public class RelayRuntime {
 
     private final RelayCatalog catalog;
+    private final SettingsService settingsService;
+    private final ProxyTlsService tlsService;
     private final RelayDnsServer dnsServer;
     private final RelayTcpServer tcpServer;
+    private final RelayDohServer dohServer;
+    private final RelayDoqServer doqServer;
 
     public void restartDns() {
         catalog.reload();
@@ -46,9 +55,42 @@ public class RelayRuntime {
         }
     }
 
+    public void restartDoh() {
+        catalog.reload();
+        dohServer.stop();
+        RelaySnapshot snapshot = catalog.current();
+        if (!snapshot.dohEnabled()) {
+            log.info("DoH disabled");
+            return;
+        }
+        try {
+            dohServer.start(snapshot.dohBindHost(), snapshot.dohPort(), tlsService.dohServerContext(settingsService.get()));
+        } catch (Exception ex) {
+            throw new IllegalStateException(message("DoH", ex), ex);
+        }
+    }
+
+    public void restartDoq() {
+        catalog.reload();
+        doqServer.stop();
+        RelaySnapshot snapshot = catalog.current();
+        if (!snapshot.doqEnabled()) {
+            log.info("DoQ disabled");
+            return;
+        }
+        try {
+            QuicSslContext ssl = tlsService.doqServerContext(settingsService.get());
+            doqServer.start(snapshot.doqBindHost(), snapshot.doqPort(), ssl);
+        } catch (Exception ex) {
+            throw new IllegalStateException(message("DoQ", ex), ex);
+        }
+    }
+
     public void stop() {
         dnsServer.stop();
         tcpServer.stop();
+        dohServer.stop();
+        doqServer.stop();
     }
 
     private static String message(String name, Exception ex) {

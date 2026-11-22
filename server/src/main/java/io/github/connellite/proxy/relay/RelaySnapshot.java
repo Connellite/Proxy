@@ -19,14 +19,22 @@ public record RelaySnapshot(List<Route> routes,
                             int dnsPort,
                             boolean tcpEnabled,
                             String tcpBindHost,
-                            int tcpPort) {
+                            int tcpPort,
+                            boolean dohEnabled,
+                            String dohBindHost,
+                            int dohPort,
+                            boolean doqEnabled,
+                            String doqBindHost,
+                            int doqPort) {
 
     public static final int ANSWER_TTL_SECONDS = 30;
     public static final int MAX_FORWARDS = 32;
 
     public RelaySnapshot(List<Route> routes, InetAddress advertisedAddress, String resolverHost, int resolverPort,
                          boolean dnsEnabled, String dnsBindHost, int dnsPort,
-                         boolean tcpEnabled, String tcpBindHost, int tcpPort) {
+                         boolean tcpEnabled, String tcpBindHost, int tcpPort,
+                         boolean dohEnabled, String dohBindHost, int dohPort,
+                         boolean doqEnabled, String doqBindHost, int doqPort) {
         this.routes = List.copyOf(routes);
         this.advertisedAddress = advertisedAddress;
         this.resolverHost = resolverHost;
@@ -37,11 +45,18 @@ public record RelaySnapshot(List<Route> routes,
         this.tcpEnabled = tcpEnabled;
         this.tcpBindHost = tcpBindHost;
         this.tcpPort = tcpPort;
+        this.dohEnabled = dohEnabled;
+        this.dohBindHost = dohBindHost;
+        this.dohPort = dohPort;
+        this.doqEnabled = doqEnabled;
+        this.doqBindHost = doqBindHost;
+        this.doqPort = doqPort;
     }
 
     public static RelaySnapshot defaults() {
         return new RelaySnapshot(List.of(), null, "1.1.1.1", 53,
-                false, "0.0.0.0", 53, false, "0.0.0.0", 443);
+                false, "0.0.0.0", 53, false, "0.0.0.0", 443,
+                false, "0.0.0.0", 8443, false, "0.0.0.0", 853);
     }
 
     /**
