@@ -18,6 +18,7 @@ import io.github.connellite.proxy.client.rpc.dto.EncryptionDto;
 import io.github.connellite.proxy.client.rpc.dto.HttpStripHeaderRowDto;
 import io.github.connellite.proxy.client.rpc.dto.HttpStripHeadersPageDto;
 import io.github.connellite.proxy.client.rpc.dto.PasswordChangeDto;
+import io.github.connellite.proxy.client.rpc.dto.RelayAllowRowDto;
 import io.github.connellite.proxy.client.rpc.dto.RelayPageDto;
 import io.github.connellite.proxy.client.rpc.dto.RelayQueryRowDto;
 import io.github.connellite.proxy.client.rpc.dto.RelayRouteRowDto;
@@ -47,8 +48,10 @@ import io.github.connellite.proxy.mapper.UpstreamProxyFormMapper;
 import io.github.connellite.proxy.model.HttpStripHeader;
 import io.github.connellite.proxy.model.SftpAccess;
 import io.github.connellite.proxy.model.ProxyUser;
+import io.github.connellite.proxy.model.RelayDnsAllow;
 import io.github.connellite.proxy.model.RelayRoute;
 import io.github.connellite.proxy.model.RelayRouteMode;
+import io.github.connellite.proxy.model.RelayTcpAllow;
 import io.github.connellite.proxy.model.SshUserKey;
 import io.github.connellite.proxy.model.UpstreamProxy;
 import io.github.connellite.proxy.model.UpstreamProxyType;
@@ -56,6 +59,7 @@ import io.github.connellite.proxy.proxy.ProxyServerManager;
 import io.github.connellite.proxy.proxy.http.ProxyTlsService;
 import io.github.connellite.proxy.service.HttpStripHeaderService;
 import io.github.connellite.proxy.relay.HostPort;
+import io.github.connellite.proxy.relay.RelayAllowService;
 import io.github.connellite.proxy.relay.RelayRouteService;
 import io.github.connellite.proxy.relay.dns.RelayQueryLog;
 import io.github.connellite.proxy.service.ProxyMetrics;
@@ -112,6 +116,7 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
     private final AdminRpcManualMapper adminRpcManualMapper;
     private final ZoneId appZoneId;
     private final RelayRouteService relayRouteService;
+    private final RelayAllowService relayAllowService;
     private final RelayQueryLog relayQueryLog;
 
     /**
@@ -592,6 +597,12 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
         page.setBindHostOptions(new ArrayList<>(LocalBindAddresses.optionsIncluding(
                 settings.getRelayDnsBindHost(), settings.getRelayTcpBindHost(),
                 settings.getRelayDohBindHost(), settings.getRelayDoqBindHost())));
+        for (RelayDnsAllow allow : relayAllowService.dnsAllows()) {
+            page.getDnsAllows().add(allowRow(allow.getId(), allow.getCidr()));
+        }
+        for (RelayTcpAllow allow : relayAllowService.tcpAllows()) {
+            page.getTcpAllows().add(allowRow(allow.getId(), allow.getCidr()));
+        }
         for (RelayRoute route : relayRouteService.findAll()) {
             page.getRoutes().add(toRow(route));
         }
@@ -637,6 +648,49 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
         } catch (RuntimeException ex) {
             throw toRpcException("Failed to save relay route", ex);
         }
+    }
+
+    @Override
+    public void saveRelayDnsAllow(String cidr) throws AdminRpcException {
+        try {
+            relayAllowService.saveDns(cidr);
+        } catch (RuntimeException ex) {
+            throw toRpcException("Failed to save DNS allowlist entry", ex);
+        }
+    }
+
+    @Override
+    public void deleteRelayDnsAllow(long id) throws AdminRpcException {
+        try {
+            relayAllowService.deleteDns(id);
+        } catch (RuntimeException ex) {
+            throw toRpcException("Failed to delete DNS allowlist entry", ex);
+        }
+    }
+
+    @Override
+    public void saveRelayTcpAllow(String cidr) throws AdminRpcException {
+        try {
+            relayAllowService.saveTcp(cidr);
+        } catch (RuntimeException ex) {
+            throw toRpcException("Failed to save TCP allowlist entry", ex);
+        }
+    }
+
+    @Override
+    public void deleteRelayTcpAllow(long id) throws AdminRpcException {
+        try {
+            relayAllowService.deleteTcp(id);
+        } catch (RuntimeException ex) {
+            throw toRpcException("Failed to delete TCP allowlist entry", ex);
+        }
+    }
+
+    private static RelayAllowRowDto allowRow(Long id, String cidr) {
+        RelayAllowRowDto row = new RelayAllowRowDto();
+        row.setId(id);
+        row.setCidr(cidr);
+        return row;
     }
 
     @Override

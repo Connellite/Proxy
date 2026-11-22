@@ -99,5 +99,13 @@ public interface AdminServiceAsync {
 
     void deleteRelayRoute(long id, AsyncCallback<Void> callback);
 
+    void saveRelayDnsAllow(String cidr, AsyncCallback<Void> callback);
+
+    void deleteRelayDnsAllow(long id, AsyncCallback<Void> callback);
+
+    void saveRelayTcpAllow(String cidr, AsyncCallback<Void> callback);
+
+    void deleteRelayTcpAllow(long id, AsyncCallback<Void> callback);
+
     void getRelayQueryLog(AsyncCallback<List<RelayQueryRowDto>> callback);
 }

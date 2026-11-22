@@ -1,6 +1,7 @@
 package io.github.connellite.proxy.relay.dns;
 
 import io.github.connellite.proxy.config.ProxyProperties;
+import io.github.connellite.proxy.relay.RelayCatalog;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
@@ -35,6 +36,7 @@ public class RelayDoqServer {
 
     private final RelayDnsServer dns;
     private final ProxyProperties properties;
+    private final RelayCatalog catalog;
 
     private EventLoopGroup group;
     private Channel server;
@@ -92,6 +94,10 @@ public class RelayDoqServer {
             QuicChannel parent = ((QuicStreamChannel) ctx.channel()).parent();
             SocketAddress remote = parent.remoteSocketAddress();
             InetSocketAddress client = remote instanceof InetSocketAddress inet ? inet : null;
+            if (!catalog.current().dnsAllows(client == null ? null : client.getAddress())) {
+                ctx.close();
+                return;
+            }
             //noinspection resource
             dns.exchange(query, client, wire -> ctx.channel().eventLoop().execute(() -> {
                 if (!ctx.channel().isActive()) {

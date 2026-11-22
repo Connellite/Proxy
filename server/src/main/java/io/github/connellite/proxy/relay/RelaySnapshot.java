@@ -25,7 +25,9 @@ public record RelaySnapshot(List<Route> routes,
                             int dohPort,
                             boolean doqEnabled,
                             String doqBindHost,
-                            int doqPort) {
+                            int doqPort,
+                            RelayNetworks dnsAllow,
+                            RelayNetworks tcpAllow) {
 
     public static final int ANSWER_TTL_SECONDS = 30;
     public static final int MAX_FORWARDS = 32;
@@ -34,7 +36,8 @@ public record RelaySnapshot(List<Route> routes,
                          boolean dnsEnabled, String dnsBindHost, int dnsPort,
                          boolean tcpEnabled, String tcpBindHost, int tcpPort,
                          boolean dohEnabled, String dohBindHost, int dohPort,
-                         boolean doqEnabled, String doqBindHost, int doqPort) {
+                         boolean doqEnabled, String doqBindHost, int doqPort,
+                         RelayNetworks dnsAllow, RelayNetworks tcpAllow) {
         this.routes = List.copyOf(routes);
         this.advertisedAddress = advertisedAddress;
         this.resolverHost = resolverHost;
@@ -51,12 +54,15 @@ public record RelaySnapshot(List<Route> routes,
         this.doqEnabled = doqEnabled;
         this.doqBindHost = doqBindHost;
         this.doqPort = doqPort;
+        this.dnsAllow = dnsAllow == null ? RelayNetworks.everyone() : dnsAllow;
+        this.tcpAllow = tcpAllow == null ? RelayNetworks.everyone() : tcpAllow;
     }
 
     public static RelaySnapshot defaults() {
         return new RelaySnapshot(List.of(), null, "1.1.1.1", 53,
                 false, "0.0.0.0", 53, false, "0.0.0.0", 443,
-                false, "0.0.0.0", 8443, false, "0.0.0.0", 853);
+                false, "0.0.0.0", 8443, false, "0.0.0.0", 853,
+                RelayNetworks.everyone(), RelayNetworks.everyone());
     }
 
     /**
@@ -85,6 +91,15 @@ public record RelaySnapshot(List<Route> routes,
             }
         }
         return exact != null ? exact : wildcard;
+    }
+
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
+    public boolean dnsAllows(InetAddress address) {
+        return dnsAllow.allows(address);
+    }
+
+    public boolean tcpAllows(InetAddress address) {
+        return tcpAllow.allows(address);
     }
 
     @Getter

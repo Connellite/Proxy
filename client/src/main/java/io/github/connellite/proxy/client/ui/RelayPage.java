@@ -16,6 +16,7 @@ import com.google.gwt.user.client.ui.ListBox;
 import com.google.gwt.user.client.ui.TextBox;
 
 import java.util.List;
+import io.github.connellite.proxy.client.rpc.dto.RelayAllowRowDto;
 import io.github.connellite.proxy.client.rpc.dto.RelayPageDto;
 import io.github.connellite.proxy.client.rpc.dto.RelayQueryRowDto;
 import io.github.connellite.proxy.client.rpc.dto.RelayRouteRowDto;
@@ -43,6 +44,10 @@ public class RelayPage extends Composite {
     private final PlainIntegerBox doqPort = new PlainIntegerBox();
     private final TextBox advertised = new TextBox();
     private final TextBox resolver = new TextBox();
+    private final TextBox dnsAllowInput = new TextBox();
+    private final TextBox tcpAllowInput = new TextBox();
+    private final FlowPanel dnsAllowHost = new FlowPanel();
+    private final FlowPanel tcpAllowHost = new FlowPanel();
     private final TextBox routeName = new TextBox();
     private final ListBox routeMode = new ListBox();
     private final TextBox upstreamHost = new TextBox();
@@ -110,6 +115,7 @@ public class RelayPage extends Composite {
         Label dnsHint = new Label("Anyone who can reach this port can query other names through it.");
         dnsHint.setStyleName("muted");
         dnsPanel.add(dnsHint);
+        dnsPanel.add(allowEditor(dnsAllowHost, dnsAllowInput, true));
         root.add(dnsPanel);
 
         FlowPanel dohPanel = new FlowPanel();
@@ -152,6 +158,7 @@ public class RelayPage extends Composite {
                 + "The upstream must be the server for that name.");
         tcpHint.setStyleName("muted");
         tcpPanel.add(tcpHint);
+        tcpPanel.add(allowEditor(tcpAllowHost, tcpAllowInput, false));
         root.add(tcpPanel);
 
         Button saveSettings = new Button("Save listeners");
@@ -241,9 +248,109 @@ public class RelayPage extends Composite {
                 doqEnabled.setValue(result.isDoqEnabled());
                 advertised.setText(result.getAdvertisedAddress() == null ? "" : result.getAdvertisedAddress());
                 resolver.setText(result.getUpstreamResolver());
+                renderAllows(dnsAllowHost, dnsAllowInput, result.getDnsAllows(), true);
+                renderAllows(tcpAllowHost, tcpAllowInput, result.getTcpAllows(), false);
                 render(result);
             }
         });
+    }
+
+    private FlowPanel allowEditor(FlowPanel host, TextBox input, boolean dns) {
+        FlowPanel box = new FlowPanel();
+        Label title = new Label("Allowed networks");
+        title.getElement().getStyle().setProperty("fontWeight", "600");
+        box.add(title);
+        Label hint = new Label("Empty allows every address. One IP or CIDR, for example 203.0.113.0/24.");
+        hint.setStyleName("field-hint");
+        box.add(hint);
+        input.setWidth("100%");
+        box.add(input);
+        Button add = new Button("Add");
+        add.addClickHandler(new ClickHandler() {
+            @Override
+            public void onClick(ClickEvent event) {
+                saveAllow(input, dns);
+            }
+        });
+        box.add(Forms.formActions(add));
+        host.setVisible(false);
+        box.add(host);
+        return box;
+    }
+
+    private void renderAllows(FlowPanel host, TextBox input, List<RelayAllowRowDto> rows, boolean dns) {
+        host.clear();
+        if (rows == null || rows.isEmpty()) {
+            host.setStyleName("");
+            host.setVisible(false);
+            return;
+        }
+        host.setStyleName("table-wrap");
+        host.setVisible(true);
+        FlexTable table = new FlexTable();
+        table.setStyleName("users-table");
+        table.setText(0, 0, "Network");
+        table.setText(0, 1, "");
+        styleHeader(table, 0);
+        styleHeader(table, 1);
+        int row = 1;
+        for (RelayAllowRowDto allow : rows) {
+            table.setText(row, 0, text(allow.getCidr()));
+            Button remove = new Button("Delete");
+            remove.addClickHandler(new ClickHandler() {
+                @Override
+                public void onClick(ClickEvent event) {
+                    deleteAllow(allow.getId(), dns);
+                }
+            });
+            table.setWidget(row, 1, remove);
+            row++;
+        }
+        host.add(table);
+    }
+
+    private void saveAllow(TextBox input, boolean dns) {
+        AsyncCallback<Void> callback = new AsyncCallback<Void>() {
+            @Override
+            public void onFailure(Throwable caught) {
+                Rpc.showFailure(caught);
+            }
+
+            @Override
+            public void onSuccess(Void result) {
+                input.setText("");
+                shell.showFlash("Network saved", true);
+                load();
+            }
+        };
+        if (dns) {
+            shell.getRpc().saveRelayDnsAllow(input.getText(), callback);
+        } else {
+            shell.getRpc().saveRelayTcpAllow(input.getText(), callback);
+        }
+    }
+
+    private void deleteAllow(Long id, boolean dns) {
+        if (id == null) {
+            return;
+        }
+        AsyncCallback<Void> callback = new AsyncCallback<Void>() {
+            @Override
+            public void onFailure(Throwable caught) {
+                Rpc.showFailure(caught);
+            }
+
+            @Override
+            public void onSuccess(Void result) {
+                shell.showFlash("Network deleted", true);
+                load();
+            }
+        };
+        if (dns) {
+            shell.getRpc().deleteRelayDnsAllow(id, callback);
+        } else {
+            shell.getRpc().deleteRelayTcpAllow(id, callback);
+        }
     }
 
     private void render(RelayPageDto page) {

@@ -89,11 +89,16 @@ public class RelayTcpServer {
             String sni = clientHello == null ? "" : SniNames.read(clientHello);
             //noinspection resource
             Promise<InetSocketAddress> promise = ctx.executor().newPromise();
+            InetSocketAddress remote = ctx.channel().remoteAddress() instanceof InetSocketAddress inet ? inet : null;
+            RelaySnapshot snapshot = catalog.current();
+            if (!snapshot.tcpAllows(remote == null ? null : remote.getAddress())) {
+                promise.setFailure(new IllegalStateException("address not allowed"));
+                return promise;
+            }
             if (sni == null || sni.isEmpty()) {
                 promise.setFailure(new IllegalStateException("no sni"));
                 return promise;
             }
-            RelaySnapshot snapshot = catalog.current();
             RelaySnapshot.Route route = snapshot.match(sni);
             if (route == null || route.getMode() != RelayRouteMode.RELAY || route.getUpstreamHost() == null) {
                 promise.setFailure(new IllegalStateException("no route"));

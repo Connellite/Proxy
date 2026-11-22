@@ -77,6 +77,9 @@ public class RelayDnsServer {
                     protected void channelRead0(ChannelHandlerContext ctx, DatagramPacket packet) {
                         byte[] query = new byte[packet.content().readableBytes()];
                         packet.content().readBytes(query);
+                        if (!catalog.current().dnsAllows(packet.sender().getAddress())) {
+                            return;
+                        }
                         exchange(query, packet.sender(), wire -> {
                             ByteBuf buf = Unpooled.wrappedBuffer(wire);
                             ctx.writeAndFlush(new DatagramPacket(buf, packet.sender()));
@@ -97,6 +100,10 @@ public class RelayDnsServer {
                                 msg.readBytes(query);
                                 InetSocketAddress client = ctx.channel().remoteAddress() instanceof InetSocketAddress remote
                                         ? remote : null;
+                                if (!catalog.current().dnsAllows(client == null ? null : client.getAddress())) {
+                                    ctx.close();
+                                    return;
+                                }
                                 exchange(query, client, wire -> {
                                     ByteBuf out = ctx.alloc().buffer(2 + wire.length);
                                     out.writeShort(wire.length);

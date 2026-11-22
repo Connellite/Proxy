@@ -29,5 +29,7 @@ public class RelayPageDto implements IsSerializable {
     private String advertisedAddress;
     private String upstreamResolver;
     private List<String> bindHostOptions = new ArrayList<>();
+    private List<RelayAllowRowDto> dnsAllows = new ArrayList<>();
+    private List<RelayAllowRowDto> tcpAllows = new ArrayList<>();
     private List<RelayRouteRowDto> routes = new ArrayList<>();
 }

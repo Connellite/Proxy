@@ -2,9 +2,13 @@ package io.github.connellite.proxy.relay;
 
 import com.google.common.net.InetAddresses;
 import io.github.connellite.proxy.dto.AppSettings;
+import io.github.connellite.proxy.model.RelayDnsAllow;
 import io.github.connellite.proxy.model.RelayRoute;
 import io.github.connellite.proxy.model.RelayRouteMode;
+import io.github.connellite.proxy.model.RelayTcpAllow;
+import io.github.connellite.proxy.repository.RelayDnsAllowRepository;
 import io.github.connellite.proxy.repository.RelayRouteRepository;
+import io.github.connellite.proxy.repository.RelayTcpAllowRepository;
 import io.github.connellite.proxy.service.SettingsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +27,8 @@ import java.util.List;
 public class RelayCatalog {
 
     private final RelayRouteRepository repository;
+    private final RelayDnsAllowRepository dnsAllows;
+    private final RelayTcpAllowRepository tcpAllows;
     private final SettingsService settingsService;
     private final PlatformTransactionManager transactionManager;
 
@@ -35,13 +41,17 @@ public class RelayCatalog {
     public void reload() {
         TransactionTemplate template = new TransactionTemplate(transactionManager);
         template.setReadOnly(true);
-        RelaySnapshot loaded = template.execute(status -> build(repository.findAll(), settingsService.get()));
+        RelaySnapshot loaded = template.execute(status -> build(
+                repository.findAll(),
+                dnsAllows.findAllByOrderByCidrAsc(),
+                tcpAllows.findAllByOrderByCidrAsc(),
+                settingsService.get()));
         if (loaded != null) {
             snapshot = loaded;
         }
     }
 
-    static RelaySnapshot build(List<RelayRoute> rows, AppSettings settings) {
+    static RelaySnapshot build(List<RelayRoute> rows, List<RelayDnsAllow> dnsRows, List<RelayTcpAllow> tcpRows, AppSettings settings) {
         InetAddress advertised = parseAddress(settings.getRelayAdvertisedAddress());
         HostPort resolver = resolver(settings.getRelayUpstreamResolver());
         List<RelaySnapshot.Route> routes = new ArrayList<>();
@@ -63,7 +73,31 @@ public class RelayCatalog {
                 settings.isRelayDnsEnabled(), settings.getRelayDnsBindHost(), settings.getRelayDnsPort(),
                 settings.isRelayTcpEnabled(), settings.getRelayTcpBindHost(), settings.getRelayTcpPort(),
                 settings.isRelayDohEnabled(), settings.getRelayDohBindHost(), settings.getRelayDohPort(),
-                settings.isRelayDoqEnabled(), settings.getRelayDoqBindHost(), settings.getRelayDoqPort());
+                settings.isRelayDoqEnabled(), settings.getRelayDoqBindHost(), settings.getRelayDoqPort(),
+                dnsNetworks(dnsRows), tcpNetworks(tcpRows));
+    }
+
+    private static RelayNetworks dnsNetworks(List<RelayDnsAllow> rows) {
+        return networks(rows == null ? List.of() : rows.stream().map(RelayDnsAllow::getCidr).toList());
+    }
+
+    private static RelayNetworks tcpNetworks(List<RelayTcpAllow> rows) {
+        return networks(rows == null ? List.of() : rows.stream().map(RelayTcpAllow::getCidr).toList());
+    }
+
+    private static RelayNetworks networks(List<String> cidrs) {
+        List<String> valid = new ArrayList<>();
+        for (String cidr : cidrs) {
+            if (cidr == null || cidr.isBlank()) {
+                continue;
+            }
+            try {
+                valid.add(RelayNetworks.canonical(cidr));
+            } catch (IllegalArgumentException ex) {
+                log.warn("Skipping invalid allowlist entry '{}': {}", cidr, ex.getMessage());
+            }
+        }
+        return RelayNetworks.parseAll(valid);
     }
 
     private static HostPort resolver(String raw) {

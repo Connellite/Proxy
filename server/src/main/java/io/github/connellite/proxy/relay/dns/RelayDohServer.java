@@ -30,6 +30,7 @@ import io.netty.handler.codec.http2.Http2StreamFrameToHttpObjectCodec;
 import io.netty.handler.ssl.ApplicationProtocolNames;
 import io.netty.handler.ssl.ApplicationProtocolNegotiationHandler;
 import io.netty.handler.ssl.SslContext;
+import io.github.connellite.proxy.relay.RelayCatalog;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -50,6 +51,7 @@ public class RelayDohServer {
     private static final String DNS_MESSAGE = "application/dns-message";
 
     private final RelayDnsServer dns;
+    private final RelayCatalog catalog;
 
     private EventLoopGroup group;
     private Channel server;
@@ -119,6 +121,10 @@ public class RelayDohServer {
                 return;
             }
             InetSocketAddress client = ctx.channel().remoteAddress() instanceof InetSocketAddress remote ? remote : null;
+            if (!catalog.current().dnsAllows(client == null ? null : client.getAddress())) {
+                write(ctx, request, HttpResponseStatus.FORBIDDEN, null);
+                return;
+            }
             dns.exchange(query, client, wire -> ctx.channel().eventLoop().execute(() -> {
                 if (ctx.channel().isActive()) {
                     write(ctx, request, HttpResponseStatus.OK, wire);

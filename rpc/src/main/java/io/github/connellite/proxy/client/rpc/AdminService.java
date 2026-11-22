@@ -104,5 +104,13 @@ public interface AdminService extends RemoteService {
 
     void deleteRelayRoute(long id) throws AdminRpcException;
 
+    void saveRelayDnsAllow(String cidr) throws AdminRpcException;
+
+    void deleteRelayDnsAllow(long id) throws AdminRpcException;
+
+    void saveRelayTcpAllow(String cidr) throws AdminRpcException;
+
+    void deleteRelayTcpAllow(long id) throws AdminRpcException;
+
     List<RelayQueryRowDto> getRelayQueryLog();
 }
