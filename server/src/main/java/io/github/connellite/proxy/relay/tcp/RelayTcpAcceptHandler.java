@@ -41,6 +41,13 @@ final class RelayTcpAcceptHandler extends AbstractSniHandler<InetSocketAddress> 
     private final UpstreamProxyService upstreamProxyService;
 
     @Override
+    public void channelActive(ChannelHandlerContext ctx) throws Exception {
+        super.channelActive(ctx);
+        // AUTO_READ is off, so nothing reads the ClientHello unless this asks for it.
+        ctx.read();
+    }
+
+    @Override
     protected Future<InetSocketAddress> lookup(ChannelHandlerContext ctx, String hostname) {
         //noinspection resource
         Promise<InetSocketAddress> promise = ctx.executor().newPromise();
