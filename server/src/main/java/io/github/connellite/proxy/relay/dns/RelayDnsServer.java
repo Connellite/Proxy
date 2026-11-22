@@ -120,6 +120,13 @@ public class RelayDnsServer {
         }
         String name = question.getName().toString(true);
         String type = Type.string(question.getType());
+        // Reject ANY: often used for DNS amplification; same as Cloudflare 1.1.1.1
+        // https://developers.cloudflare.com/1.1.1.1/faq/#does-1111-support-any
+        if (question.getType() == Type.ANY) {
+            send.accept(error(message, Rcode.NOTIMP));
+            queryLog.record(client, protocol, name, type, "NOTIMP", "NOTIMP", started);
+            return true;
+        }
         RelaySnapshot snapshot = catalog.current();
         RelaySnapshot.Route route = snapshot.match(question.getName().toString());
         InetAddress relayAddress = snapshot.advertisedAddress();

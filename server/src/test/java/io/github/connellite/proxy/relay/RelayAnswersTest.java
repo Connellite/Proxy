@@ -18,7 +18,7 @@ class RelayAnswersTest {
         assertThat(RelayAnswers.decide(route, Type.AAAA, relay)).isEqualTo(RelayAnswers.NODATA);
         assertThat(RelayAnswers.decide(route, Type.HTTPS, relay)).isEqualTo(RelayAnswers.NODATA);
         assertThat(RelayAnswers.decide(route, Type.SVCB, relay)).isEqualTo(RelayAnswers.NODATA);
-        assertThat(RelayAnswers.decide(route, Type.ANY, relay)).isEqualTo(RelayAnswers.NODATA);
+        // Type.ANY is rejected in RelayDnsServer.exchange before decide.
         assertThat(RelayAnswers.decide(route, Type.A, null)).isEqualTo(RelayAnswers.SERVFAIL);
         assertThat(RelayAnswers.decide(null, Type.A, relay)).isEqualTo(RelayAnswers.FORWARD);
     }
