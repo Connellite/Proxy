@@ -121,6 +121,24 @@ public class ProxyTlsService {
                 .build();
     }
 
+    /** TLS context with ALPN {@code dot}. */
+    public synchronized SslContext dotServerContext(AppSettings settings) throws Exception {
+        if (!hasCustomPair(settings)) {
+            throw new IllegalStateException(
+                    "DoT requires a certificate chain and private key (PEM content or file paths)");
+        }
+        TlsMaterial material = loadMaterial(settings);
+        return SslContextBuilder.forServer(
+                        new ByteArrayInputStream(material.certificateChain),
+                        new ByteArrayInputStream(material.privateKey))
+                .applicationProtocolConfig(new ApplicationProtocolConfig(
+                        ApplicationProtocolConfig.Protocol.ALPN,
+                        ApplicationProtocolConfig.SelectorFailureBehavior.NO_ADVERTISE,
+                        ApplicationProtocolConfig.SelectedListenerFailureBehavior.ACCEPT,
+                        "dot"))
+                .build();
+    }
+
     private static PrivateKey readPrivateKey(byte[] pem) throws Exception {
         try (PEMParser parser = new PEMParser(new StringReader(new String(pem, StandardCharsets.UTF_8)))) {
             Object object = parser.readObject();

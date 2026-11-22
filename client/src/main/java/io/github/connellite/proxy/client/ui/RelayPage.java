@@ -34,14 +34,17 @@ public class RelayPage extends Composite {
     private final CheckBox tcpEnabled = Forms.checkbox("Enable TCP relay");
     private final CheckBox tcpUseUpstream = Forms.checkbox("Use the selected upstream proxy");
     private final CheckBox dohEnabled = Forms.checkbox("Enable DoH");
+    private final CheckBox dotEnabled = Forms.checkbox("Enable DoT");
     private final CheckBox doqEnabled = Forms.checkbox("Enable DoQ");
     private final ListBox dnsBind = BindHostList.create();
     private final ListBox tcpBind = BindHostList.create();
     private final ListBox dohBind = BindHostList.create();
+    private final ListBox dotBind = BindHostList.create();
     private final ListBox doqBind = BindHostList.create();
     private final PlainIntegerBox dnsPort = new PlainIntegerBox();
     private final PlainIntegerBox tcpPort = new PlainIntegerBox();
     private final PlainIntegerBox dohPort = new PlainIntegerBox();
+    private final PlainIntegerBox dotPort = new PlainIntegerBox();
     private final PlainIntegerBox doqPort = new PlainIntegerBox();
     private final TextBox advertised = new TextBox();
     private final TextBox resolver = new TextBox();
@@ -70,6 +73,8 @@ public class RelayPage extends Composite {
         tcpPort.setMax(65535);
         dohPort.setMin(1);
         dohPort.setMax(65535);
+        dotPort.setMin(1);
+        dotPort.setMax(65535);
         doqPort.setMin(1);
         doqPort.setMax(65535);
         upstreamPort.getElement().setAttribute("inputmode", "numeric");
@@ -132,6 +137,20 @@ public class RelayPage extends Composite {
         dohHint.setStyleName("muted");
         dohPanel.add(dohHint);
         root.add(dohPanel);
+
+        FlowPanel dotPanel = new FlowPanel();
+        dotPanel.setStyleName("panel form");
+        dotPanel.add(new HTML("<h2>DNS over TLS</h2>"));
+        dotPanel.add(dotEnabled);
+        dotPanel.add(Forms.twoCol(
+                Forms.field("DoT bind address", dotBind,
+                        "0.0.0.0 = all interfaces; 127.0.0.1 = this PC only."),
+                Forms.field("DoT port", dotPort)));
+        Label dotHint = new Label("TLS on TCP, then the same DNS messages as plain DNS. Uses the certificate from Encryption. "
+                + "Cannot share an address and port with DoH or the TCP relay.");
+        dotHint.setStyleName("muted");
+        dotPanel.add(dotHint);
+        root.add(dotPanel);
 
         FlowPanel doqPanel = new FlowPanel();
         doqPanel.setStyleName("panel form");
@@ -242,12 +261,15 @@ public class RelayPage extends Composite {
                 BindHostList.fill(dnsBind, result.getBindHostOptions(), result.getDnsBindHost());
                 BindHostList.fill(tcpBind, result.getBindHostOptions(), result.getTcpBindHost());
                 BindHostList.fill(dohBind, result.getBindHostOptions(), result.getDohBindHost());
+                BindHostList.fill(dotBind, result.getBindHostOptions(), result.getDotBindHost());
                 BindHostList.fill(doqBind, result.getBindHostOptions(), result.getDoqBindHost());
                 dnsPort.setIntValue(result.getDnsPort());
                 tcpPort.setIntValue(result.getTcpPort());
                 dohPort.setIntValue(result.getDohPort());
+                dotPort.setIntValue(result.getDotPort());
                 doqPort.setIntValue(result.getDoqPort());
                 dohEnabled.setValue(result.isDohEnabled());
+                dotEnabled.setValue(result.isDotEnabled());
                 doqEnabled.setValue(result.isDoqEnabled());
                 advertised.setText(result.getAdvertisedAddress() == null ? "" : result.getAdvertisedAddress());
                 resolver.setText(result.getUpstreamResolver());
@@ -470,6 +492,9 @@ public class RelayPage extends Composite {
         form.setDohEnabled(dohEnabled.getValue());
         form.setDohBindHost(BindHostList.selected(dohBind));
         form.setDohPort(portOrZero(dohPort));
+        form.setDotEnabled(dotEnabled.getValue());
+        form.setDotBindHost(BindHostList.selected(dotBind));
+        form.setDotPort(portOrZero(dotPort));
         form.setDoqEnabled(doqEnabled.getValue());
         form.setDoqBindHost(BindHostList.selected(doqBind));
         form.setDoqPort(portOrZero(doqPort));

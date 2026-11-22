@@ -86,6 +86,12 @@ public class AppSettings {
 
     private int relayDoqPort = 853;
 
+    private boolean relayDotEnabled = false;
+
+    private String relayDotBindHost = "0.0.0.0";
+
+    private int relayDotPort = 853;
+
     /** Address DNS returns for relay-mode names. Empty until the operator saves one. */
     private String relayAdvertisedAddress;
 

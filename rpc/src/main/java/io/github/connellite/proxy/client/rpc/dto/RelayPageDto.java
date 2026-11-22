@@ -23,6 +23,9 @@ public class RelayPageDto implements IsSerializable {
     private boolean dohEnabled;
     private String dohBindHost;
     private int dohPort;
+    private boolean dotEnabled;
+    private String dotBindHost;
+    private int dotPort;
     private boolean doqEnabled;
     private String doqBindHost;
     private int doqPort;

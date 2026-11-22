@@ -590,6 +590,9 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
         page.setDohEnabled(settings.isRelayDohEnabled());
         page.setDohBindHost(settings.getRelayDohBindHost());
         page.setDohPort(settings.getRelayDohPort());
+        page.setDotEnabled(settings.isRelayDotEnabled());
+        page.setDotBindHost(settings.getRelayDotBindHost());
+        page.setDotPort(settings.getRelayDotPort());
         page.setDoqEnabled(settings.isRelayDoqEnabled());
         page.setDoqBindHost(settings.getRelayDoqBindHost());
         page.setDoqPort(settings.getRelayDoqPort());
@@ -597,7 +600,7 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
         page.setUpstreamResolver(settings.getRelayUpstreamResolver());
         page.setBindHostOptions(new ArrayList<>(LocalBindAddresses.optionsIncluding(
                 settings.getRelayDnsBindHost(), settings.getRelayTcpBindHost(),
-                settings.getRelayDohBindHost(), settings.getRelayDoqBindHost())));
+                settings.getRelayDohBindHost(), settings.getRelayDotBindHost(), settings.getRelayDoqBindHost())));
         for (RelayDnsAllow allow : relayAllowService.dnsAllows()) {
             page.getDnsAllows().add(allowRow(allow.getId(), allow.getCidr()));
         }
@@ -624,6 +627,9 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
             settings.setRelayDohEnabled(form.isDohEnabled());
             settings.setRelayDohBindHost(form.getDohBindHost());
             settings.setRelayDohPort(form.getDohPort());
+            settings.setRelayDotEnabled(form.isDotEnabled());
+            settings.setRelayDotBindHost(form.getDotBindHost());
+            settings.setRelayDotPort(form.getDotPort());
             settings.setRelayDoqEnabled(form.isDoqEnabled());
             settings.setRelayDoqBindHost(form.getDoqBindHost());
             settings.setRelayDoqPort(form.getDoqPort());

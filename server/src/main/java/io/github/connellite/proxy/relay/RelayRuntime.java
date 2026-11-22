@@ -3,6 +3,7 @@ package io.github.connellite.proxy.relay;
 import io.github.connellite.proxy.proxy.http.ProxyTlsService;
 import io.github.connellite.proxy.relay.dns.RelayDnsServer;
 import io.github.connellite.proxy.relay.dns.RelayDohServer;
+import io.github.connellite.proxy.relay.dns.RelayDotServer;
 import io.github.connellite.proxy.relay.dns.RelayDoqServer;
 import io.github.connellite.proxy.relay.tcp.RelayTcpServer;
 import io.github.connellite.proxy.service.SettingsService;
@@ -23,6 +24,7 @@ public class RelayRuntime {
     private final RelayDnsServer dnsServer;
     private final RelayTcpServer tcpServer;
     private final RelayDohServer dohServer;
+    private final RelayDotServer dotServer;
     private final RelayDoqServer doqServer;
 
     public void restartDns() {
@@ -70,6 +72,21 @@ public class RelayRuntime {
         }
     }
 
+    public void restartDot() {
+        catalog.reload();
+        dotServer.stop();
+        RelaySnapshot snapshot = catalog.current();
+        if (!snapshot.dotEnabled()) {
+            log.info("DoT disabled");
+            return;
+        }
+        try {
+            dotServer.start(snapshot.dotBindHost(), snapshot.dotPort(), tlsService.dotServerContext(settingsService.get()));
+        } catch (Exception ex) {
+            throw new IllegalStateException(message("DoT", ex), ex);
+        }
+    }
+
     public void restartDoq() {
         catalog.reload();
         doqServer.stop();
@@ -90,6 +107,7 @@ public class RelayRuntime {
         dnsServer.stop();
         tcpServer.stop();
         dohServer.stop();
+        dotServer.stop();
         doqServer.stop();
     }
 

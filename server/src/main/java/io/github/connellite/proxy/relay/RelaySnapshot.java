@@ -26,6 +26,9 @@ public record RelaySnapshot(List<Route> routes,
                             boolean doqEnabled,
                             String doqBindHost,
                             int doqPort,
+                            boolean dotEnabled,
+                            String dotBindHost,
+                            int dotPort,
                             RelayNetworks dnsAllow,
                             RelayNetworks tcpAllow,
                             boolean tcpUseUpstream) {
@@ -38,6 +41,7 @@ public record RelaySnapshot(List<Route> routes,
                          boolean tcpEnabled, String tcpBindHost, int tcpPort,
                          boolean dohEnabled, String dohBindHost, int dohPort,
                          boolean doqEnabled, String doqBindHost, int doqPort,
+                         boolean dotEnabled, String dotBindHost, int dotPort,
                          RelayNetworks dnsAllow, RelayNetworks tcpAllow, boolean tcpUseUpstream) {
         this.routes = List.copyOf(routes);
         this.advertisedAddress = advertisedAddress;
@@ -55,6 +59,9 @@ public record RelaySnapshot(List<Route> routes,
         this.doqEnabled = doqEnabled;
         this.doqBindHost = doqBindHost;
         this.doqPort = doqPort;
+        this.dotEnabled = dotEnabled;
+        this.dotBindHost = dotBindHost;
+        this.dotPort = dotPort;
         this.dnsAllow = dnsAllow == null ? RelayNetworks.everyone() : dnsAllow;
         this.tcpAllow = tcpAllow == null ? RelayNetworks.everyone() : tcpAllow;
         this.tcpUseUpstream = tcpUseUpstream;
@@ -63,7 +70,7 @@ public record RelaySnapshot(List<Route> routes,
     public static RelaySnapshot defaults() {
         return new RelaySnapshot(List.of(), null, "1.1.1.1", 53,
                 false, "0.0.0.0", 53, false, "0.0.0.0", 443,
-                false, "0.0.0.0", 8443, false, "0.0.0.0", 853,
+                false, "0.0.0.0", 8443, false, "0.0.0.0", 853, false, "0.0.0.0", 853,
                 RelayNetworks.everyone(), RelayNetworks.everyone(), false);
     }
 
