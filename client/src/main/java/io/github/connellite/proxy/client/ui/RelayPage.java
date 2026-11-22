@@ -22,6 +22,7 @@ import io.github.connellite.proxy.client.rpc.dto.RelayQueryRowDto;
 import io.github.connellite.proxy.client.rpc.dto.RelayRouteRowDto;
 import io.github.connellite.proxy.client.util.AutoRefresh;
 import io.github.connellite.proxy.client.util.BindHostList;
+import io.github.connellite.proxy.client.util.CellCopy;
 import io.github.connellite.proxy.client.util.Forms;
 import io.github.connellite.proxy.client.util.PlainIntegerBox;
 import io.github.connellite.proxy.client.util.Rpc;
@@ -331,6 +332,7 @@ public class RelayPage extends Composite {
             table.setWidget(row, 1, remove);
             row++;
         }
+        CellCopy.install(table);
         host.add(table);
     }
 
@@ -422,6 +424,7 @@ public class RelayPage extends Composite {
                 table.setWidget(row, 5, actions);
                 row++;
         }
+        CellCopy.install(table);
         tableHost.add(table);
     }
 
@@ -465,6 +468,7 @@ public class RelayPage extends Composite {
             table.setText(row, 6, text(query.getElapsed()));
             row++;
         }
+        CellCopy.install(table);
         logTable.add(table);
     }
 
