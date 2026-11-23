@@ -6,28 +6,24 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
-import io.netty.channel.EventLoopGroup;
-import io.netty.channel.MultiThreadIoEventLoopGroup;
+import io.netty.channel.ChannelOption;
 import io.netty.channel.SimpleChannelInboundHandler;
-import io.netty.channel.nio.NioIoHandler;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
-import io.netty.handler.ssl.SslHandler;
 import org.xbill.DNS.Message;
 
+import javax.net.ssl.SSLException;
 import java.net.InetSocketAddress;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
-import java.util.concurrent.Executor;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 /**
  * DNS-over-TLS client: length-prefixed DNS on one TLS connection.
+ *
+ * <p>https://github.com/AdguardTeam/dnsproxy/blob/v0.86.0/upstream/dot.go
  */
 public final class DotResolver extends AbstractUpstreamDnsResolver {
 
@@ -40,79 +36,76 @@ public final class DotResolver extends AbstractUpstreamDnsResolver {
     }
 
     @Override
-    public CompletionStage<Message> sendAsync(Message query, Executor executor) {
-        CompletableFuture<Message> future = new CompletableFuture<>();
-        executor.execute(() -> send(query, future));
-        return future;
+    protected String protocol() {
+        return "DoT";
     }
 
-    private void send(Message query, CompletableFuture<Message> future) {
-        byte[] wire;
-        try {
-            wire = query.toWire(65535);
-        } catch (Exception ex) {
-            future.completeExceptionally(ex);
-            return;
-        }
-        EventLoopGroup group = new MultiThreadIoEventLoopGroup(1, NioIoHandler.newFactory());
-        long timeoutMs = Math.max(1, getTimeout().toMillis());
-        try {
-            SslContext ssl = SslContextBuilder.forClient().build();
-            Bootstrap bootstrap = new Bootstrap()
-                    .group(group)
-                    .channel(NioSocketChannel.class)
-                    .handler(new ChannelInitializer<SocketChannel>() {
-                        @Override
-                        protected void initChannel(SocketChannel ch) {
-                            SslHandler sslHandler = ssl.newHandler(ch.alloc(), host, port);
-                            ch.pipeline().addLast(sslHandler);
-                            ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(65535, 0, 2, 0, 2));
-                            ch.pipeline().addLast(new LengthFieldPrepender(2));
-                            ch.pipeline().addLast(new SimpleChannelInboundHandler<ByteBuf>() {
-                                @Override
-                                protected void channelRead0(ChannelHandlerContext ctx, ByteBuf msg) {
-                                    byte[] bytes = new byte[msg.readableBytes()];
-                                    msg.readBytes(bytes);
-                                    try {
-                                        future.complete(new Message(bytes));
-                                    } catch (Exception ex) {
-                                        future.completeExceptionally(ex);
-                                    } finally {
-                                        ctx.close();
-                                    }
-                                }
-
-                                @Override
-                                public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-                                    future.completeExceptionally(cause);
+    @Override
+    protected void send(Message query, CompletableFuture<Message> future) {
+        byte[] wire = query.toWire(65535);
+        int expectedId = query.getHeader().getID();
+        SslContext ssl = TlsHolder.CONTEXT;
+        Bootstrap bootstrap = new Bootstrap()
+                .group(group())
+                .channel(NioSocketChannel.class)
+                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, (int) Math.min(Integer.MAX_VALUE, timeoutMs()))
+                .handler(new ChannelInitializer<SocketChannel>() {
+                    @Override
+                    protected void initChannel(SocketChannel ch) {
+                        ch.pipeline().addLast(ssl.newHandler(ch.alloc(), host, port));
+                        ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(65535, 0, 2, 0, 2));
+                        ch.pipeline().addLast(new LengthFieldPrepender(2));
+                        ch.pipeline().addLast(new SimpleChannelInboundHandler<ByteBuf>() {
+                            @Override
+                            protected void channelRead0(ChannelHandlerContext ctx, ByteBuf msg) {
+                                byte[] bytes = new byte[msg.readableBytes()];
+                                msg.readBytes(bytes);
+                                try {
+                                    future.complete(response(query, bytes, expectedId));
+                                } catch (Exception ex) {
+                                    future.completeExceptionally(ex);
+                                } finally {
                                     ctx.close();
                                 }
-                            });
-                        }
-                    });
-            bootstrap.connect(new InetSocketAddress(host, port)).addListener((ChannelFuture connect) -> {
-                if (!connect.isSuccess()) {
-                    future.completeExceptionally(connect.cause());
-                    return;
-                }
-                Channel channel = connect.channel();
-                ByteBuf buf = channel.alloc().buffer(wire.length);
-                buf.writeBytes(wire);
-                channel.writeAndFlush(buf).addListener((ChannelFuture write) -> {
-                    if (!write.isSuccess()) {
-                        future.completeExceptionally(write.cause());
-                        channel.close();
+                            }
+
+                            @Override
+                            public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
+                                future.completeExceptionally(cause);
+                                ctx.close();
+                            }
+                        });
                     }
                 });
-                channel.eventLoop().schedule(() -> {
-                    if (future.completeExceptionally(new TimeoutException("DoT timed out"))) {
-                        channel.close();
-                    }
-                }, timeoutMs, TimeUnit.MILLISECONDS);
+        ChannelFuture connect = bootstrap.connect(new InetSocketAddress(host, port));
+        future.whenComplete((r, e) -> connect.channel().close());
+        connect.addListener((ChannelFuture done) -> {
+            if (!done.isSuccess()) {
+                future.completeExceptionally(done.cause());
+                return;
+            }
+            Channel channel = done.channel();
+            ByteBuf buf = channel.alloc().buffer(wire.length);
+            buf.writeBytes(wire);
+            channel.writeAndFlush(buf).addListener((ChannelFuture write) -> {
+                if (!write.isSuccess()) {
+                    future.completeExceptionally(write.cause());
+                }
             });
-        } catch (Exception ex) {
-            future.completeExceptionally(ex);
+        });
+    }
+
+    private static final class TlsHolder {
+        private static final SslContext CONTEXT = build();
+
+        private static SslContext build() {
+            try {
+                return SslContextBuilder.forClient()
+                        .endpointIdentificationAlgorithm("HTTPS")
+                        .build();
+            } catch (SSLException ex) {
+                throw new IllegalStateException("Cannot create DoT client TLS context", ex);
+            }
         }
-        future.whenComplete((r, e) -> group.shutdownGracefully(0, 1, TimeUnit.SECONDS));
     }
 }

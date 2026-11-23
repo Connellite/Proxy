@@ -175,6 +175,8 @@ public class DnsServer implements Listener {
                             return;
                         }
                         try {
+                            // dnsjava DohResolver sends ID 0 (RFC 8484) and returns the reply unchanged.
+                            response.getHeader().setID(query.getHeader().getID());
                             send.accept(response.toWire(65535));
                             queryLog.record(client, protocol, name, type, "Forwarded",
                                     QueryLog.answers(response), started);

@@ -4,9 +4,16 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.xbill.DNS.DClass;
 import org.xbill.DNS.DohResolver;
+import org.xbill.DNS.Flags;
+import org.xbill.DNS.Message;
+import org.xbill.DNS.Name;
+import org.xbill.DNS.Record;
 import org.xbill.DNS.Resolver;
 import org.xbill.DNS.SimpleResolver;
+import org.xbill.DNS.Type;
+import org.xbill.DNS.WireParseException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -64,6 +71,86 @@ class UpstreamDnsEndpointTest {
     void rejectsAdguardAddressToUpstreamBads(String addr) {
         assertThatThrownBy(() -> UpstreamDnsEndpoint.parse(addr))
                 .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    /**
+     * Beyond the AdGuard table: url.Parse / net.SplitHostPort / ValidateDomainName semantics.
+     */
+    @ParameterizedTest
+    @CsvSource({
+            "'[::1]', '[::1]:53'",
+            "'[::1]:5353', '[::1]:5353'",
+            "TLS://one.one.one.one, tls://one.one.one.one:853",
+            "tls://my_dns.lan, tls://my_dns.lan:853",
+            "quic://dns.adguard.com, quic://dns.adguard.com:853",
+            "tcp://user@one.one.one.one, tcp://user@one.one.one.one:53",
+            "https://dns.example/a%2Fb?x=%20, https://dns.example:443/a%2Fb?x=%20",
+            "h3://dns.google/dns-query, https://dns.google:443/dns-query",
+            "пример.рф, пример.рф:53",
+    })
+    void addressFollowsGoUrlSemantics(String addr, String want) {
+        assertThat(UpstreamDnsEndpoint.parse(addr).address()).isEqualTo(want);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "1.1.1.1:+53",
+            "1.1.1.1:-1",
+            "1.1.1.1:65536",
+            "dns.my_lan",
+            "dns.-lan",
+            "dns.lan-",
+            "example.com.",
+            "a..example.com",
+            "tls://[::1]:",
+            "https://dns example/dns-query",
+    })
+    void rejectsInvalidAddresses(String addr) {
+        assertThatThrownBy(() -> UpstreamDnsEndpoint.parse(addr))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void endpointFieldsForClients() {
+        UpstreamDnsEndpoint dot = UpstreamDnsEndpoint.parse("tls://[2606:4700:4700::1111]");
+        assertThat(dot.host()).isEqualTo("2606:4700:4700::1111");
+        assertThat(dot.port()).isEqualTo(853);
+
+        UpstreamDnsEndpoint doh = UpstreamDnsEndpoint.parse("https://user@dns.google:8443/dns-query#frag");
+        assertThat(doh.host()).isEqualTo("dns.google");
+        assertThat(doh.port()).isEqualTo(8443);
+        assertThat(doh.uri()).isEqualTo("https://dns.google:8443/dns-query");
+        assertThat(doh.address()).isEqualTo("https://user@dns.google:8443/dns-query#frag");
+    }
+
+    @Test
+    void formatListenerOmitsDefaultPorts() {
+        assertThat(UpstreamDnsEndpoint.formatListener(UpstreamDnsEndpoint.Kind.PLAIN, "10.0.0.1", 53))
+                .isEqualTo("10.0.0.1");
+        assertThat(UpstreamDnsEndpoint.formatListener(UpstreamDnsEndpoint.Kind.DOH, "::1", 8443))
+                .isEqualTo("https://[::1]:8443/dns-query");
+        assertThat(UpstreamDnsEndpoint.formatListener(UpstreamDnsEndpoint.Kind.DOQ, "dns.lan", 853))
+                .isEqualTo("quic://dns.lan");
+        assertThat(UpstreamDnsEndpoint.formatListener(UpstreamDnsEndpoint.Kind.DOT, " ", 853)).isEmpty();
+    }
+
+    @Test
+    void responseRestoresIdAndChecksQuestion() throws Exception {
+        Message query = Message.newQuery(Record.newRecord(Name.fromString("Example.com."), Type.A, DClass.IN));
+        int originalId = query.getHeader().getID();
+
+        Message reply = AbstractUpstreamDnsResolver.withZeroId(query);
+        reply.getHeader().setFlag(Flags.QR);
+        Message parsed = AbstractUpstreamDnsResolver.response(query, reply.toWire(), 0);
+        assertThat(parsed.getHeader().getID()).isEqualTo(originalId);
+
+        Message wrongType = Message.newQuery(Record.newRecord(Name.fromString("example.com."), Type.AAAA, DClass.IN));
+        wrongType.getHeader().setID(0);
+        assertThatThrownBy(() -> AbstractUpstreamDnsResolver.response(query, wrongType.toWire(), 0))
+                .isInstanceOf(WireParseException.class);
+
+        assertThatThrownBy(() -> AbstractUpstreamDnsResolver.response(query, reply.toWire(), 1))
+                .isInstanceOf(WireParseException.class);
     }
 
     @Test

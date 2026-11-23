@@ -6,9 +6,6 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
-import io.netty.channel.EventLoopGroup;
-import io.netty.channel.MultiThreadIoEventLoopGroup;
-import io.netty.channel.nio.NioIoHandler;
 import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.handler.codec.http3.DefaultHttp3DataFrame;
 import io.netty.handler.codec.http3.DefaultHttp3Headers;
@@ -25,21 +22,21 @@ import io.netty.handler.codec.quic.QuicStreamChannel;
 import io.netty.util.ReferenceCountUtil;
 import org.xbill.DNS.Message;
 
-import java.net.InetSocketAddress;
+import java.io.IOException;
 import java.net.URI;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
-import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * DNS-over-HTTP/3 client: POST {@code application/dns-message} on QUIC.
+ *
+ * <p>https://github.com/AdguardTeam/dnsproxy/blob/v0.86.0/upstream/doh.go
  */
 public final class Doh3Resolver extends AbstractUpstreamDnsResolver {
 
     private static final String DNS_MESSAGE = "application/dns-message";
+
+    private static final int MAX_MESSAGE_SIZE = 65535;
 
     private final String host;
     private final int port;
@@ -50,115 +47,127 @@ public final class Doh3Resolver extends AbstractUpstreamDnsResolver {
         this.host = host;
         this.port = port;
         URI uri = URI.create(httpsUri);
-        String rawPath = uri.getRawPath();
-        this.path = rawPath == null || rawPath.isEmpty() ? "/dns-query" : rawPath;
-        this.authority = host.indexOf(':') >= 0
-                ? "[" + host + "]:" + port
-                : host + (port == 443 ? "" : ":" + port);
+        String rawPath = uri.getRawPath() == null || uri.getRawPath().isEmpty() ? "/" : uri.getRawPath();
+        this.path = uri.getRawQuery() == null ? rawPath : rawPath + "?" + uri.getRawQuery();
+        String bracketed = host.indexOf(':') >= 0 ? "[" + host + "]" : host;
+        this.authority = port == 443 ? bracketed : bracketed + ":" + port;
     }
 
     @Override
-    public CompletionStage<Message> sendAsync(Message query, Executor executor) {
-        CompletableFuture<Message> future = new CompletableFuture<>();
-        executor.execute(() -> send(query, future));
-        return future;
+    protected String protocol() {
+        return "DoH3";
     }
 
-    private void send(Message query, CompletableFuture<Message> future) {
-        EventLoopGroup group = new MultiThreadIoEventLoopGroup(1, NioIoHandler.newFactory());
-        long timeoutMs = Math.max(1, getTimeout().toMillis());
-        AtomicReference<ByteBuf> body = new AtomicReference<>(Unpooled.buffer());
-        try {
-            QuicUpstream.requireAvailable("DoH3");
-            byte[] wire = query.toWire(65535);
-            QuicSslContext ssl = QuicUpstream.clientContext(Http3.supportedApplicationProtocols());
-            Channel datagram = new Bootstrap()
-                    .group(group)
-                    .channel(NioDatagramChannel.class)
-                    .handler(Http3.newQuicClientCodecBuilder()
-                            .sslContext(ssl)
-                            .maxIdleTimeout(timeoutMs, TimeUnit.MILLISECONDS)
-                            .initialMaxData(10_000_000)
-                            .initialMaxStreamDataBidirectionalLocal(1_000_000)
-                            .initialMaxStreamsBidirectional(100)
-                            .build())
-                    .bind(0).sync().channel();
-            QuicChannel quic = QuicChannel.newBootstrap(datagram)
-                    .handler(new Http3ClientConnectionHandler())
-                    .streamHandler(new ChannelInitializer<QuicStreamChannel>() {
-                        @Override
-                        protected void initChannel(QuicStreamChannel ch) {
-                        }
-                    })
-                    .remoteAddress(InetSocketAddress.createUnresolved(host, port))
-                    .connect()
-                    .get(timeoutMs, TimeUnit.MILLISECONDS);
-
-            QuicStreamChannel stream = Http3.newRequestStream(quic, new Http3RequestStreamInboundHandler() {
-                @Override
-                protected void channelRead(ChannelHandlerContext ctx, Http3HeadersFrame frame) {
-                    ReferenceCountUtil.release(frame);
-                }
-
-                @Override
-                protected void channelRead(ChannelHandlerContext ctx, Http3DataFrame frame) {
-                    try {
-                        body.get().writeBytes(frame.content());
-                    } finally {
-                        frame.release();
+    @Override
+    protected void send(Message query, CompletableFuture<Message> future) throws Exception {
+        QuicUpstream.requireAvailable("DoH3");
+        long timeoutMs = timeoutMs();
+        // RFC 8484 §4.1: clients SHOULD use DNS ID 0 for cache friendliness.
+        byte[] wire = withZeroId(query).toWire(MAX_MESSAGE_SIZE);
+        QuicSslContext ssl = QuicUpstream.doh3Context();
+        Channel datagram = new Bootstrap()
+                .group(group())
+                .channel(NioDatagramChannel.class)
+                .handler(Http3.newQuicClientCodecBuilder()
+                        .sslContext(ssl)
+                        .sslEngineProvider(QuicUpstream.engineFor(ssl, host, port))
+                        .maxIdleTimeout(timeoutMs, TimeUnit.MILLISECONDS)
+                        .initialMaxData(10_000_000)
+                        .initialMaxStreamDataBidirectionalLocal(1_000_000)
+                        .initialMaxStreamsBidirectional(100)
+                        .build())
+                .bind(0).sync().channel();
+        future.whenComplete((r, e) -> datagram.close());
+        if (future.isDone()) {
+            return;
+        }
+        QuicChannel quic = QuicChannel.newBootstrap(datagram)
+                .handler(new Http3ClientConnectionHandler())
+                .streamHandler(new ChannelInitializer<QuicStreamChannel>() {
+                    @Override
+                    protected void initChannel(QuicStreamChannel ch) {
                     }
-                }
+                })
+                .remoteAddress(QuicUpstream.resolve(host, port))
+                .connect()
+                .get(timeoutMs, TimeUnit.MILLISECONDS);
+        future.whenComplete((r, e) -> quic.close());
 
-                @Override
-                protected void channelInputClosed(ChannelHandlerContext ctx) {
-                    ByteBuf buf = body.getAndSet(Unpooled.EMPTY_BUFFER);
-                    try {
-                        byte[] bytes = new byte[buf.readableBytes()];
-                        buf.readBytes(bytes);
-                        future.complete(new Message(bytes));
-                    } catch (Exception ex) {
-                        future.completeExceptionally(ex);
-                    } finally {
-                        buf.release();
-                        ctx.close();
-                    }
-                }
-            }).sync().getNow();
+        QuicStreamChannel stream = Http3.newRequestStream(quic, new ResponseHandler(query, future))
+                .get(timeoutMs, TimeUnit.MILLISECONDS);
 
-            Http3Headers headers = new DefaultHttp3Headers();
-            headers.method("POST").scheme("https").authority(authority).path(path);
-            headers.set("content-type", DNS_MESSAGE);
-            headers.set("accept", DNS_MESSAGE);
-            headers.setInt("content-length", wire.length);
-            stream.write(new DefaultHttp3HeadersFrame(headers));
-            ByteBuf content = stream.alloc().buffer(wire.length);
-            content.writeBytes(wire);
-            stream.writeAndFlush(new DefaultHttp3DataFrame(content))
-                    .addListener(QuicStreamChannel.SHUTDOWN_OUTPUT);
+        Http3Headers headers = new DefaultHttp3Headers();
+        headers.method("POST").scheme("https").authority(authority).path(path);
+        headers.set("content-type", DNS_MESSAGE);
+        headers.set("accept", DNS_MESSAGE);
+        headers.setInt("content-length", wire.length);
+        stream.write(new DefaultHttp3HeadersFrame(headers));
+        ByteBuf content = stream.alloc().buffer(wire.length);
+        content.writeBytes(wire);
+        stream.writeAndFlush(new DefaultHttp3DataFrame(content))
+                .addListener(QuicStreamChannel.SHUTDOWN_OUTPUT);
+    }
 
-            stream.eventLoop().schedule(() -> {
-                if (future.completeExceptionally(new TimeoutException("DoH3 timed out"))) {
-                    stream.close();
-                    quic.close();
-                }
-            }, timeoutMs, TimeUnit.MILLISECONDS);
+    private static final class ResponseHandler extends Http3RequestStreamInboundHandler {
 
-            future.whenComplete((r, e) -> {
-                ByteBuf leftover = body.getAndSet(Unpooled.EMPTY_BUFFER);
-                if (leftover != Unpooled.EMPTY_BUFFER) {
-                    leftover.release();
+        private final Message query;
+        private final CompletableFuture<Message> future;
+        private final ByteBuf body = Unpooled.buffer();
+
+        ResponseHandler(Message query, CompletableFuture<Message> future) {
+            this.query = query;
+            this.future = future;
+        }
+
+        @Override
+        protected void channelRead(ChannelHandlerContext ctx, Http3HeadersFrame frame) {
+            try {
+                CharSequence status = frame.headers().status();
+                if (status != null && !"200".contentEquals(status)) {
+                    future.completeExceptionally(new IOException("DoH3 expected status 200, got " + status));
+                    ctx.close();
                 }
-                quic.close();
-                datagram.close();
-                group.shutdownGracefully(0, 1, TimeUnit.SECONDS);
-            });
-        } catch (Exception ex) {
-            ByteBuf leftover = body.getAndSet(Unpooled.EMPTY_BUFFER);
-            if (leftover != Unpooled.EMPTY_BUFFER) {
-                leftover.release();
+            } finally {
+                ReferenceCountUtil.release(frame);
             }
-            future.completeExceptionally(ex);
-            group.shutdownGracefully(0, 0, TimeUnit.MILLISECONDS);
+        }
+
+        @Override
+        protected void channelRead(ChannelHandlerContext ctx, Http3DataFrame frame) {
+            try {
+                if (body.readableBytes() + frame.content().readableBytes() > MAX_MESSAGE_SIZE) {
+                    future.completeExceptionally(new IOException("DoH3 response exceeds " + MAX_MESSAGE_SIZE));
+                    ctx.close();
+                    return;
+                }
+                body.writeBytes(frame.content());
+            } finally {
+                frame.release();
+            }
+        }
+
+        @Override
+        protected void channelInputClosed(ChannelHandlerContext ctx) {
+            try {
+                byte[] bytes = new byte[body.readableBytes()];
+                body.readBytes(bytes);
+                future.complete(response(query, bytes, 0));
+            } catch (Exception ex) {
+                future.completeExceptionally(ex);
+            } finally {
+                ctx.close();
+            }
+        }
+
+        @Override
+        public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
+            future.completeExceptionally(cause);
+            ctx.close();
+        }
+
+        @Override
+        public void handlerRemoved(ChannelHandlerContext ctx) {
+            body.release();
         }
     }
 }

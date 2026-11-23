@@ -1,5 +1,6 @@
 package io.github.connellite.proxy.dns.upstream;
 
+import com.google.common.net.InetAddresses;
 import lombok.experimental.UtilityClass;
 import org.xbill.DNS.ARecord;
 import org.xbill.DNS.AAAARecord;
@@ -86,22 +87,12 @@ public final class UpstreamResolver {
     }
 
     private static InetAddress literal(String host) {
-        if (host == null || host.indexOf(' ') >= 0) {
+        if (host == null) {
             return null;
         }
-        boolean v4 = host.chars().filter(c -> c == '.').count() == 3 && host.indexOf(':') < 0;
-        boolean v6 = host.indexOf(':') >= 0;
-        if (!v4 && !v6) {
-            return null;
-        }
-        try {
-            InetAddress address = InetAddress.getByName(host);
-            if (address.getHostAddress().equals(host) || v6) {
-                return address;
-            }
-        } catch (Exception ignored) {
-            return null;
-        }
-        return null;
+        String bare = host.length() > 2 && host.startsWith("[") && host.endsWith("]")
+                ? host.substring(1, host.length() - 1)
+                : host;
+        return InetAddresses.isInetAddress(bare) ? InetAddresses.forString(bare) : null;
     }
 }

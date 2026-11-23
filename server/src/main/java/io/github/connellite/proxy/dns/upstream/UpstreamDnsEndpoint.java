@@ -1,15 +1,15 @@
 package io.github.connellite.proxy.dns.upstream;
 
-import com.google.common.net.HostAndPort;
 import com.google.common.net.InetAddresses;
 
-import java.net.URI;
-import java.net.URISyntaxException;
+import java.net.IDN;
 import java.util.Locale;
 import java.util.Objects;
 
 /**
  * Parsed upstream DNS resolver from the single settings string (AdGuard-style address).
+ *
+ * <p>{@code address} mirrors AdGuard {@code Upstream.Address()}; {@code uri} is the request URL for DoH/DoH3.
  */
 public record UpstreamDnsEndpoint(Kind kind, String host, int port, String uri, String address) {
 
@@ -42,6 +42,16 @@ public record UpstreamDnsEndpoint(Kind kind, String host, int port, String uri, 
      */
     private static final int DEFAULT_PORT_DOQ = 853;
 
+    /**
+     * https://github.com/AdguardTeam/golibs/blob/master/netutil/addr.go
+     */
+    private static final int MAX_DOMAIN_LABEL_LEN = 63;
+
+    /**
+     * https://github.com/AdguardTeam/golibs/blob/master/netutil/addr.go
+     */
+    private static final int MAX_DOMAIN_NAME_LEN = 253;
+
     public static final UpstreamDnsEndpoint DEFAULT = plain("1.1.1.1", DEFAULT_PORT_PLAIN);
 
     public UpstreamDnsEndpoint {
@@ -60,8 +70,8 @@ public record UpstreamDnsEndpoint(Kind kind, String host, int port, String uri, 
     }
 
     public static UpstreamDnsEndpoint plain(String host, int port) {
-        String normalized = preserveHost(host);
-        return new UpstreamDnsEndpoint(Kind.PLAIN, normalized, port, null, formatHostPort(normalized, port));
+        String bare = stripBrackets(host);
+        return new UpstreamDnsEndpoint(Kind.PLAIN, bare, port, null, joinHostPort(bare, port));
     }
 
     /**
@@ -75,27 +85,17 @@ public record UpstreamDnsEndpoint(Kind kind, String host, int port, String uri, 
         Objects.requireNonNull(kind, "kind");
         return switch (kind) {
             case PLAIN, TCP -> authority(host, port, DEFAULT_PORT_PLAIN);
-            case DOH -> url("https", host, port, DEFAULT_PORT_DOH, "/dns-query");
-            case DOH3 -> url("h3", host, port, DEFAULT_PORT_DOH, "/dns-query");
-            case DOT -> url("tls", host, port, DEFAULT_PORT_DOT, null);
-            case DOQ -> url("quic", host, port, DEFAULT_PORT_DOQ, null);
+            case DOH -> "https://" + authority(host, port, DEFAULT_PORT_DOH) + "/dns-query";
+            case DOH3 -> "h3://" + authority(host, port, DEFAULT_PORT_DOH) + "/dns-query";
+            case DOT -> "tls://" + authority(host, port, DEFAULT_PORT_DOT);
+            case DOQ -> "quic://" + authority(host, port, DEFAULT_PORT_DOQ);
         };
     }
 
-    private static String url(String scheme, String host, int port, int defaultPort, String path) {
-        String auth = authority(host, port, defaultPort);
-        if (path == null || path.isEmpty()) {
-            return scheme + "://" + auth;
-        }
-        return scheme + "://" + auth + path;
-    }
-
     private static String authority(String host, int port, int defaultPort) {
-        String bracketed = host.indexOf(':') >= 0 && !host.startsWith("[") ? "[" + host + "]" : host;
-        if (port == defaultPort) {
-            return bracketed;
-        }
-        return bracketed + ":" + port;
+        String bare = stripBrackets(host);
+        String bracketed = bare.indexOf(':') >= 0 ? "[" + bare + "]" : bare;
+        return port == defaultPort ? bracketed : bracketed + ":" + port;
     }
 
     /**
@@ -108,89 +108,31 @@ public record UpstreamDnsEndpoint(Kind kind, String host, int port, String uri, 
             return DEFAULT;
         }
         String addr = raw.trim();
-        try {
-            URI uu = parseAddressToUrl(addr);
-            validateUpstreamUrl(uu);
-            return urlToUpstream(uu);
-        } catch (IllegalArgumentException ex) {
-            throw ex;
-        } catch (RuntimeException | URISyntaxException ex) {
-            throw new IllegalArgumentException("failed to parse " + addr + ": " + ex.getMessage(), ex);
-        }
-    }
-
-    /**
-     * https://github.com/AdguardTeam/dnsproxy/blob/v0.86.0/upstream/upstream.go#L188-L218
-     */
-    private static URI parseAddressToUrl(String addr) throws URISyntaxException {
-        if (addr.contains("://")) {
-            return new URI(addr);
-        }
-        // Bare address → udp:// like AddressToUpstream (Host holds the raw addr).
-        // https://github.com/AdguardTeam/dnsproxy/blob/v0.86.0/upstream/upstream.go#L209-L213
-        if (InetAddresses.isInetAddress(addr)) {
-            return new URI("udp", null, preserveHost(addr), -1, null, null, null);
-        }
-        // Guava HostAndPort treats "host:" as host-only; AdGuard rejects empty port via SplitHostPort.
-        if (addr.endsWith(":")) {
-            throw new IllegalArgumentException("invalid port :");
-        }
-        HostAndPort hostPort;
-        try {
-            hostPort = HostAndPort.fromString(addr).requireBracketsForIPv6();
-        } catch (IllegalArgumentException ex) {
-            throw new IllegalArgumentException(ex.getMessage(), ex);
-        }
-        String host = hostPort.getHost();
-        if (hostPort.hasPort()) {
-            int port = hostPort.getPort();
-            if (port < 0 || port > 65535) {
-                throw new IllegalArgumentException("invalid port " + port);
-            }
-            return new URI("udp", null, host, port, null, null, null);
-        }
-        return new URI("udp", null, host, -1, null, null, null);
+        UpstreamUrl uu = addr.contains("://")
+                ? UpstreamUrl.parse(addr)
+                : new UpstreamUrl("udp", null, addr, "", null, null);
+        validateUpstreamUrl(uu);
+        return urlToUpstream(uu);
     }
 
     /**
      * https://github.com/AdguardTeam/dnsproxy/blob/v0.86.0/upstream/upstream.go#L220-L260
      */
-    private static void validateUpstreamUrl(URI u) {
-        String scheme = scheme(u);
-        if ("sdns".equals(scheme)) {
+    private static void validateUpstreamUrl(UpstreamUrl u) {
+        if ("sdns".equals(u.scheme())) {
             return;
         }
-        // Mirror net.SplitHostPort on url.Host: trailing ':' means empty port.
-        String authority = u.getRawAuthority() == null ? "" : u.getRawAuthority();
-        if (authority.endsWith(":")) {
-            throw new IllegalArgumentException("invalid port :");
+        String host = u.host();
+        HostPort split = splitHostPort(host);
+        if (split != null) {
+            parsePort(split.port());
+            host = split.host();
         }
-        String host = stripBrackets(u.getHost());
-        if (host == null || host.isBlank()) {
-            String possibleIp = authority;
-            int bracketEnd = authority.indexOf(']');
-            if (authority.startsWith("[") && bracketEnd > 0) {
-                possibleIp = authority.substring(1, bracketEnd);
-                if (bracketEnd + 1 < authority.length() && authority.charAt(bracketEnd + 1) == ':') {
-                    parsePort(authority.substring(bracketEnd + 2));
-                }
-            } else {
-                int colon = authority.lastIndexOf(':');
-                if (colon >= 0 && authority.indexOf(':') == colon) {
-                    possibleIp = authority.substring(0, colon);
-                    parsePort(authority.substring(colon + 1));
-                }
-            }
-            if (InetAddresses.isInetAddress(possibleIp)) {
-                return;
-            }
-            validateDomainName(possibleIp);
-            return;
+        String possibleIp = host;
+        if (host.length() >= "[::]".length() && host.startsWith("[") && host.endsWith("]")) {
+            possibleIp = host.substring(1, host.length() - 1);
         }
-        if (u.getPort() > 65535) {
-            throw new IllegalArgumentException("invalid port " + u.getPort());
-        }
-        if (InetAddresses.isInetAddress(host)) {
+        if (InetAddresses.isInetAddress(possibleIp)) {
             return;
         }
         validateDomainName(host);
@@ -199,192 +141,274 @@ public record UpstreamDnsEndpoint(Kind kind, String host, int port, String uri, 
     /**
      * https://github.com/AdguardTeam/dnsproxy/blob/v0.86.0/upstream/upstream.go#L262-L277
      */
-    private static UpstreamDnsEndpoint urlToUpstream(URI uu) {
-        String scheme = scheme(uu);
-        return switch (scheme) {
+    private static UpstreamDnsEndpoint urlToUpstream(UpstreamUrl uu) {
+        return switch (uu.scheme()) {
             case "sdns" -> throw new IllegalArgumentException("DNSCrypt (sdns://) is not supported");
             case "udp" -> fromPlain(uu, Kind.PLAIN);
             case "tcp" -> fromPlain(uu, Kind.TCP);
-            case "quic" -> fromDoq(uu);
-            case "tls" -> fromDot(uu);
+            case "quic" -> fromUrl(uu, Kind.DOQ, DEFAULT_PORT_DOQ);
+            case "tls" -> fromUrl(uu, Kind.DOT, DEFAULT_PORT_DOT);
             case "h3", "https" -> fromDoh(uu);
-            default -> throw new IllegalArgumentException("unsupported url scheme: " + scheme);
+            default -> throw new IllegalArgumentException("unsupported url scheme: " + uu.scheme());
         };
     }
 
     /**
-     * https://github.com/AdguardTeam/dnsproxy/blob/v0.86.0/upstream/plain.go#L52-L70
-     * https://github.com/AdguardTeam/dnsproxy/blob/v0.86.0/upstream/plain.go#L75-L84
+     * https://github.com/AdguardTeam/dnsproxy/blob/v0.86.0/upstream/plain.go#L52-L84
      */
-    private static UpstreamDnsEndpoint fromPlain(URI addr, Kind kind) {
-        URI withPort = addPort(addr, DEFAULT_PORT_PLAIN);
-        String host = requireHost(withPort);
-        int port = withPort.getPort();
-        String address = kind == Kind.TCP
-                ? "tcp://" + formatHostPort(host, port)
-                : formatHostPort(host, port);
-        return new UpstreamDnsEndpoint(kind, host, port, null, address);
+    private static UpstreamDnsEndpoint fromPlain(UpstreamUrl addr, Kind kind) {
+        UpstreamUrl withPort = addPort(addr, DEFAULT_PORT_PLAIN);
+        HostPort hp = requireHostPort(withPort);
+        String address = kind == Kind.TCP ? withPort.toString() : withPort.host();
+        return new UpstreamDnsEndpoint(kind, hp.host(), parsePort(hp.port()), null, address);
     }
 
     /**
      * https://github.com/AdguardTeam/dnsproxy/blob/v0.86.0/upstream/dot.go#L58-L60
-     */
-    private static UpstreamDnsEndpoint fromDot(URI addr) {
-        URI withPort = addPort(addr, DEFAULT_PORT_DOT);
-        String host = requireHost(withPort);
-        int port = withPort.getPort();
-        return new UpstreamDnsEndpoint(Kind.DOT, host, port, null, "tls://" + formatHostPort(host, port));
-    }
-
-    /**
      * https://github.com/AdguardTeam/dnsproxy/blob/v0.86.0/upstream/doq.go#L119-L121
      */
-    private static UpstreamDnsEndpoint fromDoq(URI addr) {
-        URI withPort = addPort(addr, DEFAULT_PORT_DOQ);
-        String host = requireHost(withPort);
-        int port = withPort.getPort();
-        return new UpstreamDnsEndpoint(Kind.DOQ, host, port, null, "quic://" + formatHostPort(host, port));
+    private static UpstreamDnsEndpoint fromUrl(UpstreamUrl addr, Kind kind, int defaultPort) {
+        UpstreamUrl withPort = addPort(addr, defaultPort);
+        HostPort hp = requireHostPort(withPort);
+        return new UpstreamDnsEndpoint(kind, hp.host(), parsePort(hp.port()), null, withPort.toString());
     }
 
     /**
      * https://github.com/AdguardTeam/dnsproxy/blob/v0.86.0/upstream/doh.go#L92-L102
      */
-    private static UpstreamDnsEndpoint fromDoh(URI addr) {
-        Kind kind = "h3".equals(scheme(addr)) ? Kind.DOH3 : Kind.DOH;
-        URI normalized = addPort(addr, DEFAULT_PORT_DOH);
-        if (kind == Kind.DOH3) {
-            normalized = withScheme(normalized, "https");
-        }
-        String host = requireHost(normalized);
-        // Rebuild so host form matches AdGuard (brackets / compression).
-        URI display = withHost(normalized, host, normalized.getPort(), normalized.getRawPath(), normalized.getRawQuery());
-        String address = display.toString();
-        return new UpstreamDnsEndpoint(kind, host, normalized.getPort(), address, address);
+    private static UpstreamDnsEndpoint fromDoh(UpstreamUrl addr) {
+        Kind kind = "h3".equals(addr.scheme()) ? Kind.DOH3 : Kind.DOH;
+        UpstreamUrl withPort = addPort(addr, DEFAULT_PORT_DOH).withScheme("https");
+        HostPort hp = requireHostPort(withPort);
+        String address = withPort.toString();
+        return new UpstreamDnsEndpoint(kind, hp.host(), parsePort(hp.port()), withPort.requestUri(), address);
     }
 
     /**
      * https://github.com/AdguardTeam/dnsproxy/blob/v0.86.0/upstream/upstream.go#L319-L330
      */
-    private static URI addPort(URI u, int port) {
-        if (u.getPort() > 0) {
+    private static UpstreamUrl addPort(UpstreamUrl u, int port) {
+        if (splitHostPort(u.host()) != null) {
             return u;
         }
-        return withHost(u, requireHost(u), port, u.getRawPath(), u.getRawQuery());
+        return u.withHost(joinHostPort(stripBrackets(u.host()), port));
     }
 
-    private static URI withScheme(URI u, String scheme) {
-        try {
-            return new URI(scheme, u.getUserInfo(), u.getHost(), u.getPort(), u.getPath(), u.getQuery(), u.getFragment());
-        } catch (URISyntaxException ex) {
-            throw new IllegalArgumentException("Invalid resolver URL", ex);
-        }
-    }
-
-    private static URI withHost(URI base, String host, int port, String path, String query) {
-        try {
-            return new URI(base.getScheme(), base.getUserInfo(), host, port, path, query, base.getFragment());
-        } catch (URISyntaxException ex) {
-            throw new IllegalArgumentException("Invalid resolver URL", ex);
-        }
-    }
-
-    private static String requireHost(URI u) {
-        String host = stripBrackets(u.getHost());
-        if (host == null || host.isBlank()) {
+    private static HostPort requireHostPort(UpstreamUrl u) {
+        HostPort hp = splitHostPort(u.host());
+        if (hp == null || hp.host().isEmpty()) {
             throw new IllegalArgumentException("invalid address : domain name is empty");
         }
-        return preserveHost(host);
+        return hp;
     }
 
     /**
-     * Keep IPv6 form as written (incl. IPv4-mapped {@code ::ffff:x.x.x.x}); Guava's
-     * {@code toAddrString} collapses those to IPv4, unlike AdGuard {@code Address()}.
+     * Go {@code net.SplitHostPort}: {@code null} when {@code hostport} has no port or is malformed.
      */
-    private static String preserveHost(String host) {
-        host = stripBrackets(host);
-        if (InetAddresses.isInetAddress(host)) {
-            if (host.indexOf(':') >= 0) {
-                return host;
+    private static HostPort splitHostPort(String hostport) {
+        if (hostport.startsWith("[")) {
+            int end = hostport.indexOf(']');
+            if (end < 0 || end + 1 >= hostport.length() || hostport.charAt(end + 1) != ':') {
+                return null;
             }
-            return InetAddresses.toAddrString(InetAddresses.forString(host));
+            String host = hostport.substring(1, end);
+            String port = hostport.substring(end + 2);
+            if (host.indexOf('[') >= 0 || host.indexOf(']') >= 0 || port.indexOf(']') >= 0) {
+                return null;
+            }
+            return new HostPort(host, port);
         }
-        return host;
+        int colon = hostport.lastIndexOf(':');
+        if (colon < 0 || hostport.indexOf(':') != colon) {
+            return null;
+        }
+        String host = hostport.substring(0, colon);
+        if (host.indexOf('[') >= 0 || host.indexOf(']') >= 0) {
+            return null;
+        }
+        return new HostPort(host, hostport.substring(colon + 1));
+    }
+
+    /**
+     * Go {@code strconv.ParseUint(port, 10, 16)}: digits only, no sign.
+     */
+    private static int parsePort(String raw) {
+        if (raw.isEmpty() || raw.length() > 5 || !raw.chars().allMatch(c -> c >= '0' && c <= '9')) {
+            throw new IllegalArgumentException("invalid port " + raw);
+        }
+        int port = Integer.parseInt(raw);
+        if (port > 65535) {
+            throw new IllegalArgumentException("invalid port " + raw);
+        }
+        return port;
+    }
+
+    /**
+     * Port of golibs {@code netutil.ValidateDomainName}: non-TLD labels are only length-checked,
+     * the TLD must be a hostname label with at least one non-digit.
+     *
+     * <p>https://github.com/AdguardTeam/golibs/blob/master/netutil/addr.go
+     */
+    private static void validateDomainName(String host) {
+        String name = host;
+        if (!name.chars().allMatch(c -> c < 0x80)) {
+            try {
+                name = IDN.toASCII(name, IDN.ALLOW_UNASSIGNED);
+            } catch (IllegalArgumentException ex) {
+                throw new IllegalArgumentException("invalid address " + host + ": " + ex.getMessage(), ex);
+            }
+        }
+        if (name.isEmpty()) {
+            throw new IllegalArgumentException("invalid address " + host + ": domain name is empty");
+        }
+        if (name.length() > MAX_DOMAIN_NAME_LEN) {
+            throw new IllegalArgumentException("invalid address " + host + ": domain name is too long");
+        }
+        String[] labels = name.split("\\.", -1);
+        for (int i = 0; i < labels.length - 1; i++) {
+            if (labels[i].isEmpty() || labels[i].length() > MAX_DOMAIN_LABEL_LEN) {
+                throw new IllegalArgumentException("invalid address " + host + ": bad domain name label");
+            }
+        }
+        String tld = labels[labels.length - 1];
+        if (!isValidHostnameLabel(tld)) {
+            throw new IllegalArgumentException("invalid address " + host + ": bad top-level domain name label");
+        }
+        if (tld.chars().allMatch(c -> c >= '0' && c <= '9')) {
+            throw new IllegalArgumentException("invalid address " + host + ": all octets are numeric");
+        }
+    }
+
+    private static boolean isValidHostnameLabel(String label) {
+        int len = label.length();
+        if (len == 0 || len > MAX_DOMAIN_LABEL_LEN) {
+            return false;
+        }
+        if (!isHostOuterChar(label.charAt(0)) || !isHostOuterChar(label.charAt(len - 1))) {
+            return false;
+        }
+        for (int i = 1; i < len - 1; i++) {
+            char c = label.charAt(i);
+            if (c != '-' && !isHostOuterChar(c)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
+    private static boolean isHostOuterChar(char c) {
+        return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9';
+    }
+
+    /**
+     * Go {@code netutil.JoinHostPort}.
+     */
+    private static String joinHostPort(String host, int port) {
+        return host.indexOf(':') >= 0 ? "[" + host + "]:" + port : host + ":" + port;
     }
 
     private static String stripBrackets(String host) {
-        if (host != null && host.startsWith("[") && host.endsWith("]") && host.length() > 2) {
+        if (host != null && host.length() > 2 && host.startsWith("[") && host.endsWith("]")) {
             return host.substring(1, host.length() - 1);
         }
         return host;
     }
 
-    private static String scheme(URI u) {
-        return u.getScheme() == null ? "" : u.getScheme().toLowerCase(Locale.ROOT);
-    }
-
-    private static int parsePort(String raw) {
-        if (raw == null || raw.isEmpty()) {
-            throw new IllegalArgumentException("invalid port :");
-        }
-        try {
-            int port = Integer.parseInt(raw);
-            if (port < 0 || port > 65535) {
-                throw new IllegalArgumentException("invalid port " + raw);
-            }
-            return port;
-        } catch (NumberFormatException ex) {
-            throw new IllegalArgumentException("invalid port " + raw, ex);
-        }
-    }
-
-    /**
-     * Lightweight stand-in for AdGuard {@code netutil.ValidateDomainName}.
-     *
-     * <p>https://github.com/AdguardTeam/dnsproxy/blob/v0.86.0/upstream/upstream.go#L254-L258
-     */
-    private static void validateDomainName(String host) {
-        if (host == null || host.isBlank()) {
-            throw new IllegalArgumentException("invalid address : domain name is empty");
-        }
-        String[] labels = host.split("\\.", -1);
-        for (String label : labels) {
-            if (label.isEmpty()) {
-                throw new IllegalArgumentException("invalid address " + host);
-            }
-            for (int i = 0; i < label.length(); i++) {
-                char c = label.charAt(i);
-                boolean ok = c >= 'a' && c <= 'z'
-                        || c >= 'A' && c <= 'Z'
-                        || c >= '0' && c <= '9'
-                        || c == '-'
-                        || c == '_';
-                if (!ok) {
-                    throw new IllegalArgumentException("invalid address " + host);
-                }
-            }
-        }
-        String tld = labels[labels.length - 1];
-        boolean allNumeric = true;
-        for (int i = 0; i < tld.length(); i++) {
-            if (!Character.isDigit(tld.charAt(i))) {
-                allNumeric = false;
-                break;
-            }
-        }
-        if (allNumeric) {
-            throw new IllegalArgumentException("invalid address " + host + ": all octets are numeric");
-        }
-    }
-
-    private static String formatHostPort(String host, int port) {
-        if (host.indexOf(':') >= 0) {
-            return "[" + host + "]:" + port;
-        }
-        return host + ':' + port;
-    }
-
     @Override
     public String toString() {
         return address;
+    }
+
+    private record HostPort(String host, String port) {
+    }
+
+    /**
+     * Subset of Go {@code url.URL}: {@code host} keeps brackets and port exactly as written.
+     */
+    private record UpstreamUrl(String scheme, String userinfo, String host, String path, String query,
+                               String fragment) {
+
+        /**
+         * Go {@code url.Parse} split order: fragment, query, then authority up to the first {@code /}.
+         */
+        static UpstreamUrl parse(String raw) {
+            for (int i = 0; i < raw.length(); i++) {
+                char c = raw.charAt(i);
+                if (c < 0x20 || c == 0x7f) {
+                    throw new IllegalArgumentException("failed to parse " + raw + ": invalid control character in URL");
+                }
+            }
+            int schemeEnd = raw.indexOf("://");
+            String scheme = raw.substring(0, schemeEnd);
+            if (scheme.isEmpty() || !isScheme(scheme)) {
+                throw new IllegalArgumentException("failed to parse " + raw + ": missing protocol scheme");
+            }
+            String rest = raw.substring(schemeEnd + 3);
+            String fragment = null;
+            int hash = rest.indexOf('#');
+            if (hash >= 0) {
+                fragment = rest.substring(hash + 1);
+                rest = rest.substring(0, hash);
+            }
+            String query = null;
+            int question = rest.indexOf('?');
+            if (question >= 0) {
+                query = rest.substring(question + 1);
+                rest = rest.substring(0, question);
+            }
+            int slash = rest.indexOf('/');
+            String authority = slash >= 0 ? rest.substring(0, slash) : rest;
+            String path = slash >= 0 ? rest.substring(slash) : "";
+            String userinfo = null;
+            int at = authority.lastIndexOf('@');
+            if (at >= 0) {
+                userinfo = authority.substring(0, at);
+                authority = authority.substring(at + 1);
+            }
+            if (authority.indexOf(' ') >= 0) {
+                throw new IllegalArgumentException("failed to parse " + raw + ": invalid character \" \" in host name");
+            }
+            return new UpstreamUrl(scheme.toLowerCase(Locale.ROOT), userinfo, authority, path, query, fragment);
+        }
+
+        private static boolean isScheme(String scheme) {
+            if (!Character.isLetter(scheme.charAt(0))) {
+                return false;
+            }
+            return scheme.chars().allMatch(c -> c < 0x80
+                    && (Character.isLetterOrDigit(c) || c == '+' || c == '-' || c == '.'));
+        }
+
+        UpstreamUrl withHost(String newHost) {
+            return new UpstreamUrl(scheme, userinfo, newHost, path, query, fragment);
+        }
+
+        UpstreamUrl withScheme(String newScheme) {
+            return new UpstreamUrl(newScheme, userinfo, host, path, query, fragment);
+        }
+
+        /**
+         * URL for the HTTP client: no userinfo or fragment.
+         */
+        String requestUri() {
+            return scheme + "://" + host + path + (query == null ? "" : "?" + query);
+        }
+
+        @Override
+        public String toString() {
+            StringBuilder sb = new StringBuilder(scheme).append("://");
+            if (userinfo != null) {
+                sb.append(userinfo).append('@');
+            }
+            sb.append(host).append(path);
+            if (query != null) {
+                sb.append('?').append(query);
+            }
+            if (fragment != null) {
+                sb.append('#').append(fragment);
+            }
+            return sb.toString();
+        }
     }
 }
