@@ -21,7 +21,7 @@ public class ProxyProperties {
     /** Outbound IP TTL; 0 = OS default. Overridable in Settings UI. */
     private int outboundTtl = 0;
     private int idleTimeoutSeconds = 300;
-    /** SSH server probes (OpenSSH ClientAlive). Dead peers still hit {@link #idleTimeoutSeconds}. */
+    /** SSH server probes (OpenSSH ClientAlive). A peer silent for about {@link #idleTimeoutSeconds} is closed. */
     private boolean sshKeepaliveEnabled = true;
     /** How many probe intervals fit into {@link #idleTimeoutSeconds}. */
     private int sshKeepaliveCount = 5;

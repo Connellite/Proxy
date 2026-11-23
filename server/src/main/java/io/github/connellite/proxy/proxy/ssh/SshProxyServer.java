@@ -190,7 +190,7 @@ public final class SshProxyServer implements AutoCloseable {
             serverSession.setAttribute(TRACKED_KEY, tracked.get());
             if (properties.isSshKeepaliveEnabled()) {
                 int interval = SshKeepalive.intervalSeconds(properties.getIdleTimeoutSeconds(), properties.getSshKeepaliveCount());
-                SshKeepalive.start(serverSession, interval);
+                SshKeepalive.start(serverSession, interval, properties.getSshKeepaliveCount());
             }
         }
 
