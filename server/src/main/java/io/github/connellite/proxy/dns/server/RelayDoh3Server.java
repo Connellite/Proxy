@@ -25,7 +25,7 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class RelayDoh3Server {
+public class RelayDoh3Server implements RelayListener {
 
     private final RelayDnsServer dns;
     private final ProxyProperties properties;
@@ -33,10 +33,12 @@ public class RelayDoh3Server {
     private EventLoopGroup group;
     private Channel server;
 
+    @Override
     public synchronized boolean isRunning() {
         return server != null && server.isActive();
     }
 
+    @Override
     public String getProtocol() {
         return "DoH3";
     }
@@ -71,6 +73,7 @@ public class RelayDoh3Server {
         log.info("DoH3 listening on {}:{}", bindHost, port);
     }
 
+    @Override
     public synchronized void stop() {
         if (server != null) {
             server.close();

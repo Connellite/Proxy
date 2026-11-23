@@ -47,7 +47,7 @@ import java.util.function.Consumer;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class RelayDnsServer {
+public class RelayDnsServer implements RelayListener {
 
     private final RelayCatalog catalog;
     private final ProxyProperties properties;

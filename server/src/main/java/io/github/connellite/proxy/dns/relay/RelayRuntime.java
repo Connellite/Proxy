@@ -7,11 +7,14 @@ import io.github.connellite.proxy.dns.server.RelayDohServer;
 import io.github.connellite.proxy.dns.server.RelayDotServer;
 import io.github.connellite.proxy.dns.server.RelayDoqServer;
 import io.github.connellite.proxy.dns.tcp.RelayTcpServer;
+import io.github.connellite.proxy.proxy.http.ProxyTlsService;
 import io.github.connellite.proxy.service.SettingsService;
 import io.netty.handler.codec.quic.QuicSslContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 /** Starts the DNS and TCP listeners from the current snapshot. A bind failure stays here. */
 @Slf4j
@@ -121,12 +124,10 @@ public class RelayRuntime {
     }
 
     public void stop() {
-        dnsServer.stop();
+        for (RelayListener listener : List.of(dnsServer, dohServer, doh3Server, dotServer, doqServer)) {
+            listener.stop();
+        }
         tcpServer.stop();
-        dohServer.stop();
-        doh3Server.stop();
-        dotServer.stop();
-        doqServer.stop();
     }
 
     private static String message(String name, Exception ex) {

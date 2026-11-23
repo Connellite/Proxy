@@ -31,7 +31,7 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class RelayDoqServer {
+public class RelayDoqServer implements RelayListener {
 
     private final RelayDnsServer dns;
     private final ProxyProperties properties;
@@ -39,10 +39,12 @@ public class RelayDoqServer {
     private EventLoopGroup group;
     private Channel server;
 
+    @Override
     public synchronized boolean isRunning() {
         return server != null && server.isActive();
     }
 
+    @Override
     public String getProtocol() {
         return "DoQ";
     }
@@ -81,6 +83,7 @@ public class RelayDoqServer {
         log.info("DoQ listening on {}:{}", bindHost, port);
     }
 
+    @Override
     public synchronized void stop() {
         if (server != null) {
             server.close();

@@ -29,17 +29,19 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class RelayDohServer {
+public class RelayDohServer implements RelayListener {
 
     private final RelayDnsServer dns;
 
     private EventLoopGroup group;
     private Channel server;
 
+    @Override
     public synchronized boolean isRunning() {
         return server != null && server.isActive();
     }
 
+    @Override
     public String getProtocol() {
         return "DoH";
     }
@@ -79,6 +81,7 @@ public class RelayDohServer {
         log.info("DoH listening on {}:{}", bindHost, port);
     }
 
+    @Override
     public synchronized void stop() {
         if (server != null) {
             server.close();
