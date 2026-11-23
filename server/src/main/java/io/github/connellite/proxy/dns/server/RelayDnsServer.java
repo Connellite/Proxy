@@ -29,7 +29,7 @@ import org.xbill.DNS.Name;
 import org.xbill.DNS.Rcode;
 import org.xbill.DNS.Record;
 import org.xbill.DNS.Section;
-import org.xbill.DNS.SimpleResolver;
+import org.xbill.DNS.Resolver;
 import org.xbill.DNS.Type;
 
 import java.net.Inet4Address;
@@ -163,8 +163,7 @@ public class RelayDnsServer implements RelayListener {
             return;
         }
         try {
-            SimpleResolver resolver = UpstreamResolver.resolver(
-                    snapshot.resolverHost(), snapshot.resolverPort(), properties.getConnectTimeoutMs());
+            Resolver resolver = UpstreamResolver.create(snapshot.upstreamResolver(), properties.getConnectTimeoutMs());
             CompletableFuture<Message> future = resolver.sendAsync(query).toCompletableFuture();
             future.orTimeout(Math.max(1, properties.getConnectTimeoutMs()), TimeUnit.MILLISECONDS)
                     .whenComplete((response, error) -> {

@@ -117,8 +117,9 @@ public class RelayPage extends Composite {
                 "DNS answers a relay name with this IP, so the device connects here instead of the real server. "
                         + "One IPv4 or IPv6. A relay route cannot be saved until this is set."));
         addressPanel.add(Forms.field("Resolver for everything else", resolver,
-                "host:port of a normal DNS server. Names that are not in the route table are forwarded there. "
-                        + "A relay upstream host is resolved there too, so it does not point back at this server."));
+                "IP, host:port, https://…, tls://…, h3://… or quic://…. Names that are not in the route table "
+                        + "are forwarded there. A relay upstream host is resolved there too, so it does not point "
+                        + "back at this server."));
         root.add(addressPanel);
 
         FlowPanel dnsPanel = new FlowPanel();

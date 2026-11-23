@@ -1,11 +1,11 @@
 package io.github.connellite.proxy.dns.relay;
 
-import io.github.connellite.proxy.proxy.http.ProxyTlsService;
 import io.github.connellite.proxy.dns.server.RelayDnsServer;
 import io.github.connellite.proxy.dns.server.RelayDoh3Server;
 import io.github.connellite.proxy.dns.server.RelayDohServer;
-import io.github.connellite.proxy.dns.server.RelayDotServer;
 import io.github.connellite.proxy.dns.server.RelayDoqServer;
+import io.github.connellite.proxy.dns.server.RelayDotServer;
+import io.github.connellite.proxy.dns.server.RelayListener;
 import io.github.connellite.proxy.dns.tcp.RelayTcpServer;
 import io.github.connellite.proxy.proxy.http.ProxyTlsService;
 import io.github.connellite.proxy.service.SettingsService;

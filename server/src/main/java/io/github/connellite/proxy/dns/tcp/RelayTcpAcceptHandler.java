@@ -93,13 +93,13 @@ final class RelayTcpAcceptHandler extends AbstractSniHandler<InetSocketAddress> 
             return promise;
         }
         String resolvedHost = host;
-        UpstreamResolver.resolve(resolvedHost, snapshot.resolverHost(), snapshot.resolverPort(),
+        UpstreamResolver.resolve(resolvedHost, snapshot.upstreamResolver(),
                         properties.getConnectTimeoutMs())
                 .whenComplete((address, error) -> ctx.executor().execute(() -> {
                     if (error != null || address == null) {
                         Throwable cause = error == null ? new IllegalStateException("unresolved") : error;
-                        log.warn("TCP relay {} not resolved via {}:{}: {}", resolvedHost,
-                                snapshot.resolverHost(), snapshot.resolverPort(), cause.toString());
+                        log.warn("TCP relay {} not resolved via {}: {}", resolvedHost,
+                                snapshot.upstreamResolver(), cause.toString());
                         promise.setFailure(cause);
                         return;
                     }

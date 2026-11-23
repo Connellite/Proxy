@@ -1,5 +1,6 @@
 package io.github.connellite.proxy.dns.relay;
 
+import io.github.connellite.proxy.dns.upstream.UpstreamDnsEndpoint;
 import io.github.connellite.proxy.dto.AppSettings;
 import io.github.connellite.proxy.model.RelayRoute;
 import io.github.connellite.proxy.model.RelayRouteMode;
@@ -188,7 +189,7 @@ public class RelayRouteService {
                 form.getRelayDoqBindHost(), form.getRelayDoqPort())) {
             throw new IllegalArgumentException("DoH3 and DoQ cannot listen on the same address and port");
         }
-        HostPort.parse(form.getRelayUpstreamResolver(), 53);
+        UpstreamDnsEndpoint.parse(form.getRelayUpstreamResolver());
         if (StringUtils.isNotBlank(form.getRelayAdvertisedAddress())
                 && RelayCatalog.parseAddress(form.getRelayAdvertisedAddress()) == null) {
             throw new IllegalArgumentException("Client address must be a single IP");

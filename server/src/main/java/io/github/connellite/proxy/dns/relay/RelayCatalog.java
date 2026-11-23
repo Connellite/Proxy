@@ -1,6 +1,7 @@
 package io.github.connellite.proxy.dns.relay;
 
 import com.google.common.net.InetAddresses;
+import io.github.connellite.proxy.dns.upstream.UpstreamDnsEndpoint;
 import io.github.connellite.proxy.dto.AppSettings;
 import io.github.connellite.proxy.model.RelayDnsAllow;
 import io.github.connellite.proxy.model.RelayRoute;
@@ -53,7 +54,7 @@ public class RelayCatalog {
 
     static RelaySnapshot build(List<RelayRoute> rows, List<RelayDnsAllow> dnsRows, List<RelayTcpAllow> tcpRows, AppSettings settings) {
         InetAddress advertised = parseAddress(settings.getRelayAdvertisedAddress());
-        HostPort resolver = resolver(settings.getRelayUpstreamResolver());
+        UpstreamDnsEndpoint resolver = resolver(settings.getRelayUpstreamResolver());
         List<RelaySnapshot.Route> routes = new ArrayList<>();
         for (RelayRoute row : rows) {
             if (!row.isEnabled() || row.getName() == null || row.getMode() == null) {
@@ -69,7 +70,7 @@ public class RelayCatalog {
             routes.add(new RelaySnapshot.Route(row.getName(), row.getMode(), row.getUpstreamHost(),
                     row.getUpstreamPort(), answer));
         }
-        return new RelaySnapshot(routes, advertised, resolver.host(), resolver.port(),
+        return new RelaySnapshot(routes, advertised, resolver,
                 settings.isRelayDnsEnabled(), settings.getRelayDnsBindHost(), settings.getRelayDnsPort(),
                 settings.isRelayTcpEnabled(), settings.getRelayTcpBindHost(), settings.getRelayTcpPort(),
                 settings.isRelayDohEnabled(), settings.getRelayDohBindHost(), settings.getRelayDohPort(),
@@ -102,15 +103,12 @@ public class RelayCatalog {
         return RelayNetworks.parseAll(valid);
     }
 
-    private static HostPort resolver(String raw) {
-        if (raw == null || raw.isBlank()) {
-            return new HostPort("1.1.1.1", 53);
-        }
+    private static UpstreamDnsEndpoint resolver(String raw) {
         try {
-            return HostPort.parse(raw, 53);
+            return UpstreamDnsEndpoint.parse(raw);
         } catch (IllegalArgumentException ex) {
-            log.warn("Invalid upstream resolver '{}', using 1.1.1.1:53", raw);
-            return new HostPort("1.1.1.1", 53);
+            log.warn("Invalid upstream resolver '{}', using {}", raw, UpstreamDnsEndpoint.DEFAULT);
+            return UpstreamDnsEndpoint.DEFAULT;
         }
     }
 

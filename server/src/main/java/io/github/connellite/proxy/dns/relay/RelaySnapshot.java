@@ -1,5 +1,6 @@
 package io.github.connellite.proxy.dns.relay;
 
+import io.github.connellite.proxy.dns.upstream.UpstreamDnsEndpoint;
 import io.github.connellite.proxy.model.RelayRouteMode;
 import lombok.Getter;
 
@@ -12,8 +13,7 @@ import java.util.List;
  */
 public record RelaySnapshot(List<Route> routes,
                             InetAddress advertisedAddress,
-                            String resolverHost,
-                            int resolverPort,
+                            UpstreamDnsEndpoint upstreamResolver,
                             boolean dnsEnabled,
                             String dnsBindHost,
                             int dnsPort,
@@ -39,7 +39,7 @@ public record RelaySnapshot(List<Route> routes,
     public static final int ANSWER_TTL_SECONDS = 30;
     public static final int MAX_FORWARDS = 32;
 
-    public RelaySnapshot(List<Route> routes, InetAddress advertisedAddress, String resolverHost, int resolverPort,
+    public RelaySnapshot(List<Route> routes, InetAddress advertisedAddress, UpstreamDnsEndpoint upstreamResolver,
                          boolean dnsEnabled, String dnsBindHost, int dnsPort,
                          boolean tcpEnabled, String tcpBindHost, int tcpPort,
                          boolean dohEnabled, String dohBindHost, int dohPort,
@@ -49,8 +49,7 @@ public record RelaySnapshot(List<Route> routes,
                          RelayNetworks dnsAllow, RelayNetworks tcpAllow, boolean tcpUseUpstream) {
         this.routes = List.copyOf(routes);
         this.advertisedAddress = advertisedAddress;
-        this.resolverHost = resolverHost;
-        this.resolverPort = resolverPort;
+        this.upstreamResolver = upstreamResolver == null ? UpstreamDnsEndpoint.DEFAULT : upstreamResolver;
         this.dnsEnabled = dnsEnabled;
         this.dnsBindHost = dnsBindHost;
         this.dnsPort = dnsPort;
@@ -75,7 +74,7 @@ public record RelaySnapshot(List<Route> routes,
     }
 
     public static RelaySnapshot defaults() {
-        return new RelaySnapshot(List.of(), null, "1.1.1.1", 53,
+        return new RelaySnapshot(List.of(), null, UpstreamDnsEndpoint.DEFAULT,
                 false, "0.0.0.0", 53, false, "0.0.0.0", 443,
                 false, "0.0.0.0", 8443, false, "0.0.0.0", 853, false, "0.0.0.0", 853, false, "0.0.0.0", 443,
                 RelayNetworks.everyone(), RelayNetworks.everyone(), false);
