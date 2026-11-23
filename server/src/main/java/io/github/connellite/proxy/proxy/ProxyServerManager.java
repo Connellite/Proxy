@@ -8,7 +8,7 @@ import io.github.connellite.proxy.proxy.outbound.OutboundConnector;
 import io.github.connellite.proxy.proxy.http.ProxyTlsService;
 import io.github.connellite.proxy.proxy.socks.SocksProxyServer;
 import io.github.connellite.proxy.proxy.ssh.SshProxyServer;
-import io.github.connellite.proxy.relay.RelayRuntime;
+import io.github.connellite.proxy.dns.relay.RelayRuntime;
 import io.github.connellite.proxy.service.HttpStripHeaderService;
 import io.github.connellite.proxy.service.ProxyAuthService;
 import io.github.connellite.proxy.service.ProxyMetrics;

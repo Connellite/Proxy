@@ -62,17 +62,17 @@ import io.github.connellite.proxy.model.UpstreamProxyType;
 import io.github.connellite.proxy.proxy.ProxyServerManager;
 import io.github.connellite.proxy.proxy.http.ProxyTlsService;
 import io.github.connellite.proxy.service.HttpStripHeaderService;
-import io.github.connellite.proxy.relay.HostPort;
-import io.github.connellite.proxy.relay.RelayAllowService;
-import io.github.connellite.proxy.relay.RelayRouteService;
-import io.github.connellite.proxy.relay.dns.RelayDnsServer;
-import io.github.connellite.proxy.relay.dns.RelayDoh3Server;
-import io.github.connellite.proxy.relay.dns.RelayDohServer;
-import io.github.connellite.proxy.relay.dns.RelayDoqServer;
-import io.github.connellite.proxy.relay.dns.RelayDotServer;
-import io.github.connellite.proxy.relay.dns.RelayQueryLog;
-import io.github.connellite.proxy.relay.tcp.RelayTcpServer;
-import io.github.connellite.proxy.relay.tcp.RelayTcpSessionLog;
+import io.github.connellite.proxy.dns.relay.HostPort;
+import io.github.connellite.proxy.dns.relay.RelayAllowService;
+import io.github.connellite.proxy.dns.relay.RelayRouteService;
+import io.github.connellite.proxy.dns.server.RelayDnsServer;
+import io.github.connellite.proxy.dns.server.RelayDoh3Server;
+import io.github.connellite.proxy.dns.server.RelayDohServer;
+import io.github.connellite.proxy.dns.server.RelayDoqServer;
+import io.github.connellite.proxy.dns.server.RelayDotServer;
+import io.github.connellite.proxy.dns.server.RelayQueryLog;
+import io.github.connellite.proxy.dns.tcp.RelayTcpServer;
+import io.github.connellite.proxy.dns.tcp.RelayTcpSessionLog;
 import io.github.connellite.proxy.service.ProxyMetrics;
 import io.github.connellite.proxy.service.ProxyUserService;
 import io.github.connellite.proxy.service.ServerDirectoryService;
@@ -92,6 +92,7 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.ParseException;
+import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -852,7 +853,7 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
         return new AdminRpcException(message);
     }
 
-    private String formatInstant(java.time.Instant instant) {
+    private String formatInstant(Instant instant) {
         if (instant == null) {
             return null;
         }
@@ -879,8 +880,7 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
         if (host == null || host.isEmpty()) {
             return "";
         }
-        String authority = dnsAuthority(host, port, 53);
-        return authority;
+        return dnsAuthority(host, port, 53);
     }
 
     private static String dnsUrlEndpoint(String scheme, String host, int port, int defaultPort, String path) {
