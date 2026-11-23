@@ -24,12 +24,12 @@ import java.util.Locale;
  * One DNS-over-HTTPS request: GET or POST {@code /dns-query}.
  */
 @RequiredArgsConstructor 
-final class RelayDohHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
+final class DohHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
 
     private static final String PATH = "/dns-query";
     private static final String DNS_MESSAGE = "application/dns-message";
 
-    private final RelayDnsServer dns;
+    private final DnsServer dns;
     private final String protocol;
 
     @Override

@@ -8,7 +8,8 @@ import io.github.connellite.proxy.proxy.outbound.OutboundConnector;
 import io.github.connellite.proxy.proxy.http.ProxyTlsService;
 import io.github.connellite.proxy.proxy.socks.SocksProxyServer;
 import io.github.connellite.proxy.proxy.ssh.SshProxyServer;
-import io.github.connellite.proxy.dns.relay.RelayRuntime;
+import io.github.connellite.proxy.dns.server.DnsRuntime;
+import io.github.connellite.proxy.dns.tcp.TcpRuntime;
 import io.github.connellite.proxy.service.HttpStripHeaderService;
 import io.github.connellite.proxy.service.ProxyAuthService;
 import io.github.connellite.proxy.service.ProxyMetrics;
@@ -38,7 +39,8 @@ public class ProxyServerManager implements ApplicationRunner {
     private final ProxyTlsService tlsService;
     private final SocksProxyServer socksProxyServer;
     private final SshProxyServer sshProxyServer;
-    private final RelayRuntime relayRuntime;
+    private final DnsRuntime dnsRuntime;
+    private final TcpRuntime tcpRuntime;
     private final HttpProxyServerInstance httpServer;
     private final HttpsProxyServerInstance httpsServer;
 
@@ -52,7 +54,8 @@ public class ProxyServerManager implements ApplicationRunner {
                               ProxyTlsService tlsService,
                               SocksProxyServer socksProxyServer,
                               SshProxyServer sshProxyServer,
-                              RelayRuntime relayRuntime,
+                              DnsRuntime dnsRuntime,
+                              TcpRuntime tcpRuntime,
                               OutboundConnector outboundConnector,
                               HttpStripHeaderService stripHeaderService) {
         this.settingsService = settingsService;
@@ -60,7 +63,8 @@ public class ProxyServerManager implements ApplicationRunner {
         this.tlsService = tlsService;
         this.socksProxyServer = socksProxyServer;
         this.sshProxyServer = sshProxyServer;
-        this.relayRuntime = relayRuntime;
+        this.dnsRuntime = dnsRuntime;
+        this.tcpRuntime = tcpRuntime;
         this.httpServer = new HttpProxyServerInstance(
                 authService, metrics, properties, outboundConnector, stripHeaderService);
         this.httpsServer = new HttpsProxyServerInstance(
@@ -91,12 +95,12 @@ public class ProxyServerManager implements ApplicationRunner {
         startListener("SSH tunnel proxy", settings.isSshEnabled(), errors, () ->
                 sshProxyServer.start(settings.getSshBindHost(), settings.getSshPort())
         );
-        startListener("DNS relay", true, errors, relayRuntime::restartDns);
-        startListener("TCP relay", true, errors, relayRuntime::restartTcp);
-        startListener("DoH", true, errors, relayRuntime::restartDoh);
-        startListener("DoH3", true, errors, relayRuntime::restartDoh3);
-        startListener("DoT", true, errors, relayRuntime::restartDot);
-        startListener("DoQ", true, errors, relayRuntime::restartDoq);
+        startListener("DNS relay", true, errors, dnsRuntime::restartDns);
+        startListener("TCP relay", true, errors, tcpRuntime::restart);
+        startListener("DoH", true, errors, dnsRuntime::restartDoh);
+        startListener("DoH3", true, errors, dnsRuntime::restartDoh3);
+        startListener("DoT", true, errors, dnsRuntime::restartDot);
+        startListener("DoQ", true, errors, dnsRuntime::restartDoq);
         if (errors.length() > 0) {
             lastError = errors.toString();
         }
@@ -148,7 +152,8 @@ public class ProxyServerManager implements ApplicationRunner {
         httpsServer.stop();
         socksProxyServer.stop();
         sshProxyServer.stop();
-        relayRuntime.stop();
+        dnsRuntime.stop();
+        tcpRuntime.stop();
         metrics.resetActiveConnections();
     }
 }

@@ -2,38 +2,32 @@ package io.github.connellite.proxy.dns.server;
 
 import io.github.connellite.proxy.config.ProxyProperties;
 import io.netty.bootstrap.Bootstrap;
-import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
-import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.MultiThreadIoEventLoopGroup;
-import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.nio.NioIoHandler;
 import io.netty.channel.socket.nio.NioDatagramChannel;
-import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
+import io.netty.handler.codec.http3.Http3;
+import io.netty.handler.codec.http3.Http3ServerConnectionHandler;
 import io.netty.handler.codec.quic.InsecureQuicTokenHandler;
 import io.netty.handler.codec.quic.Quic;
 import io.netty.handler.codec.quic.QuicChannel;
-import io.netty.handler.codec.quic.QuicServerCodecBuilder;
 import io.netty.handler.codec.quic.QuicSslContext;
-import io.netty.handler.codec.quic.QuicStreamChannel;
-import io.netty.handler.codec.quic.QuicStreamType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.net.InetSocketAddress;
-import java.net.SocketAddress;
 import java.util.concurrent.TimeUnit;
 
-/** DNS-over-QUIC. One length-prefixed DNS message per client bidirectional stream. */
+/** DNS-over-HTTP/3. GET and POST {@code /dns-query} on QUIC with ALPN {@code h3}. */
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class RelayDoqServer implements RelayListener {
+public class Doh3Server implements Listener {
 
-    private final RelayDnsServer dns;
+    private final DnsServer dns;
     private final ProxyProperties properties;
 
     private EventLoopGroup group;
@@ -46,20 +40,21 @@ public class RelayDoqServer implements RelayListener {
 
     @Override
     public String getProtocol() {
-        return "DoQ";
+        return "DoH3";
     }
 
     public synchronized void start(String bindHost, int port, QuicSslContext ssl) throws InterruptedException {
         if (!Quic.isAvailable()) {
             Throwable cause = Quic.unavailabilityCause();
-            throw new IllegalStateException("DoQ native library is not available", cause);
+            throw new IllegalStateException("DoH3 native library is not available", cause);
         }
         stop();
+        Doh3StreamHandler streams = new Doh3StreamHandler(dns, getProtocol());
         group = new MultiThreadIoEventLoopGroup(NioIoHandler.newFactory());
         long idleMillis = Math.max(1, properties.getIdleTimeoutSeconds()) * 1000L;
         server = new Bootstrap().group(group)
                 .channel(NioDatagramChannel.class)
-                .handler(new QuicServerCodecBuilder()
+                .handler(Http3.newQuicServerCodecBuilder()
                         .sslContext(ssl)
                         .tokenHandler(InsecureQuicTokenHandler.INSTANCE)
                         .maxIdleTimeout(idleMillis, TimeUnit.MILLISECONDS)
@@ -67,20 +62,15 @@ public class RelayDoqServer implements RelayListener {
                         .initialMaxStreamDataBidirectionalLocal(1_000_000)
                         .initialMaxStreamDataBidirectionalRemote(1_000_000)
                         .initialMaxStreamsBidirectional(100)
-                        .streamHandler(new ChannelInitializer<QuicStreamChannel>() {
+                        .handler(new ChannelInitializer<QuicChannel>() {
                             @Override
-                            protected void initChannel(QuicStreamChannel ch) {
-                                if (ch.type() != QuicStreamType.BIDIRECTIONAL) {
-                                    ch.close();
-                                    return;
-                                }
-                                ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(65535, 0, 2, 0, 2));
-                                ch.pipeline().addLast(new StreamHandler());
+                            protected void initChannel(QuicChannel ch) {
+                                ch.pipeline().addLast(new Http3ServerConnectionHandler(streams));
                             }
                         })
                         .build())
                 .bind(new InetSocketAddress(bindHost, port)).sync().channel();
-        log.info("DoQ listening on {}:{}", bindHost, port);
+        log.info("DoH3 listening on {}:{}", bindHost, port);
     }
 
     @Override
@@ -92,29 +82,6 @@ public class RelayDoqServer implements RelayListener {
         if (group != null) {
             group.shutdownGracefully(0, 2, TimeUnit.SECONDS);
             group = null;
-        }
-    }
-
-    private final class StreamHandler extends SimpleChannelInboundHandler<ByteBuf> {
-        @Override
-        protected void channelRead0(ChannelHandlerContext ctx, ByteBuf msg) {
-            byte[] query = new byte[msg.readableBytes()];
-            msg.readBytes(query);
-            QuicChannel parent = ((QuicStreamChannel) ctx.channel()).parent();
-            SocketAddress remote = parent.remoteSocketAddress();
-            InetSocketAddress client = remote instanceof InetSocketAddress inet ? inet : null;
-            //noinspection resource
-            if (!dns.exchange(query, client, getProtocol(), wire -> ctx.channel().eventLoop().execute(() -> {
-                if (!ctx.channel().isActive()) {
-                    return;
-                }
-                ByteBuf out = ctx.alloc().buffer(2 + wire.length);
-                out.writeShort(wire.length);
-                out.writeBytes(wire);
-                ctx.writeAndFlush(out);
-            }))) {
-                ctx.close();
-            }
         }
     }
 }

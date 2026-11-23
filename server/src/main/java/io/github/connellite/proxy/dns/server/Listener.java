@@ -3,7 +3,7 @@ package io.github.connellite.proxy.dns.server;
 /**
  * Lifecycle for an inbound DNS listener.
  */
-public interface RelayListener {
+public interface Listener {
 
     boolean isRunning();
 

@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * Last DNS answers.
  */
 @Component
-public class RelayQueryLog {
+public class QueryLog {
 
     static final int LIMIT = 200;
     private static final int MAX_ADDRESSES = 4;

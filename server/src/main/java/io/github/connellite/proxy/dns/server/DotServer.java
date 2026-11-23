@@ -28,9 +28,9 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class RelayDotServer implements RelayListener {
+public class DotServer implements Listener {
 
-    private final RelayDnsServer dns;
+    private final DnsServer dns;
     private final ProxyProperties properties;
 
     private EventLoopGroup group;

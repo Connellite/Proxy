@@ -65,14 +65,14 @@ import io.github.connellite.proxy.service.HttpStripHeaderService;
 import io.github.connellite.proxy.dns.relay.HostPort;
 import io.github.connellite.proxy.dns.relay.RelayAllowService;
 import io.github.connellite.proxy.dns.relay.RelayRouteService;
-import io.github.connellite.proxy.dns.server.RelayDnsServer;
-import io.github.connellite.proxy.dns.server.RelayDoh3Server;
-import io.github.connellite.proxy.dns.server.RelayDohServer;
-import io.github.connellite.proxy.dns.server.RelayDoqServer;
-import io.github.connellite.proxy.dns.server.RelayDotServer;
-import io.github.connellite.proxy.dns.server.RelayQueryLog;
-import io.github.connellite.proxy.dns.tcp.RelayTcpServer;
-import io.github.connellite.proxy.dns.tcp.RelayTcpSessionLog;
+import io.github.connellite.proxy.dns.server.DnsServer;
+import io.github.connellite.proxy.dns.server.Doh3Server;
+import io.github.connellite.proxy.dns.server.DohServer;
+import io.github.connellite.proxy.dns.server.DoqServer;
+import io.github.connellite.proxy.dns.server.DotServer;
+import io.github.connellite.proxy.dns.server.QueryLog;
+import io.github.connellite.proxy.dns.tcp.TcpServer;
+import io.github.connellite.proxy.dns.tcp.TcpSessionLog;
 import io.github.connellite.proxy.service.ProxyMetrics;
 import io.github.connellite.proxy.service.ProxyUserService;
 import io.github.connellite.proxy.service.ServerDirectoryService;
@@ -129,14 +129,14 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
     private final ZoneId appZoneId;
     private final RelayRouteService relayRouteService;
     private final RelayAllowService relayAllowService;
-    private final RelayQueryLog relayQueryLog;
-    private final RelayTcpSessionLog relayTcpSessionLog;
-    private final RelayDnsServer relayDnsServer;
-    private final RelayTcpServer relayTcpServer;
-    private final RelayDohServer relayDohServer;
-    private final RelayDoh3Server relayDoh3Server;
-    private final RelayDotServer relayDotServer;
-    private final RelayDoqServer relayDoqServer;
+    private final QueryLog relayQueryLog;
+    private final TcpSessionLog relayTcpSessionLog;
+    private final DnsServer relayDnsServer;
+    private final TcpServer relayTcpServer;
+    private final DohServer relayDohServer;
+    private final Doh3Server relayDoh3Server;
+    private final DotServer relayDotServer;
+    private final DoqServer relayDoqServer;
 
     /**
      * Spring Boot serves {@code *.gwt.rpc} from the classpath ({@code static/proxyAdmin/}),
@@ -777,7 +777,7 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
     @Override
     public List<RelayQueryRowGWTDTO> getRelayQueryLog() {
         List<RelayQueryRowGWTDTO> rows = new ArrayList<>();
-        for (RelayQueryLog.Entry entry : relayQueryLog.recent()) {
+        for (QueryLog.Entry entry : relayQueryLog.recent()) {
             RelayQueryRowGWTDTO row = new RelayQueryRowGWTDTO();
             row.setTime(QUERY_TIME_FMT.format(entry.at().atZone(appZoneId)));
             row.setClient(entry.client());
@@ -795,7 +795,7 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
     @Override
     public List<RelayTcpSessionRowGWTDTO> getRelayTcpSessionLog() {
         List<RelayTcpSessionRowGWTDTO> rows = new ArrayList<>();
-        for (RelayTcpSessionLog.Entry entry : relayTcpSessionLog.recent()) {
+        for (TcpSessionLog.Entry entry : relayTcpSessionLog.recent()) {
             RelayTcpSessionRowGWTDTO row = new RelayTcpSessionRowGWTDTO();
             row.setTime(QUERY_TIME_FMT.format(entry.at().atZone(appZoneId)));
             row.setClient(entry.client());

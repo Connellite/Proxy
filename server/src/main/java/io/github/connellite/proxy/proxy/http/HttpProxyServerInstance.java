@@ -2,6 +2,7 @@ package io.github.connellite.proxy.proxy.http;
 
 import io.github.connellite.proxy.config.ProxyProperties;
 import io.github.connellite.proxy.proxy.IdleCloseHandler;
+import io.github.connellite.proxy.proxy.ProxyListener;
 import io.github.connellite.proxy.proxy.QuietCloseHandlerAdapter;
 import io.github.connellite.proxy.proxy.outbound.OutboundConnector;
 import io.github.connellite.proxy.service.HttpStripHeaderService;
@@ -25,7 +26,7 @@ import java.net.InetSocketAddress;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
-public class HttpProxyServerInstance implements AutoCloseable {
+public class HttpProxyServerInstance implements ProxyListener, AutoCloseable {
 
     protected final ProxyAuthService authService;
     protected final ProxyMetrics metrics;
@@ -89,6 +90,7 @@ public class HttpProxyServerInstance implements AutoCloseable {
     protected void configureTransport(SocketChannel ch) {
     }
 
+    @Override
     public synchronized boolean isRunning() {
         return serverChannel != null && serverChannel.isActive();
     }
@@ -98,6 +100,7 @@ public class HttpProxyServerInstance implements AutoCloseable {
         stop();
     }
 
+    @Override
     public synchronized void stop() {
         if (serverChannel != null) {
             try {

@@ -29,9 +29,9 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class RelayDohServer implements RelayListener {
+public class DohServer implements Listener {
 
-    private final RelayDnsServer dns;
+    private final DnsServer dns;
 
     private EventLoopGroup group;
     private Channel server;
@@ -65,14 +65,14 @@ public class RelayDohServer implements RelayListener {
                                         protected void initChannel(Http2StreamChannel stream) {
                                             stream.pipeline().addLast(new Http2StreamFrameToHttpObjectCodec(true));
                                             stream.pipeline().addLast(new HttpObjectAggregator(65535));
-                                            stream.pipeline().addLast(new RelayDohHandler(dns, getProtocol()));
+                                            stream.pipeline().addLast(new DohHandler(dns, getProtocol()));
                                         }
                                     }));
                                     return;
                                 }
                                 ctx.pipeline().addLast(new HttpServerCodec());
                                 ctx.pipeline().addLast(new HttpObjectAggregator(65535));
-                                ctx.pipeline().addLast(new RelayDohHandler(dns, getProtocol()));
+                                ctx.pipeline().addLast(new DohHandler(dns, getProtocol()));
                             }
                         });
                     }

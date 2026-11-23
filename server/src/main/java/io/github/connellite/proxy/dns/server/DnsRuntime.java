@@ -1,12 +1,7 @@
-package io.github.connellite.proxy.dns.relay;
+package io.github.connellite.proxy.dns.server;
 
-import io.github.connellite.proxy.dns.server.RelayDnsServer;
-import io.github.connellite.proxy.dns.server.RelayDoh3Server;
-import io.github.connellite.proxy.dns.server.RelayDohServer;
-import io.github.connellite.proxy.dns.server.RelayDoqServer;
-import io.github.connellite.proxy.dns.server.RelayDotServer;
-import io.github.connellite.proxy.dns.server.RelayListener;
-import io.github.connellite.proxy.dns.tcp.RelayTcpServer;
+import io.github.connellite.proxy.dns.relay.RelayCatalog;
+import io.github.connellite.proxy.dns.relay.RelaySnapshot;
 import io.github.connellite.proxy.proxy.http.ProxyTlsService;
 import io.github.connellite.proxy.service.SettingsService;
 import io.netty.handler.codec.quic.QuicSslContext;
@@ -16,21 +11,20 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-/** Starts the DNS and TCP listeners from the current snapshot. A bind failure stays here. */
+/** Starts DNS listeners from the current snapshot. A bind failure stays here. */
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class RelayRuntime {
+public class DnsRuntime {
 
     private final RelayCatalog catalog;
     private final SettingsService settingsService;
     private final ProxyTlsService tlsService;
-    private final RelayDnsServer dnsServer;
-    private final RelayTcpServer tcpServer;
-    private final RelayDohServer dohServer;
-    private final RelayDoh3Server doh3Server;
-    private final RelayDotServer dotServer;
-    private final RelayDoqServer doqServer;
+    private final DnsServer dnsServer;
+    private final DohServer dohServer;
+    private final Doh3Server doh3Server;
+    private final DotServer dotServer;
+    private final DoqServer doqServer;
 
     public void restartDns() {
         catalog.reload();
@@ -44,21 +38,6 @@ public class RelayRuntime {
             dnsServer.start(snapshot.dnsBindHost(), snapshot.dnsPort());
         } catch (Exception ex) {
             throw new IllegalStateException(message("DNS relay", ex), ex);
-        }
-    }
-
-    public void restartTcp() {
-        catalog.reload();
-        tcpServer.stop();
-        RelaySnapshot snapshot = catalog.current();
-        if (!snapshot.tcpEnabled()) {
-            log.info("TCP relay disabled");
-            return;
-        }
-        try {
-            tcpServer.start(snapshot.tcpBindHost(), snapshot.tcpPort());
-        } catch (Exception ex) {
-            throw new IllegalStateException(message("TCP relay", ex), ex);
         }
     }
 
@@ -124,10 +103,9 @@ public class RelayRuntime {
     }
 
     public void stop() {
-        for (RelayListener listener : List.of(dnsServer, dohServer, doh3Server, dotServer, doqServer)) {
+        for (Listener listener : List.of(dnsServer, dohServer, doh3Server, dotServer, doqServer)) {
             listener.stop();
         }
-        tcpServer.stop();
     }
 
     private static String message(String name, Exception ex) {

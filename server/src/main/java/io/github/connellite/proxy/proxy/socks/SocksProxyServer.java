@@ -2,6 +2,7 @@ package io.github.connellite.proxy.proxy.socks;
 
 import io.github.connellite.proxy.config.ProxyProperties;
 import io.github.connellite.proxy.proxy.IdleCloseHandler;
+import io.github.connellite.proxy.proxy.ProxyListener;
 import io.github.connellite.proxy.proxy.QuietCloseHandlerAdapter;
 import io.github.connellite.proxy.proxy.outbound.OutboundConnector;
 import io.github.connellite.proxy.service.ProxyAuthService;
@@ -28,7 +29,7 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public final class SocksProxyServer implements AutoCloseable {
+public final class SocksProxyServer implements ProxyListener, AutoCloseable {
 
     private final ProxyAuthService authService;
     private final ProxyMetrics metrics;
@@ -64,6 +65,7 @@ public final class SocksProxyServer implements AutoCloseable {
         log.info("SOCKS4/5 proxy listening on {}:{}", bindHost, port);
     }
 
+    @Override
     public synchronized boolean isRunning() {
         return serverChannel != null && serverChannel.isActive();
     }
@@ -73,6 +75,7 @@ public final class SocksProxyServer implements AutoCloseable {
         stop();
     }
 
+    @Override
     public synchronized void stop() {
         if (serverChannel != null) {
             try {

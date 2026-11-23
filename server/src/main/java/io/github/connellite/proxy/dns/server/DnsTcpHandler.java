@@ -11,9 +11,9 @@ import java.net.InetSocketAddress;
  * Plain DNS over TCP (length-prefixed messages).
  */
 @RequiredArgsConstructor
-final class RelayDnsTcpHandler extends SimpleChannelInboundHandler<ByteBuf> {
+final class DnsTcpHandler extends SimpleChannelInboundHandler<ByteBuf> {
 
-    private final RelayDnsServer dns;
+    private final DnsServer dns;
 
     String getProtocol() {
         return "TCP";

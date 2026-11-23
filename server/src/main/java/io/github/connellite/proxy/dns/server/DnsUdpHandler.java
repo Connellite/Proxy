@@ -11,9 +11,9 @@ import lombok.RequiredArgsConstructor;
  * Plain DNS over UDP.
  */
 @RequiredArgsConstructor
-final class RelayDnsUdpHandler extends SimpleChannelInboundHandler<DatagramPacket> {
+final class DnsUdpHandler extends SimpleChannelInboundHandler<DatagramPacket> {
 
-    private final RelayDnsServer dns;
+    private final DnsServer dns;
 
     String getProtocol() {
         return "UDP";

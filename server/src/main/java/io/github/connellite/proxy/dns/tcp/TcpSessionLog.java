@@ -16,7 +16,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * Last TCP relay sessions (SNI).
  */
 @Component
-public class RelayTcpSessionLog {
+public class TcpSessionLog {
 
     static final int LIMIT = 200;
 

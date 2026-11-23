@@ -1,5 +1,7 @@
 package io.github.connellite.proxy.dns.relay;
 
+import io.github.connellite.proxy.dns.server.DnsRuntime;
+import io.github.connellite.proxy.dns.tcp.TcpRuntime;
 import io.github.connellite.proxy.dns.upstream.UpstreamDnsEndpoint;
 import io.github.connellite.proxy.dto.AppSettings;
 import io.github.connellite.proxy.model.RelayRoute;
@@ -23,7 +25,8 @@ public class RelayRouteService {
     private final RelayRouteRepository repository;
     private final SettingsService settingsService;
     private final RelayCatalog catalog;
-    private final RelayRuntime runtime;
+    private final DnsRuntime dnsRuntime;
+    private final TcpRuntime tcpRuntime;
 
     @Transactional(readOnly = true)
     public List<RelayRoute> findAll() {
@@ -141,22 +144,22 @@ public class RelayRouteService {
             public void afterCommit() {
                 catalog.reload();
                 if (dnsRestart) {
-                    runtime.restartDns();
+                    dnsRuntime.restartDns();
                 }
                 if (tcpRestart) {
-                    runtime.restartTcp();
+                    tcpRuntime.restart();
                 }
                 if (dohRestart) {
-                    runtime.restartDoh();
+                    dnsRuntime.restartDoh();
                 }
                 if (doqRestart) {
-                    runtime.restartDoq();
+                    dnsRuntime.restartDoq();
                 }
                 if (dotRestart) {
-                    runtime.restartDot();
+                    dnsRuntime.restartDot();
                 }
                 if (doh3Restart) {
-                    runtime.restartDoh3();
+                    dnsRuntime.restartDoh3();
                 }
             }
         });

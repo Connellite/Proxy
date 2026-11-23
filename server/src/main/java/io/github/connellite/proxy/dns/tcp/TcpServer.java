@@ -30,18 +30,19 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class RelayTcpServer {
+public class TcpServer implements TcpListener {
 
     private final RelayCatalog catalog;
     private final ProxyProperties properties;
     private final OutboundConnector outboundConnector;
     private final UpstreamProxyService upstreamProxyService;
-    private final RelayTcpSessionLog sessionLog;
+    private final TcpSessionLog sessionLog;
 
     private EventLoopGroup bossGroup;
     private EventLoopGroup workerGroup;
     private Channel serverChannel;
 
+    @Override
     public synchronized boolean isRunning() {
         return serverChannel != null && serverChannel.isActive();
     }
@@ -59,7 +60,7 @@ public class RelayTcpServer {
                     protected void initChannel(SocketChannel ch) {
                         ch.pipeline().addLast(new IdleStateHandler(0, 0, properties.getIdleTimeoutSeconds(), TimeUnit.SECONDS));
                         ch.pipeline().addLast(new IdleCloseHandler());
-                        ch.pipeline().addLast(new RelayTcpAcceptHandler(
+                        ch.pipeline().addLast(new TcpAcceptHandler(
                                 catalog, properties, outboundConnector, upstreamProxyService, sessionLog));
                         QuietCloseHandlerAdapter.installLast(ch.pipeline());
                     }
@@ -68,6 +69,7 @@ public class RelayTcpServer {
         log.info("TCP relay listening on {}:{}", bindHost, port);
     }
 
+    @Override
     public synchronized void stop() {
         if (serverChannel != null) {
             serverChannel.close();

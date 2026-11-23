@@ -34,13 +34,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 @Slf4j
 @RequiredArgsConstructor
-final class RelayTcpAcceptHandler extends AbstractSniHandler<InetSocketAddress> {
+final class TcpAcceptHandler extends AbstractSniHandler<InetSocketAddress> {
 
     private final RelayCatalog catalog;
     private final ProxyProperties properties;
     private final OutboundConnector outboundConnector;
     private final UpstreamProxyService upstreamProxyService;
-    private final RelayTcpSessionLog sessionLog;
+    private final TcpSessionLog sessionLog;
     private final AtomicBoolean connectStarted = new AtomicBoolean();
     private final AtomicBoolean logged = new AtomicBoolean();
     private long startedNanos = System.nanoTime();
@@ -154,7 +154,7 @@ final class RelayTcpAcceptHandler extends AbstractSniHandler<InetSocketAddress> 
             upstream.closeFuture().addListener(f -> recordOutcome("Relay"));
             ctx.pipeline().addLast(new RelayHandler(upstream, null));
             // Removing the hello handler releases the original records, SNI included, to the relay.
-            ctx.pipeline().remove(RelayTcpAcceptHandler.this);
+            ctx.pipeline().remove(TcpAcceptHandler.this);
             upstream.read();
             ctx.read();
         });
@@ -172,7 +172,7 @@ final class RelayTcpAcceptHandler extends AbstractSniHandler<InetSocketAddress> 
                 outbound.pipeline().addLast(new RelayHandler(ctx.channel(), null));
                 QuietCloseHandlerAdapter.installLast(outbound.pipeline());
                 ctx.pipeline().addLast(new RelayHandler(outbound, null));
-                ctx.pipeline().remove(RelayTcpAcceptHandler.this);
+                ctx.pipeline().remove(TcpAcceptHandler.this);
                 outbound.read();
                 ctx.read();
             }

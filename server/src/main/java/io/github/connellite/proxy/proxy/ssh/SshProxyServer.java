@@ -2,6 +2,7 @@ package io.github.connellite.proxy.proxy.ssh;
 
 import io.github.connellite.proxy.config.ProxyProperties;
 import io.github.connellite.proxy.dto.AuthenticatedSession;
+import io.github.connellite.proxy.proxy.ProxyListener;
 import io.github.connellite.proxy.proxy.QuietCloseHandlerAdapter;
 import io.github.connellite.proxy.proxy.ssh.sftp.SftpGrant;
 import io.github.connellite.proxy.proxy.ssh.sftp.SftpRootFileSystemFactory;
@@ -56,7 +57,7 @@ import java.util.concurrent.atomic.AtomicLong;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public final class SshProxyServer implements AutoCloseable {
+public final class SshProxyServer implements ProxyListener, AutoCloseable {
 
     public static final AttributeRepository.AttributeKey<AuthenticatedSession> AUTH_KEY =
             new AttributeRepository.AttributeKey<>();
@@ -110,6 +111,7 @@ public final class SshProxyServer implements AutoCloseable {
         log.info("SSH tunnel proxy listening on {}:{}", bindHost, port);
     }
 
+    @Override
     public synchronized boolean isRunning() {
         return server != null && server.isStarted();
     }
@@ -119,6 +121,7 @@ public final class SshProxyServer implements AutoCloseable {
         stop();
     }
 
+    @Override
     public synchronized void stop() {
         SshServer current = server;
         server = null;

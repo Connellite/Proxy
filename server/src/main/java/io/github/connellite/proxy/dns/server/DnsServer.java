@@ -47,11 +47,11 @@ import java.util.function.Consumer;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class RelayDnsServer implements RelayListener {
+public class DnsServer implements Listener {
 
     private final RelayCatalog catalog;
     private final ProxyProperties properties;
-    private final RelayQueryLog queryLog;
+    private final QueryLog queryLog;
     private final Semaphore forwards = new Semaphore(RelaySnapshot.MAX_FORWARDS);
 
     private EventLoopGroup group;
@@ -67,7 +67,7 @@ public class RelayDnsServer implements RelayListener {
         group = new MultiThreadIoEventLoopGroup(NioIoHandler.newFactory());
         udp = new Bootstrap().group(group)
                 .channel(NioDatagramChannel.class)
-                .handler(new RelayDnsUdpHandler(this))
+                .handler(new DnsUdpHandler(this))
                 .bind(new InetSocketAddress(bindHost, port)).sync().channel();
         tcp = new ServerBootstrap().group(group)
                 .channel(NioServerSocketChannel.class)
@@ -75,7 +75,7 @@ public class RelayDnsServer implements RelayListener {
                     @Override
                     protected void initChannel(SocketChannel ch) {
                         ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(65535, 0, 2, 0, 2));
-                        ch.pipeline().addLast(new RelayDnsTcpHandler(RelayDnsServer.this));
+                        ch.pipeline().addLast(new DnsTcpHandler(DnsServer.this));
                     }
                 })
                 .bind(new InetSocketAddress(bindHost, port)).sync().channel();
@@ -177,7 +177,7 @@ public class RelayDnsServer implements RelayListener {
                         try {
                             send.accept(response.toWire(65535));
                             queryLog.record(client, protocol, name, type, "Forwarded",
-                                    RelayQueryLog.answers(response), started);
+                                    QueryLog.answers(response), started);
                         } catch (Exception ex) {
                             send.accept(error(query, Rcode.SERVFAIL));
                             queryLog.record(client, protocol, name, type, "SERVFAIL", "SERVFAIL", started);

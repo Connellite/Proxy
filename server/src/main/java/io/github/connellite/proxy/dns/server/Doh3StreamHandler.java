@@ -28,14 +28,14 @@ import java.util.Locale;
  */
 @ChannelHandler.Sharable
 @RequiredArgsConstructor
-final class RelayDoh3StreamHandler extends Http3RequestStreamInboundHandler {
+final class Doh3StreamHandler extends Http3RequestStreamInboundHandler {
 
     private static final String PATH = "/dns-query";
     private static final String DNS_MESSAGE = "application/dns-message";
     private static final int MAX_BODY = 65535;
     private static final AttributeKey<Request> REQUEST = AttributeKey.newInstance("doh3Request");
 
-    private final RelayDnsServer dns;
+    private final DnsServer dns;
     private final String protocol;
 
     @Override
