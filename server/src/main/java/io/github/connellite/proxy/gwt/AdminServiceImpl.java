@@ -65,6 +65,7 @@ import io.github.connellite.proxy.service.HttpStripHeaderService;
 import io.github.connellite.proxy.dns.relay.HostPort;
 import io.github.connellite.proxy.dns.relay.RelayAllowService;
 import io.github.connellite.proxy.dns.relay.RelayRouteService;
+import io.github.connellite.proxy.dns.upstream.UpstreamDnsEndpoint;
 import io.github.connellite.proxy.dns.server.DnsServer;
 import io.github.connellite.proxy.dns.server.Doh3Server;
 import io.github.connellite.proxy.dns.server.DohServer;
@@ -219,11 +220,16 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
         dto.setUpstreamResolver(settings.getRelayUpstreamResolver() == null ? "" : settings.getRelayUpstreamResolver());
         dto.setTcpUseUpstream(settings.isRelayTcpUseUpstream());
         String publicHost = dnsPublicHost(settings);
-        dto.setDnsEndpoint(dnsPlainEndpoint(publicHost, settings.getRelayDnsPort()));
-        dto.setDohEndpoint(dnsUrlEndpoint("https", publicHost, settings.getRelayDohPort(), 443, "/dns-query"));
-        dto.setDoh3Endpoint(dnsUrlEndpoint("h3", publicHost, settings.getRelayDoh3Port(), 443, "/dns-query"));
-        dto.setDotEndpoint(dnsUrlEndpoint("tls", publicHost, settings.getRelayDotPort(), 853, null));
-        dto.setDoqEndpoint(dnsUrlEndpoint("quic", publicHost, settings.getRelayDoqPort(), 853, null));
+        dto.setDnsEndpoint(UpstreamDnsEndpoint.formatListener(
+                UpstreamDnsEndpoint.Kind.PLAIN, publicHost, settings.getRelayDnsPort()));
+        dto.setDohEndpoint(UpstreamDnsEndpoint.formatListener(
+                UpstreamDnsEndpoint.Kind.DOH, publicHost, settings.getRelayDohPort()));
+        dto.setDoh3Endpoint(UpstreamDnsEndpoint.formatListener(
+                UpstreamDnsEndpoint.Kind.DOH3, publicHost, settings.getRelayDoh3Port()));
+        dto.setDotEndpoint(UpstreamDnsEndpoint.formatListener(
+                UpstreamDnsEndpoint.Kind.DOT, publicHost, settings.getRelayDotPort()));
+        dto.setDoqEndpoint(UpstreamDnsEndpoint.formatListener(
+                UpstreamDnsEndpoint.Kind.DOQ, publicHost, settings.getRelayDoqPort()));
         return dto;
     }
 
@@ -874,31 +880,5 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
             return advertised.trim();
         }
         return "";
-    }
-
-    private static String dnsPlainEndpoint(String host, int port) {
-        if (host == null || host.isEmpty()) {
-            return "";
-        }
-        return dnsAuthority(host, port, 53);
-    }
-
-    private static String dnsUrlEndpoint(String scheme, String host, int port, int defaultPort, String path) {
-        if (host == null || host.isEmpty()) {
-            return "";
-        }
-        String authority = dnsAuthority(host, port, defaultPort);
-        if (path == null || path.isEmpty()) {
-            return scheme + "://" + authority;
-        }
-        return scheme + "://" + authority + path;
-    }
-
-    private static String dnsAuthority(String host, int port, int defaultPort) {
-        String bracketed = host.indexOf(':') >= 0 && !host.startsWith("[") ? "[" + host + "]" : host;
-        if (port == defaultPort) {
-            return bracketed;
-        }
-        return bracketed + ":" + port;
     }
 }

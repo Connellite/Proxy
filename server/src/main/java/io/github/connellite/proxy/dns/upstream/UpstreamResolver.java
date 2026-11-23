@@ -49,9 +49,10 @@ public final class UpstreamResolver {
         UpstreamDnsEndpoint target = endpoint == null ? UpstreamDnsEndpoint.DEFAULT : endpoint;
         Duration timeout = Duration.ofMillis(Math.max(1, timeoutMs));
         Resolver resolver = switch (target.kind()) {
-            case PLAIN -> {
+            case PLAIN, TCP -> {
                 SimpleResolver plain = new SimpleResolver(target.host());
                 plain.setPort(target.port());
+                plain.setTCP(target.kind() == UpstreamDnsEndpoint.Kind.TCP);
                 yield plain;
             }
             case DOH -> {
