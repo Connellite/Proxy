@@ -1,6 +1,7 @@
 package io.github.connellite.proxy.dns.relay;
 
 import io.github.connellite.proxy.model.RelayDnsAllow;
+import io.github.connellite.proxy.util.AllowNetworks;
 import io.github.connellite.proxy.model.RelayTcpAllow;
 import io.github.connellite.proxy.repository.RelayDnsAllowRepository;
 import io.github.connellite.proxy.repository.RelayTcpAllowRepository;
@@ -32,7 +33,7 @@ public class RelayAllowService {
 
     @Transactional
     public void saveDns(String raw) {
-        String cidr = RelayNetworks.canonical(raw);
+        String cidr = AllowNetworks.canonical(raw);
         if (dnsRepository.existsByCidr(cidr)) {
             throw new IllegalArgumentException("Network already listed: " + cidr);
         }
@@ -53,7 +54,7 @@ public class RelayAllowService {
 
     @Transactional
     public void saveTcp(String raw) {
-        String cidr = RelayNetworks.canonical(raw);
+        String cidr = AllowNetworks.canonical(raw);
         if (tcpRepository.existsByCidr(cidr)) {
             throw new IllegalArgumentException("Network already listed: " + cidr);
         }

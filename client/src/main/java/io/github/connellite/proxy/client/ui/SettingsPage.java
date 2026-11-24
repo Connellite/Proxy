@@ -7,18 +7,24 @@ import com.google.gwt.user.client.ui.Anchor;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.CheckBox;
 import com.google.gwt.user.client.ui.Composite;
+import com.google.gwt.user.client.ui.FlexTable;
 import com.google.gwt.user.client.ui.FlowPanel;
 import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.PasswordTextBox;
+import com.google.gwt.user.client.ui.TextBox;
 import io.github.connellite.proxy.client.messages.AppMessages;
 import io.github.connellite.proxy.client.messages.SettingsMessages;
 import io.github.connellite.proxy.client.rpc.dto.PasswordChangeGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.RelayAllowRowGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.SettingsGWTDTO;
 import io.github.connellite.proxy.client.util.BindHostList;
+import io.github.connellite.proxy.client.util.CellCopy;
 import io.github.connellite.proxy.client.util.Forms;
 import io.github.connellite.proxy.client.util.PlainIntegerBox;
 import io.github.connellite.proxy.client.util.Rpc;
+
+import java.util.List;
 
 public class SettingsPage extends Composite {
 
@@ -38,6 +44,8 @@ public class SettingsPage extends Composite {
     private final PlainIntegerBox socksPort = new PlainIntegerBox();
     private final PlainIntegerBox sshPort = new PlainIntegerBox();
     private final PlainIntegerBox outboundTtl = new PlainIntegerBox();
+    private final TextBox allowInput = new TextBox();
+    private final FlowPanel allowHost = new FlowPanel();
     private final Label adminPortHint = new Label();
     private final HTML status = new HTML();
 
@@ -126,6 +134,28 @@ public class SettingsPage extends Composite {
         sshPanel.add(sshHint);
         root.add(sshPanel);
 
+        FlowPanel allowPanel = new FlowPanel();
+        allowPanel.setStyleName("panel form");
+        Label allowTitle = new Label(text.allowedNetworks());
+        allowTitle.getElement().getStyle().setProperty("fontWeight", "600");
+        allowPanel.add(allowTitle);
+        Label allowHint = new Label(text.allowedNetworksHint());
+        allowHint.setStyleName("field-hint");
+        allowPanel.add(allowHint);
+        allowInput.setWidth("100%");
+        allowPanel.add(allowInput);
+        Button addNetwork = new Button(AppMessages.COMMON.add());
+        addNetwork.addClickHandler(new ClickHandler() {
+            @Override
+            public void onClick(ClickEvent event) {
+                saveAllow();
+            }
+        });
+        allowPanel.add(Forms.formActions(addNetwork));
+        allowHost.setVisible(false);
+        allowPanel.add(allowHost);
+        root.add(allowPanel);
+
         FlowPanel outboundPanel = new FlowPanel();
         outboundPanel.setStyleName("panel form");
         outboundPanel.add(new HTML(UiTemplates.HEADINGS.h2(text.outbound())));
@@ -165,6 +195,80 @@ public class SettingsPage extends Composite {
         load();
     }
 
+    private void renderAllows(List<RelayAllowRowGWTDTO> rows) {
+        allowHost.clear();
+        if (rows == null || rows.isEmpty()) {
+            allowHost.setStyleName("");
+            allowHost.setVisible(false);
+            return;
+        }
+        allowHost.setStyleName("table-wrap");
+        allowHost.setVisible(true);
+        FlexTable table = new FlexTable();
+        table.setStyleName("users-table");
+        table.setText(0, 0, text.network());
+        table.setText(0, 1, "");
+        styleHeader(table, 0);
+        styleHeader(table, 1);
+        int row = 1;
+        for (RelayAllowRowGWTDTO allow : rows) {
+            table.setText(row, 0, allow.getCidr() == null ? "" : allow.getCidr());
+            Button remove = new Button(AppMessages.COMMON.delete());
+            remove.addClickHandler(new ClickHandler() {
+                @Override
+                public void onClick(ClickEvent event) {
+                    deleteAllow(allow.getId());
+                }
+            });
+            table.setWidget(row, 1, remove);
+            row++;
+        }
+        CellCopy.install(table);
+        allowHost.add(table);
+    }
+
+    private void saveAllow() {
+        shell.getRpc().saveProxyAllow(allowInput.getText(), new AsyncCallback<Void>() {
+            @Override
+            public void onFailure(Throwable caught) {
+                Rpc.showFailure(caught);
+            }
+
+            @Override
+            public void onSuccess(Void result) {
+                allowInput.setText("");
+                shell.showFlash(text.networkSaved(), true);
+                load();
+            }
+        });
+    }
+
+    private void deleteAllow(Long id) {
+        if (id == null) {
+            return;
+        }
+        shell.getRpc().deleteProxyAllow(id, new AsyncCallback<Void>() {
+            @Override
+            public void onFailure(Throwable caught) {
+                Rpc.showFailure(caught);
+            }
+
+            @Override
+            public void onSuccess(Void result) {
+                shell.showFlash(text.networkDeleted(), true);
+                load();
+            }
+        });
+    }
+
+    private static void styleHeader(FlexTable table, int column) {
+        table.getCellFormatter().getElement(0, column).getStyle().setProperty("background", "#efe8dc");
+        table.getCellFormatter().getElement(0, column).getStyle().setProperty("fontSize", "0.75rem");
+        table.getCellFormatter().getElement(0, column).getStyle().setProperty("textTransform", "uppercase");
+        table.getCellFormatter().getElement(0, column).getStyle().setProperty("fontWeight", "700");
+        table.getCellFormatter().getElement(0, column).getStyle().setProperty("color", "#6b645a");
+    }
+
     private void load() {
         shell.getRpc().getSettings(new AsyncCallback<SettingsGWTDTO>() {
             @Override
@@ -187,6 +291,7 @@ public class SettingsPage extends Composite {
                 socksPort.setIntValue(dto.getSocksPort());
                 sshPort.setIntValue(dto.getSshPort());
                 outboundTtl.setIntValue(dto.getOutboundTtl());
+                renderAllows(dto.getProxyAllows());
                 adminPortHint.setText(text.adminPortHint());
                 status.setText(text.listenerStatus(
                         onOff(dto.isHttpRunning()),

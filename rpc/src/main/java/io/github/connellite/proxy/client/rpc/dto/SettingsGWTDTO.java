@@ -35,4 +35,6 @@ public class SettingsGWTDTO implements IsSerializable {
     private String lastError;
     /** Local bind choices: 0.0.0.0, 127.0.0.1, and current machine IPv4 addresses. */
     private List<String> bindHostOptions = new ArrayList<>();
+    /** Empty allows every address on HTTP, HTTPS, SOCKS, and SSH. */
+    private List<RelayAllowRowGWTDTO> proxyAllows = new ArrayList<>();
 }

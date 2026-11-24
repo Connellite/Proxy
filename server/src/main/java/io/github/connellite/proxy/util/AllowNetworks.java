@@ -1,4 +1,4 @@
-package io.github.connellite.proxy.dns.relay;
+package io.github.connellite.proxy.util;
 
 import inet.ipaddr.IPAddress;
 import inet.ipaddr.IPAddressString;
@@ -8,21 +8,21 @@ import java.util.ArrayList;
 import java.util.List;
 
 /** Parsed networks for one allowlist. Empty means every address is allowed. */
-public final class RelayNetworks {
+public final class AllowNetworks {
 
-    private static final RelayNetworks EVERYONE = new RelayNetworks(List.of());
+    private static final AllowNetworks EVERYONE = new AllowNetworks(List.of());
 
     private final List<IPAddress> networks;
 
-    private RelayNetworks(List<IPAddress> networks) {
+    private AllowNetworks(List<IPAddress> networks) {
         this.networks = networks;
     }
 
-    public static RelayNetworks everyone() {
+    public static AllowNetworks everyone() {
         return EVERYONE;
     }
 
-    public static RelayNetworks parseAll(List<String> cidrs) {
+    public static AllowNetworks parseAll(List<String> cidrs) {
         if (cidrs == null || cidrs.isEmpty()) {
             return EVERYONE;
         }
@@ -33,7 +33,7 @@ public final class RelayNetworks {
             }
             networks.add(network(cidr));
         }
-        return networks.isEmpty() ? EVERYONE : new RelayNetworks(List.copyOf(networks));
+        return networks.isEmpty() ? EVERYONE : new AllowNetworks(List.copyOf(networks));
     }
 
     /** Canonical CIDR. A single address becomes {@code /32} or {@code /128}. */

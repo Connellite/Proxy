@@ -52,6 +52,7 @@ import io.github.connellite.proxy.mapper.TlsStatusMapper;
 import io.github.connellite.proxy.mapper.UpstreamProxyFormMapper;
 import io.github.connellite.proxy.model.HttpStripHeader;
 import io.github.connellite.proxy.model.SftpAccess;
+import io.github.connellite.proxy.model.ProxyAllow;
 import io.github.connellite.proxy.model.ProxyUser;
 import io.github.connellite.proxy.model.RelayDnsAllow;
 import io.github.connellite.proxy.model.RelayRoute;
@@ -75,6 +76,7 @@ import io.github.connellite.proxy.dns.server.DotServer;
 import io.github.connellite.proxy.dns.server.QueryLog;
 import io.github.connellite.proxy.dns.tcp.TcpServer;
 import io.github.connellite.proxy.dns.tcp.TcpSessionLog;
+import io.github.connellite.proxy.service.ProxyAllowService;
 import io.github.connellite.proxy.service.ProxyMetrics;
 import io.github.connellite.proxy.service.ProxyUserService;
 import io.github.connellite.proxy.service.ServerDirectoryService;
@@ -132,6 +134,7 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
     private final ZoneId appZoneId;
     private final RelayRouteService relayRouteService;
     private final RelayAllowService relayAllowService;
+    private final ProxyAllowService proxyAllowService;
     private final QueryLog relayQueryLog;
     private final TcpSessionLog relayTcpSessionLog;
     private final UserConnectionLog userConnectionLog;
@@ -576,7 +579,11 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
 
     @Override
     public SettingsGWTDTO getSettings() {
-        return adminRpcManualMapper.toSettingsGWTDTO(settingsService.get());
+        SettingsGWTDTO dto = adminRpcManualMapper.toSettingsGWTDTO(settingsService.get());
+        for (ProxyAllow allow : proxyAllowService.allows()) {
+            dto.getProxyAllows().add(allowRow(allow.getId(), allow.getCidr()));
+        }
+        return dto;
     }
 
     @Override
@@ -764,6 +771,24 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
             relayAllowService.deleteTcp(id);
         } catch (RuntimeException ex) {
             throw toRpcException("Failed to delete TCP allowlist entry", ex);
+        }
+    }
+
+    @Override
+    public void saveProxyAllow(String cidr) throws AdminRpcException {
+        try {
+            proxyAllowService.save(cidr);
+        } catch (RuntimeException ex) {
+            throw toRpcException("Failed to save proxy allowlist entry", ex);
+        }
+    }
+
+    @Override
+    public void deleteProxyAllow(long id) throws AdminRpcException {
+        try {
+            proxyAllowService.delete(id);
+        } catch (RuntimeException ex) {
+            throw toRpcException("Failed to delete proxy allowlist entry", ex);
         }
     }
 

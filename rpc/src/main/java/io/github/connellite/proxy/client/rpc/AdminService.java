@@ -117,6 +117,10 @@ public interface AdminService extends RemoteService {
 
     void deleteRelayTcpAllow(long id) throws AdminRpcException;
 
+    void saveProxyAllow(String cidr) throws AdminRpcException;
+
+    void deleteProxyAllow(long id) throws AdminRpcException;
+
     List<RelayQueryRowGWTDTO> getRelayQueryLog();
 
     List<RelayTcpSessionRowGWTDTO> getRelayTcpSessionLog();

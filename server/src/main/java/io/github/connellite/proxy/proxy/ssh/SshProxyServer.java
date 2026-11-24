@@ -7,6 +7,7 @@ import io.github.connellite.proxy.proxy.QuietCloseHandlerAdapter;
 import io.github.connellite.proxy.proxy.ssh.sftp.SftpGrant;
 import io.github.connellite.proxy.proxy.ssh.sftp.SftpRootFileSystemFactory;
 import io.github.connellite.proxy.proxy.ssh.sftp.UserSftpSubsystemFactory;
+import io.github.connellite.proxy.service.ProxyAllowCatalog;
 import io.github.connellite.proxy.service.ProxyAuthService;
 import io.github.connellite.proxy.service.ProxyMetrics;
 import io.github.connellite.proxy.service.SftpAccessService;
@@ -38,6 +39,7 @@ import org.apache.sshd.server.session.SessionFactory;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.file.Files;
@@ -76,6 +78,7 @@ public final class SshProxyServer implements ProxyListener, AutoCloseable {
     private final ProxyProperties properties;
     private final SftpAccessService sftpAccessService;
     private final UserConnectionLog connectionLog;
+    private final ProxyAllowCatalog allowCatalog;
 
     private SshServer server;
 
@@ -184,6 +187,16 @@ public final class SshProxyServer implements ProxyListener, AutoCloseable {
     }
 
     private final class ProxySshSessionListener implements SessionListener {
+        @Override
+        public void sessionCreated(Session session) {
+            InetSocketAddress remote = remote(session);
+            InetAddress address = remote == null ? null : remote.getAddress();
+            if (allowCatalog.allows(address)) {
+                return;
+            }
+            session.close(true);
+        }
+
         @Override
         public void sessionEvent(Session session, Event event) {
             if (event != Event.Authenticated || !(session instanceof ServerSession serverSession)) {

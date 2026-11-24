@@ -3,6 +3,7 @@ package io.github.connellite.proxy.proxy.http;
 import io.github.connellite.proxy.config.ProxyProperties;
 import io.github.connellite.proxy.proxy.outbound.OutboundConnector;
 import io.github.connellite.proxy.service.HttpStripHeaderService;
+import io.github.connellite.proxy.service.ProxyAllowCatalog;
 import io.github.connellite.proxy.service.ProxyAuthService;
 import io.github.connellite.proxy.service.ProxyMetrics;
 import io.github.connellite.proxy.service.UserConnectionLog;
@@ -18,8 +19,9 @@ public class HttpsProxyServerInstance extends HttpProxyServerInstance {
                                     ProxyProperties properties,
                                     OutboundConnector outboundConnector,
                                     HttpStripHeaderService stripHeaderService,
-                                    UserConnectionLog connectionLog) {
-        super(authService, metrics, properties, outboundConnector, stripHeaderService, connectionLog);
+                                    UserConnectionLog connectionLog,
+                                    ProxyAllowCatalog allowCatalog) {
+        super(authService, metrics, properties, outboundConnector, stripHeaderService, connectionLog, allowCatalog);
     }
 
     @Override

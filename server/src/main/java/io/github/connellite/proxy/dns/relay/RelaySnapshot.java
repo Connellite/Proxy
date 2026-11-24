@@ -1,6 +1,7 @@
 package io.github.connellite.proxy.dns.relay;
 
 import io.github.connellite.proxy.dns.upstream.UpstreamDnsEndpoint;
+import io.github.connellite.proxy.util.AllowNetworks;
 import io.github.connellite.proxy.model.RelayRouteMode;
 import lombok.Getter;
 
@@ -32,8 +33,8 @@ public record RelaySnapshot(List<Route> routes,
                             boolean doh3Enabled,
                             String doh3BindHost,
                             int doh3Port,
-                            RelayNetworks dnsAllow,
-                            RelayNetworks tcpAllow,
+                            AllowNetworks dnsAllow,
+                            AllowNetworks tcpAllow,
                             boolean tcpUseUpstream) {
 
     public static final int ANSWER_TTL_SECONDS = 30;
@@ -46,7 +47,7 @@ public record RelaySnapshot(List<Route> routes,
                          boolean doqEnabled, String doqBindHost, int doqPort,
                          boolean dotEnabled, String dotBindHost, int dotPort,
                          boolean doh3Enabled, String doh3BindHost, int doh3Port,
-                         RelayNetworks dnsAllow, RelayNetworks tcpAllow, boolean tcpUseUpstream) {
+                         AllowNetworks dnsAllow, AllowNetworks tcpAllow, boolean tcpUseUpstream) {
         this.routes = List.copyOf(routes);
         this.advertisedAddress = advertisedAddress;
         this.upstreamResolver = upstreamResolver == null ? UpstreamDnsEndpoint.DEFAULT : upstreamResolver;
@@ -68,8 +69,8 @@ public record RelaySnapshot(List<Route> routes,
         this.doh3Enabled = doh3Enabled;
         this.doh3BindHost = doh3BindHost;
         this.doh3Port = doh3Port;
-        this.dnsAllow = dnsAllow == null ? RelayNetworks.everyone() : dnsAllow;
-        this.tcpAllow = tcpAllow == null ? RelayNetworks.everyone() : tcpAllow;
+        this.dnsAllow = dnsAllow == null ? AllowNetworks.everyone() : dnsAllow;
+        this.tcpAllow = tcpAllow == null ? AllowNetworks.everyone() : tcpAllow;
         this.tcpUseUpstream = tcpUseUpstream;
     }
 
@@ -77,7 +78,7 @@ public record RelaySnapshot(List<Route> routes,
         return new RelaySnapshot(List.of(), null, UpstreamDnsEndpoint.DEFAULT,
                 false, "0.0.0.0", 53, false, "0.0.0.0", 443,
                 false, "0.0.0.0", 8443, false, "0.0.0.0", 853, false, "0.0.0.0", 853, false, "0.0.0.0", 443,
-                RelayNetworks.everyone(), RelayNetworks.everyone(), false);
+                AllowNetworks.everyone(), AllowNetworks.everyone(), false);
     }
 
     /**

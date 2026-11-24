@@ -1,11 +1,13 @@
 package io.github.connellite.proxy.proxy.http;
 
 import io.github.connellite.proxy.config.ProxyProperties;
+import io.github.connellite.proxy.proxy.AllowListHandler;
 import io.github.connellite.proxy.proxy.IdleCloseHandler;
 import io.github.connellite.proxy.proxy.ProxyListener;
 import io.github.connellite.proxy.proxy.QuietCloseHandlerAdapter;
 import io.github.connellite.proxy.proxy.outbound.OutboundConnector;
 import io.github.connellite.proxy.service.HttpStripHeaderService;
+import io.github.connellite.proxy.service.ProxyAllowCatalog;
 import io.github.connellite.proxy.service.ProxyAuthService;
 import io.github.connellite.proxy.service.ProxyMetrics;
 import io.github.connellite.proxy.service.UserConnectionLog;
@@ -35,6 +37,7 @@ public class HttpProxyServerInstance implements ProxyListener, AutoCloseable {
     protected final OutboundConnector outboundConnector;
     protected final HttpStripHeaderService stripHeaderService;
     protected final UserConnectionLog connectionLog;
+    private final ProxyAllowCatalog allowCatalog;
 
     private EventLoopGroup bossGroup;
     private EventLoopGroup workerGroup;
@@ -45,13 +48,15 @@ public class HttpProxyServerInstance implements ProxyListener, AutoCloseable {
                             ProxyProperties properties,
                             OutboundConnector outboundConnector,
                             HttpStripHeaderService stripHeaderService,
-                            UserConnectionLog connectionLog) {
+                            UserConnectionLog connectionLog,
+                            ProxyAllowCatalog allowCatalog) {
         this.authService = authService;
         this.metrics = metrics;
         this.properties = properties;
         this.outboundConnector = outboundConnector;
         this.stripHeaderService = stripHeaderService;
         this.connectionLog = connectionLog;
+        this.allowCatalog = allowCatalog;
     }
 
     protected String scheme() {
@@ -75,6 +80,7 @@ public class HttpProxyServerInstance implements ProxyListener, AutoCloseable {
                 .childHandler(new ChannelInitializer<SocketChannel>() {
                     @Override
                     protected void initChannel(SocketChannel ch) {
+                        ch.pipeline().addLast(new AllowListHandler(allowCatalog));
                         configureTransport(ch);
                         ch.pipeline().addLast(new IdleStateHandler(0, 0, properties.getIdleTimeoutSeconds(), TimeUnit.SECONDS));
                         ch.pipeline().addLast(new IdleCloseHandler());

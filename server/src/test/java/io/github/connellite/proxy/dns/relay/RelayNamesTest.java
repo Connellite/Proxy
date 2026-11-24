@@ -1,6 +1,7 @@
 package io.github.connellite.proxy.dns.relay;
 
 import io.github.connellite.proxy.dns.upstream.UpstreamDnsEndpoint;
+import io.github.connellite.proxy.util.AllowNetworks;
 import io.github.connellite.proxy.model.RelayRouteMode;
 import org.junit.jupiter.api.Test;
 
@@ -41,7 +42,7 @@ class RelayNamesTest {
         RelaySnapshot snapshot = new RelaySnapshot(List.of(mask, exact), relay, UpstreamDnsEndpoint.DEFAULT,
                 true, "0.0.0.0", 53, true, "0.0.0.0", 443,
                 false, "0.0.0.0", 8443, false, "0.0.0.0", 853, false, "0.0.0.0", 853, false, "0.0.0.0", 443,
-                RelayNetworks.everyone(), RelayNetworks.everyone(), false);
+                AllowNetworks.everyone(), AllowNetworks.everyone(), false);
         assertThat(snapshot.match("ip.example.ru.").getMode()).isEqualTo(RelayRouteMode.RELAY);
         assertThat(snapshot.match("other.example.ru").getMode()).isEqualTo(RelayRouteMode.ADDRESS);
     }

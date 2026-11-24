@@ -112,6 +112,10 @@ public interface AdminServiceAsync {
 
     void deleteRelayTcpAllow(long id, AsyncCallback<Void> callback);
 
+    void saveProxyAllow(String cidr, AsyncCallback<Void> callback);
+
+    void deleteProxyAllow(long id, AsyncCallback<Void> callback);
+
     void getRelayQueryLog(AsyncCallback<List<RelayQueryRowGWTDTO>> callback);
 
     void getRelayTcpSessionLog(AsyncCallback<List<RelayTcpSessionRowGWTDTO>> callback);

@@ -1,10 +1,12 @@
 package io.github.connellite.proxy.proxy.socks;
 
 import io.github.connellite.proxy.config.ProxyProperties;
+import io.github.connellite.proxy.proxy.AllowListHandler;
 import io.github.connellite.proxy.proxy.IdleCloseHandler;
 import io.github.connellite.proxy.proxy.ProxyListener;
 import io.github.connellite.proxy.proxy.QuietCloseHandlerAdapter;
 import io.github.connellite.proxy.proxy.outbound.OutboundConnector;
+import io.github.connellite.proxy.service.ProxyAllowCatalog;
 import io.github.connellite.proxy.service.ProxyAuthService;
 import io.github.connellite.proxy.service.ProxyMetrics;
 import io.github.connellite.proxy.service.SettingsService;
@@ -38,6 +40,7 @@ public final class SocksProxyServer implements ProxyListener, AutoCloseable {
     private final SettingsService settingsService;
     private final OutboundConnector outboundConnector;
     private final UserConnectionLog connectionLog;
+    private final ProxyAllowCatalog allowCatalog;
 
     private EventLoopGroup bossGroup;
     private EventLoopGroup workerGroup;
@@ -55,6 +58,7 @@ public final class SocksProxyServer implements ProxyListener, AutoCloseable {
                 .childHandler(new ChannelInitializer<SocketChannel>() {
                     @Override
                     protected void initChannel(SocketChannel ch) {
+                        ch.pipeline().addLast(new AllowListHandler(allowCatalog));
                         ch.pipeline().addLast(new IdleStateHandler(0, 0, properties.getIdleTimeoutSeconds(), TimeUnit.SECONDS));
                         ch.pipeline().addLast(new IdleCloseHandler());
                         ch.pipeline().addLast(new SocksPortUnificationServerHandler());

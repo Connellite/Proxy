@@ -70,6 +70,21 @@ public interface SettingsMessages extends Messages {
     @Key("sshHint")
     String sshHint();
 
+    @Key("allowedNetworks")
+    String allowedNetworks();
+
+    @Key("allowedNetworksHint")
+    String allowedNetworksHint();
+
+    @Key("network")
+    String network();
+
+    @Key("networkSaved")
+    String networkSaved();
+
+    @Key("networkDeleted")
+    String networkDeleted();
+
     @Key("outbound")
     String outbound();
 

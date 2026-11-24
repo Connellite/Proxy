@@ -11,6 +11,7 @@ import io.github.connellite.proxy.proxy.ssh.SshProxyServer;
 import io.github.connellite.proxy.dns.server.DnsRuntime;
 import io.github.connellite.proxy.dns.tcp.TcpRuntime;
 import io.github.connellite.proxy.service.HttpStripHeaderService;
+import io.github.connellite.proxy.service.ProxyAllowCatalog;
 import io.github.connellite.proxy.service.ProxyAuthService;
 import io.github.connellite.proxy.service.ProxyMetrics;
 import io.github.connellite.proxy.service.SettingsService;
@@ -41,6 +42,7 @@ public class ProxyServerManager implements ApplicationRunner {
     private final SocksProxyServer socksProxyServer;
     private final SshProxyServer sshProxyServer;
     private final DnsRuntime dnsRuntime;
+    private final ProxyAllowCatalog allowCatalog;
     private final TcpRuntime tcpRuntime;
     private final HttpProxyServerInstance httpServer;
     private final HttpsProxyServerInstance httpsServer;
@@ -59,7 +61,8 @@ public class ProxyServerManager implements ApplicationRunner {
                               TcpRuntime tcpRuntime,
                               OutboundConnector outboundConnector,
                               HttpStripHeaderService stripHeaderService,
-                              UserConnectionLog connectionLog) {
+                              UserConnectionLog connectionLog,
+                              ProxyAllowCatalog allowCatalog) {
         this.settingsService = settingsService;
         this.metrics = metrics;
         this.tlsService = tlsService;
@@ -67,14 +70,16 @@ public class ProxyServerManager implements ApplicationRunner {
         this.sshProxyServer = sshProxyServer;
         this.dnsRuntime = dnsRuntime;
         this.tcpRuntime = tcpRuntime;
+        this.allowCatalog = allowCatalog;
         this.httpServer = new HttpProxyServerInstance(
-                authService, metrics, properties, outboundConnector, stripHeaderService, connectionLog);
+                authService, metrics, properties, outboundConnector, stripHeaderService, connectionLog, allowCatalog);
         this.httpsServer = new HttpsProxyServerInstance(
-                authService, metrics, properties, outboundConnector, stripHeaderService, connectionLog);
+                authService, metrics, properties, outboundConnector, stripHeaderService, connectionLog, allowCatalog);
     }
 
     @Override
     public void run(ApplicationArguments args) {
+        allowCatalog.reload();
         restart();
     }
 

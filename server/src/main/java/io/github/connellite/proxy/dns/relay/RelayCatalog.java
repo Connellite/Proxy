@@ -11,6 +11,7 @@ import io.github.connellite.proxy.repository.RelayDnsAllowRepository;
 import io.github.connellite.proxy.repository.RelayRouteRepository;
 import io.github.connellite.proxy.repository.RelayTcpAllowRepository;
 import io.github.connellite.proxy.service.SettingsService;
+import io.github.connellite.proxy.util.AllowNetworks;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -80,27 +81,27 @@ public class RelayCatalog {
                 dnsNetworks(dnsRows), tcpNetworks(tcpRows), settings.isRelayTcpUseUpstream());
     }
 
-    private static RelayNetworks dnsNetworks(List<RelayDnsAllow> rows) {
+    private static AllowNetworks dnsNetworks(List<RelayDnsAllow> rows) {
         return networks(rows == null ? List.of() : rows.stream().map(RelayDnsAllow::getCidr).toList());
     }
 
-    private static RelayNetworks tcpNetworks(List<RelayTcpAllow> rows) {
+    private static AllowNetworks tcpNetworks(List<RelayTcpAllow> rows) {
         return networks(rows == null ? List.of() : rows.stream().map(RelayTcpAllow::getCidr).toList());
     }
 
-    private static RelayNetworks networks(List<String> cidrs) {
+    private static AllowNetworks networks(List<String> cidrs) {
         List<String> valid = new ArrayList<>();
         for (String cidr : cidrs) {
             if (cidr == null || cidr.isBlank()) {
                 continue;
             }
             try {
-                valid.add(RelayNetworks.canonical(cidr));
+                valid.add(AllowNetworks.canonical(cidr));
             } catch (IllegalArgumentException ex) {
                 log.warn("Skipping invalid allowlist entry '{}': {}", cidr, ex.getMessage());
             }
         }
-        return RelayNetworks.parseAll(valid);
+        return AllowNetworks.parseAll(valid);
     }
 
     private static UpstreamDnsEndpoint resolver(String raw) {

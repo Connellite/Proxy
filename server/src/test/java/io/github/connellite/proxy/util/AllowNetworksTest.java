@@ -1,4 +1,4 @@
-package io.github.connellite.proxy.dns.relay;
+package io.github.connellite.proxy.util;
 
 import org.junit.jupiter.api.Test;
 
@@ -8,24 +8,24 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-class RelayNetworksTest {
+class AllowNetworksTest {
 
     @Test
     void emptyListAllowsEveryone() throws Exception {
-        RelayNetworks networks = RelayNetworks.everyone();
+        AllowNetworks networks = AllowNetworks.everyone();
         assertThat(networks.allows(InetAddress.getByName("203.0.113.8"))).isTrue();
         assertThat(networks.allows(null)).isTrue();
     }
 
     @Test
     void canonicalizesAndMatchesWithoutRewritingFamilies() throws Exception {
-        assertThat(RelayNetworks.canonical("203.0.113.10")).isEqualTo("203.0.113.10/32");
-        assertThat(RelayNetworks.canonical("2001:db8::1")).isEqualTo("2001:db8::1/128");
-        assertThat(RelayNetworks.canonical("203.0.113.10/24")).isEqualTo("203.0.113.0/24");
-        assertThatThrownBy(() -> RelayNetworks.canonical("example.com"))
+        assertThat(AllowNetworks.canonical("203.0.113.10")).isEqualTo("203.0.113.10/32");
+        assertThat(AllowNetworks.canonical("2001:db8::1")).isEqualTo("2001:db8::1/128");
+        assertThat(AllowNetworks.canonical("203.0.113.10/24")).isEqualTo("203.0.113.0/24");
+        assertThatThrownBy(() -> AllowNetworks.canonical("example.com"))
                 .isInstanceOf(IllegalArgumentException.class);
 
-        RelayNetworks networks = RelayNetworks.parseAll(List.of("203.0.113.0/24"));
+        AllowNetworks networks = AllowNetworks.parseAll(List.of("203.0.113.0/24"));
         assertThat(networks.allows(InetAddress.getByName("203.0.113.8"))).isTrue();
         assertThat(networks.allows(InetAddress.getByName("198.51.100.1"))).isFalse();
         assertThat(networks.allows(InetAddress.getByName("2001:db8::1"))).isFalse();
