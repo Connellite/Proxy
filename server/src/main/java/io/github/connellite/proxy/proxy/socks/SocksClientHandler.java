@@ -5,6 +5,7 @@ import io.github.connellite.proxy.proxy.outbound.OutboundConnector;
 import io.github.connellite.proxy.service.ProxyAuthService;
 import io.github.connellite.proxy.service.ProxyMetrics;
 import io.github.connellite.proxy.service.SettingsService;
+import io.github.connellite.proxy.service.UserConnectionLog;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.util.ReferenceCountUtil;
@@ -18,24 +19,27 @@ final class SocksClientHandler extends SimpleChannelInboundHandler<SocksMessage>
     private final ProxyMetrics metrics;
     private final SettingsService settingsService;
     private final OutboundConnector outboundConnector;
+    private final UserConnectionLog connectionLog;
 
     SocksClientHandler(ProxyAuthService authService,
                        ProxyMetrics metrics,
                        SettingsService settingsService,
-                       OutboundConnector outboundConnector) {
+                       OutboundConnector outboundConnector,
+                       UserConnectionLog connectionLog) {
         this.authService = authService;
         this.metrics = metrics;
         this.settingsService = settingsService;
         this.outboundConnector = outboundConnector;
+        this.connectionLog = connectionLog;
     }
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, SocksMessage msg) {
         AbstractSocksClientHandler next;
         if (msg instanceof Socks4CommandRequest) {
-            next = new Socks4ClientHandler(authService, metrics, settingsService, outboundConnector);
+            next = new Socks4ClientHandler(authService, metrics, settingsService, outboundConnector, connectionLog);
         } else if (msg instanceof Socks5InitialRequest) {
-            next = new Socks5ClientHandler(authService, metrics, settingsService, outboundConnector);
+            next = new Socks5ClientHandler(authService, metrics, settingsService, outboundConnector, connectionLog);
         } else {
             ctx.close();
             return;

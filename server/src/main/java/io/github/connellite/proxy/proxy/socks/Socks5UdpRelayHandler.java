@@ -3,6 +3,7 @@ package io.github.connellite.proxy.proxy.socks;
 import io.github.connellite.proxy.dto.AuthenticatedSession;
 import io.github.connellite.proxy.proxy.RelayHandler;
 import io.github.connellite.proxy.service.ProxyMetrics;
+import io.github.connellite.proxy.service.UserConnectionLog;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
@@ -22,16 +23,33 @@ final class Socks5UdpRelayHandler extends SimpleChannelInboundHandler<DatagramPa
 
     private final Channel tcpControl;
     private final ProxyMetrics metrics;
+    private final UserConnectionLog connectionLog;
     private final AuthenticatedSession session;
     private final String userId;
 
     private volatile InetSocketAddress clientEndpoint;
+    private UserConnectionLog.Tracker tracker;
 
-    Socks5UdpRelayHandler(Channel tcpControl, AuthenticatedSession session, ProxyMetrics metrics) {
+    Socks5UdpRelayHandler(Channel tcpControl, AuthenticatedSession session, ProxyMetrics metrics,
+                          UserConnectionLog connectionLog) {
         this.tcpControl = Objects.requireNonNull(tcpControl, "tcpControl");
         this.metrics = Objects.requireNonNull(metrics, "metrics");
+        this.connectionLog = Objects.requireNonNull(connectionLog, "connectionLog");
         this.session = session;
         this.userId = session == null ? null : session.userId();
+    }
+
+    String getProtocol() {
+        return "SOCKS5-UDP";
+    }
+
+    void opened() {
+        if (tracker != null) {
+            return;
+        }
+        InetSocketAddress client = tcpControl.remoteAddress() instanceof InetSocketAddress remote ? remote : null;
+        tracker = connectionLog.open(client, userId, getProtocol());
+        tcpControl.closeFuture().addListener(future -> tracker.finish("Connected"));
     }
 
     @Override
@@ -61,6 +79,9 @@ final class Socks5UdpRelayHandler extends SimpleChannelInboundHandler<DatagramPa
             int payloadBytes = decoded.data().readableBytes();
             if (payloadBytes > 0) {
                 metrics.recordTraffic(userId, payloadBytes, 0);
+                if (tracker != null) {
+                    tracker.addUp(payloadBytes);
+                }
             }
             if (!metrics.allowMoreTraffic(session)) {
                 ctx.close();
@@ -85,6 +106,9 @@ final class Socks5UdpRelayHandler extends SimpleChannelInboundHandler<DatagramPa
             int payloadBytes = payload.readableBytes();
             if (payloadBytes > 0) {
                 metrics.recordTraffic(userId, 0, payloadBytes);
+                if (tracker != null) {
+                    tracker.addDown(payloadBytes);
+                }
             }
             if (!metrics.allowMoreTraffic(session)) {
                 ctx.close();

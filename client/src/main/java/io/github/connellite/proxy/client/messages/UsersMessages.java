@@ -46,6 +46,36 @@ public interface UsersMessages extends Messages {
     @Key("noAccounts")
     String noAccounts();
 
+    @Key("recentConnections")
+    String recentConnections();
+
+    @Key("colTime")
+    String colTime();
+
+    @Key("colUser")
+    String colUser();
+
+    @Key("colProto")
+    String colProto();
+
+    @Key("colClient")
+    String colClient();
+
+    @Key("colUp")
+    String colUp();
+
+    @Key("colDown")
+    String colDown();
+
+    @Key("colResult")
+    String colResult();
+
+    @Key("colElapsed")
+    String colElapsed();
+
+    @Key("noConnections")
+    String noConnections();
+
     @Key("roleAdmin")
     String roleAdmin();
 

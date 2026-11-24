@@ -16,6 +16,7 @@ import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.Label;
 import io.github.connellite.proxy.client.messages.AppMessages;
 import io.github.connellite.proxy.client.messages.UsersMessages;
+import io.github.connellite.proxy.client.rpc.dto.UserConnectionRowGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.UserRowGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.UsersPageGWTDTO;
 import io.github.connellite.proxy.client.util.AutoRefresh;
@@ -23,10 +24,13 @@ import io.github.connellite.proxy.client.util.CellCopy;
 import io.github.connellite.proxy.client.util.Formatters;
 import io.github.connellite.proxy.client.util.Rpc;
 
+import java.util.List;
+
 public class UsersPage extends Composite {
 
     private final AppShell shell;
     private final FlowPanel tableHost = new FlowPanel();
+    private final FlowPanel connectionTable = new FlowPanel();
     private static final Templates TEMPLATES = GWT.create(Templates.class);
 
     interface Templates extends SafeHtmlTemplates {
@@ -96,11 +100,30 @@ public class UsersPage extends Composite {
 
         tableHost.setStyleName("table-wrap");
 
+        FlowPanel logPanel = new FlowPanel();
+        logPanel.setStyleName("panel form");
+        FlowPanel logHeader = new FlowPanel();
+        logHeader.setStyleName("row-between");
+        logHeader.add(new HTML(UiTemplates.HEADINGS.h2(text.recentConnections())));
+        AutoRefresh logRefresh = new AutoRefresh(new AutoRefresh.Callback() {
+            @Override
+            public void onRefresh() {
+                loadConnections();
+            }
+        });
+        shell.attachRefresh(logRefresh);
+        logHeader.add(logRefresh);
+        logPanel.add(logHeader);
+        connectionTable.setStyleName("table-wrap");
+        logPanel.add(connectionTable);
+
         root.add(header);
         // root.add(hint);
         root.add(tableHost);
+        root.add(logPanel);
         initWidget(root);
         load();
+        loadConnections();
     }
 
     private void load() {
@@ -181,6 +204,64 @@ public class UsersPage extends Composite {
 
         CellCopy.install(table);
         tableHost.add(table);
+    }
+
+    private void loadConnections() {
+        shell.getRpc().getUserConnectionLog(new AsyncCallback<List<UserConnectionRowGWTDTO>>() {
+            @Override
+            public void onFailure(Throwable caught) {
+                Rpc.showFailure(caught);
+            }
+
+            @Override
+            public void onSuccess(List<UserConnectionRowGWTDTO> result) {
+                renderConnections(result);
+            }
+        });
+    }
+
+    private void renderConnections(List<UserConnectionRowGWTDTO> rows) {
+        connectionTable.clear();
+        FlexTable table = new FlexTable();
+        table.setStyleName("users-table query-log");
+        UsersMessages text = AppMessages.USERS;
+        String[] headers = {
+                text.colTime(), text.colUser(), text.colProto(), text.colClient(),
+                text.colUp(), text.colDown(), text.colResult(), text.colElapsed()
+        };
+        for (int i = 0; i < headers.length; i++) {
+            table.setText(0, i, headers[i]);
+            styleHeader(table, i);
+        }
+        if (rows == null || rows.isEmpty()) {
+            table.setText(1, 0, text.noConnections());
+            table.getFlexCellFormatter().setColSpan(1, 0, headers.length);
+            table.getCellFormatter().setStyleName(1, 0, "empty");
+            connectionTable.add(table);
+            return;
+        }
+        int row = 1;
+        for (UserConnectionRowGWTDTO session : rows) {
+            table.setText(row, 0, nullToEmpty(session.getTime()));
+            table.setText(row, 1, nullToEmpty(session.getUser()));
+            table.setText(row, 2, nullToEmpty(session.getProtocol()));
+            table.setText(row, 3, nullToEmpty(session.getClient()));
+            table.setText(row, 4, Formatters.formatBytes(session.getBytesUp()));
+            table.setText(row, 5, Formatters.formatBytes(session.getBytesDown()));
+            table.setText(row, 6, nullToEmpty(session.getOutcome()));
+            table.setText(row, 7, nullToEmpty(session.getElapsed()));
+            row++;
+        }
+        CellCopy.install(table);
+        connectionTable.add(table);
+    }
+
+    private static void styleHeader(FlexTable table, int column) {
+        table.getCellFormatter().getElement(0, column).getStyle().setProperty("background", "#efe8dc");
+        table.getCellFormatter().getElement(0, column).getStyle().setProperty("fontSize", "0.75rem");
+        table.getCellFormatter().getElement(0, column).getStyle().setProperty("textTransform", "uppercase");
+        table.getCellFormatter().getElement(0, column).getStyle().setProperty("fontWeight", "700");
+        table.getCellFormatter().getElement(0, column).getStyle().setProperty("color", "#6b645a");
     }
 
     private static SafeHtml rolesBadge(UserRowGWTDTO user) {

@@ -8,6 +8,7 @@ import io.github.connellite.proxy.proxy.outbound.OutboundConnector;
 import io.github.connellite.proxy.service.ProxyAuthService;
 import io.github.connellite.proxy.service.ProxyMetrics;
 import io.github.connellite.proxy.service.SettingsService;
+import io.github.connellite.proxy.service.UserConnectionLog;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
@@ -36,6 +37,7 @@ public final class SocksProxyServer implements ProxyListener, AutoCloseable {
     private final ProxyProperties properties;
     private final SettingsService settingsService;
     private final OutboundConnector outboundConnector;
+    private final UserConnectionLog connectionLog;
 
     private EventLoopGroup bossGroup;
     private EventLoopGroup workerGroup;
@@ -57,7 +59,7 @@ public final class SocksProxyServer implements ProxyListener, AutoCloseable {
                         ch.pipeline().addLast(new IdleCloseHandler());
                         ch.pipeline().addLast(new SocksPortUnificationServerHandler());
                         ch.pipeline().addLast(new SocksClientHandler(
-                                authService, metrics, settingsService, outboundConnector));
+                                authService, metrics, settingsService, outboundConnector, connectionLog));
                         QuietCloseHandlerAdapter.installLast(ch.pipeline());
                     }
                 });

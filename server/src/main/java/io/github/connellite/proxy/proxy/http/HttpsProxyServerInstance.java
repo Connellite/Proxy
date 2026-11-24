@@ -5,6 +5,7 @@ import io.github.connellite.proxy.proxy.outbound.OutboundConnector;
 import io.github.connellite.proxy.service.HttpStripHeaderService;
 import io.github.connellite.proxy.service.ProxyAuthService;
 import io.github.connellite.proxy.service.ProxyMetrics;
+import io.github.connellite.proxy.service.UserConnectionLog;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.ssl.SslContext;
 
@@ -16,8 +17,9 @@ public class HttpsProxyServerInstance extends HttpProxyServerInstance {
                                     ProxyMetrics metrics,
                                     ProxyProperties properties,
                                     OutboundConnector outboundConnector,
-                                    HttpStripHeaderService stripHeaderService) {
-        super(authService, metrics, properties, outboundConnector, stripHeaderService);
+                                    HttpStripHeaderService stripHeaderService,
+                                    UserConnectionLog connectionLog) {
+        super(authService, metrics, properties, outboundConnector, stripHeaderService, connectionLog);
     }
 
     @Override
@@ -27,7 +29,7 @@ public class HttpsProxyServerInstance extends HttpProxyServerInstance {
 
     @Override
     protected HttpProxyClientHandler newClientHandler() {
-        return new HttpsProxyClientHandler(authService, metrics, outboundConnector, stripHeaderService);
+        return new HttpsProxyClientHandler(authService, metrics, outboundConnector, stripHeaderService, connectionLog);
     }
 
     public synchronized void start(String bindHost, int port, SslContext sslContext) throws InterruptedException {

@@ -11,6 +11,7 @@ import io.github.connellite.proxy.client.rpc.dto.RelayPageGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.RelayQueryRowGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.RelayRouteRowGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.RelayTcpSessionRowGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.UserConnectionRowGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.SettingsGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.SftpPageGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.SshAccessGWTDTO;
@@ -114,4 +115,6 @@ public interface AdminServiceAsync {
     void getRelayQueryLog(AsyncCallback<List<RelayQueryRowGWTDTO>> callback);
 
     void getRelayTcpSessionLog(AsyncCallback<List<RelayTcpSessionRowGWTDTO>> callback);
+
+    void getUserConnectionLog(AsyncCallback<List<UserConnectionRowGWTDTO>> callback);
 }

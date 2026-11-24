@@ -8,6 +8,7 @@ import io.github.connellite.proxy.proxy.outbound.OutboundConnector;
 import io.github.connellite.proxy.service.HttpStripHeaderService;
 import io.github.connellite.proxy.service.ProxyAuthService;
 import io.github.connellite.proxy.service.ProxyMetrics;
+import io.github.connellite.proxy.service.UserConnectionLog;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
@@ -33,6 +34,7 @@ public class HttpProxyServerInstance implements ProxyListener, AutoCloseable {
     private final ProxyProperties properties;
     protected final OutboundConnector outboundConnector;
     protected final HttpStripHeaderService stripHeaderService;
+    protected final UserConnectionLog connectionLog;
 
     private EventLoopGroup bossGroup;
     private EventLoopGroup workerGroup;
@@ -42,12 +44,14 @@ public class HttpProxyServerInstance implements ProxyListener, AutoCloseable {
                             ProxyMetrics metrics,
                             ProxyProperties properties,
                             OutboundConnector outboundConnector,
-                            HttpStripHeaderService stripHeaderService) {
+                            HttpStripHeaderService stripHeaderService,
+                            UserConnectionLog connectionLog) {
         this.authService = authService;
         this.metrics = metrics;
         this.properties = properties;
         this.outboundConnector = outboundConnector;
         this.stripHeaderService = stripHeaderService;
+        this.connectionLog = connectionLog;
     }
 
     protected String scheme() {
@@ -55,7 +59,7 @@ public class HttpProxyServerInstance implements ProxyListener, AutoCloseable {
     }
 
     protected HttpProxyClientHandler newClientHandler() {
-        return new HttpProxyClientHandler(authService, metrics, outboundConnector, stripHeaderService);
+        return new HttpProxyClientHandler(authService, metrics, outboundConnector, stripHeaderService, connectionLog);
     }
 
     public synchronized void start(String bindHost, int port) throws InterruptedException {

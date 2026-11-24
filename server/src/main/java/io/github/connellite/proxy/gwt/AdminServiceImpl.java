@@ -36,6 +36,7 @@ import io.github.connellite.proxy.client.rpc.dto.UpstreamProxiesPageGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.UpstreamProxyFormGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.UpstreamProxyRowGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.UpstreamProxyTypeGWT;
+import io.github.connellite.proxy.client.rpc.dto.UserConnectionRowGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.UserFormGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.UserRowGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.UsersPageGWTDTO;
@@ -82,6 +83,7 @@ import io.github.connellite.proxy.service.SshUserKeyService;
 import io.github.connellite.proxy.service.SettingsService;
 import io.github.connellite.proxy.service.TrafficStatsService;
 import io.github.connellite.proxy.service.UpstreamProxyService;
+import io.github.connellite.proxy.service.UserConnectionLog;
 import io.github.connellite.proxy.util.LocalBindAddresses;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -132,6 +134,7 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
     private final RelayAllowService relayAllowService;
     private final QueryLog relayQueryLog;
     private final TcpSessionLog relayTcpSessionLog;
+    private final UserConnectionLog userConnectionLog;
     private final DnsServer relayDnsServer;
     private final TcpServer relayTcpServer;
     private final DohServer relayDohServer;
@@ -806,6 +809,24 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
             row.setTime(QUERY_TIME_FMT.format(entry.at().atZone(appZoneId)));
             row.setClient(entry.client());
             row.setHostname(entry.hostname());
+            row.setOutcome(entry.outcome());
+            row.setElapsed(entry.millis() + " ms");
+            rows.add(row);
+        }
+        return rows;
+    }
+
+    @Override
+    public List<UserConnectionRowGWTDTO> getUserConnectionLog() {
+        List<UserConnectionRowGWTDTO> rows = new ArrayList<>();
+        for (UserConnectionLog.Entry entry : userConnectionLog.recent()) {
+            UserConnectionRowGWTDTO row = new UserConnectionRowGWTDTO();
+            row.setTime(QUERY_TIME_FMT.format(entry.at().atZone(appZoneId)));
+            row.setUser(entry.user());
+            row.setProtocol(entry.protocol());
+            row.setClient(entry.client());
+            row.setBytesUp(entry.bytesUp());
+            row.setBytesDown(entry.bytesDown());
             row.setOutcome(entry.outcome());
             row.setElapsed(entry.millis() + " ms");
             rows.add(row);

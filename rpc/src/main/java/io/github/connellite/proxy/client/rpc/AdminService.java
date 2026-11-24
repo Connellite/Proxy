@@ -19,6 +19,7 @@ import io.github.connellite.proxy.client.rpc.dto.SshIssuedKeyGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.TlsStatusGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.UpstreamProxiesPageGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.UpstreamProxyFormGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.UserConnectionRowGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.UserFormGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.UsersPageGWTDTO;
 
@@ -119,4 +120,6 @@ public interface AdminService extends RemoteService {
     List<RelayQueryRowGWTDTO> getRelayQueryLog();
 
     List<RelayTcpSessionRowGWTDTO> getRelayTcpSessionLog();
+
+    List<UserConnectionRowGWTDTO> getUserConnectionLog();
 }

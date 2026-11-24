@@ -10,6 +10,7 @@ import io.github.connellite.proxy.proxy.UserTrafficShaping;
 import io.github.connellite.proxy.service.HttpStripHeaderService;
 import io.github.connellite.proxy.service.ProxyAuthService;
 import io.github.connellite.proxy.service.ProxyMetrics;
+import io.github.connellite.proxy.service.UserConnectionLog;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
@@ -39,6 +40,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
+import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
@@ -55,6 +57,7 @@ public class HttpProxyClientHandler extends SimpleChannelInboundHandler<FullHttp
     private final ProxyMetrics metrics;
     private final OutboundConnector outboundConnector;
     private final HttpStripHeaderService stripHeaderService;
+    private final UserConnectionLog connectionLog;
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest request) {
@@ -68,7 +71,7 @@ public class HttpProxyClientHandler extends SimpleChannelInboundHandler<FullHttp
                 }
                 session = authenticated.get();
                 if (!metrics.track(ctx.channel(), session)) {
-                    sendError(ctx, HttpResponseStatus.PROXY_AUTHENTICATION_REQUIRED, "Connection limit reached");
+                    refuseLimit(ctx, session);
                     return;
                 }
                 ctx.channel().attr(SESSION_KEY).set(session);
@@ -76,7 +79,7 @@ public class HttpProxyClientHandler extends SimpleChannelInboundHandler<FullHttp
             } else {
                 session = authenticated.orElse(null);
                 if (!metrics.track(ctx.channel(), session)) {
-                    sendError(ctx, HttpResponseStatus.PROXY_AUTHENTICATION_REQUIRED, "Connection limit reached");
+                    refuseLimit(ctx, session);
                     return;
                 }
                 if (session != null) {
@@ -95,6 +98,15 @@ public class HttpProxyClientHandler extends SimpleChannelInboundHandler<FullHttp
 
     protected boolean authRequired() {
         return authService.isHttpAuthRequired();
+    }
+
+    String getProtocol() {
+        return "HTTP";
+    }
+
+    private void refuseLimit(ChannelHandlerContext ctx, AuthenticatedSession session) {
+        connectionLog.open(remote(ctx.channel()), session == null ? null : session.userId(), getProtocol()).finish("Limit");
+        sendError(ctx, HttpResponseStatus.PROXY_AUTHENTICATION_REQUIRED, "Connection limit reached");
     }
 
     private Optional<AuthenticatedSession> authenticate(FullHttpRequest request) {
@@ -127,12 +139,16 @@ public class HttpProxyClientHandler extends SimpleChannelInboundHandler<FullHttp
 
         Channel inbound = ctx.channel();
         String userId = session == null ? null : session.userId();
+        UserConnectionLog.Tracker tracker = connectionLog.open(remote(inbound), userId, getProtocol());
 
         outboundConnector.openTunnel(inbound, host, port, new TunnelCallback() {
             @Override
             public void onSuccess(Channel outbound) {
                 outbound.pipeline().addLast(new RelayHandler(inbound,
-                        bytes -> metrics.recordTraffic(userId, 0, bytes),
+                        bytes -> {
+                            metrics.recordTraffic(userId, 0, bytes);
+                            tracker.addDown(bytes);
+                        },
                         () -> metrics.allowMoreTraffic(session)));
                 QuietCloseHandlerAdapter.installLast(outbound.pipeline());
                 DefaultFullHttpResponse response = new DefaultFullHttpResponse(
@@ -153,16 +169,21 @@ public class HttpProxyClientHandler extends SimpleChannelInboundHandler<FullHttp
                         inbound.pipeline().remove(HttpServerCodec.class);
                     }
                     inbound.pipeline().addLast(new RelayHandler(outbound,
-                            bytes -> metrics.recordTraffic(userId, bytes, 0),
+                            bytes -> {
+                                metrics.recordTraffic(userId, bytes, 0);
+                                tracker.addUp(bytes);
+                            },
                             () -> metrics.allowMoreTraffic(session)));
                     QuietCloseHandlerAdapter.installLast(inbound.pipeline());
                     inbound.config().setAutoRead(true);
                     outbound.config().setAutoRead(true);
                 });
+                inbound.closeFuture().addListener(future -> tracker.finish("Connected"));
             }
 
             @Override
             public void onFailure(Throwable cause) {
+                tracker.finish("Failed");
                 log.debug("CONNECT failed to {}:{} — {}", host, port, cause.toString());
                 sendError(ctx, HttpResponseStatus.BAD_GATEWAY, "Unable to connect to target");
             }
@@ -213,6 +234,7 @@ public class HttpProxyClientHandler extends SimpleChannelInboundHandler<FullHttp
 
         Channel inbound = ctx.channel();
         String userId = session == null ? null : session.userId();
+        UserConnectionLog.Tracker tracker = connectionLog.open(remote(inbound), userId, getProtocol());
 
         outboundConnector.openTunnel(inbound, host, port, new TunnelCallback() {
             @Override
@@ -223,9 +245,13 @@ public class HttpProxyClientHandler extends SimpleChannelInboundHandler<FullHttp
                     @Override
                     public void channelRead(ChannelHandlerContext c, Object msg) {
                         if (msg instanceof ByteBuf buf) {
-                            metrics.recordTraffic(userId, 0, buf.readableBytes());
+                            int readable = buf.readableBytes();
+                            metrics.recordTraffic(userId, 0, readable);
+                            tracker.addDown(readable);
                         } else if (msg instanceof HttpContent content) {
-                            metrics.recordTraffic(userId, 0, content.content().readableBytes());
+                            int readable = content.content().readableBytes();
+                            metrics.recordTraffic(userId, 0, readable);
+                            tracker.addDown(readable);
                         }
                         if (!metrics.allowMoreTraffic(session)) {
                             ReferenceCountUtil.release(msg);
@@ -249,6 +275,7 @@ public class HttpProxyClientHandler extends SimpleChannelInboundHandler<FullHttp
 
                     @Override
                     public void channelInactive(ChannelHandlerContext c) {
+                        tracker.finish("Connected");
                         RelayHandler.closeOnFlush(inbound);
                     }
 
@@ -258,7 +285,9 @@ public class HttpProxyClientHandler extends SimpleChannelInboundHandler<FullHttp
                     }
                 });
                 QuietCloseHandlerAdapter.installLast(outbound.pipeline());
-                metrics.recordTraffic(userId, outboundRequest.content().readableBytes(), 0);
+                int requestBytes = outboundRequest.content().readableBytes();
+                metrics.recordTraffic(userId, requestBytes, 0);
+                tracker.addUp(requestBytes);
                 if (!metrics.allowMoreTraffic(session)) {
                     outboundRequest.release();
                     outbound.close();
@@ -276,6 +305,7 @@ public class HttpProxyClientHandler extends SimpleChannelInboundHandler<FullHttp
 
             @Override
             public void onFailure(Throwable cause) {
+                tracker.finish("Failed");
                 outboundRequest.release();
                 log.debug("HTTP forward failed to {}:{} — {}", host, port, cause.toString());
                 sendError(ctx, HttpResponseStatus.BAD_GATEWAY, "Unable to connect to target");
@@ -312,5 +342,12 @@ public class HttpProxyClientHandler extends SimpleChannelInboundHandler<FullHttp
     }
 
     record ConnectTarget(String host, int port) {
+    }
+
+    private static InetSocketAddress remote(Channel channel) {
+        if (channel.remoteAddress() instanceof InetSocketAddress address) {
+            return address;
+        }
+        return null;
     }
 }

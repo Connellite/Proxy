@@ -10,6 +10,7 @@ import io.github.connellite.proxy.proxy.ssh.sftp.UserSftpSubsystemFactory;
 import io.github.connellite.proxy.service.ProxyAuthService;
 import io.github.connellite.proxy.service.ProxyMetrics;
 import io.github.connellite.proxy.service.SftpAccessService;
+import io.github.connellite.proxy.service.UserConnectionLog;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.sshd.common.AttributeRepository;
@@ -37,6 +38,8 @@ import org.apache.sshd.server.session.SessionFactory;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.PublicKey;
@@ -63,6 +66,8 @@ public final class SshProxyServer implements ProxyListener, AutoCloseable {
             new AttributeRepository.AttributeKey<>();
     public static final AttributeRepository.AttributeKey<ProxyMetrics.TrackedSession> TRACKED_KEY =
             new AttributeRepository.AttributeKey<>();
+    private static final AttributeRepository.AttributeKey<UserConnectionLog.Tracker> CONNECTION_LOG =
+            new AttributeRepository.AttributeKey<>();
 
     private static final long TRAFFIC_FLUSH_BYTES = 64 * 1024L;
 
@@ -70,6 +75,7 @@ public final class SshProxyServer implements ProxyListener, AutoCloseable {
     private final ProxyMetrics metrics;
     private final ProxyProperties properties;
     private final SftpAccessService sftpAccessService;
+    private final UserConnectionLog connectionLog;
 
     private SshServer server;
 
@@ -114,6 +120,10 @@ public final class SshProxyServer implements ProxyListener, AutoCloseable {
     @Override
     public synchronized boolean isRunning() {
         return server != null && server.isStarted();
+    }
+
+    public String getProtocol() {
+        return "SSH";
     }
 
     @Override
@@ -182,6 +192,7 @@ public final class SshProxyServer implements ProxyListener, AutoCloseable {
             AuthenticatedSession auth = serverSession.getAttribute(AUTH_KEY);
             Optional<ProxyMetrics.TrackedSession> tracked = metrics.trackSession(auth);
             if (tracked.isEmpty()) {
+                connectionLog.open(remote(serverSession), auth == null ? null : auth.userId(), getProtocol()).finish("Limit");
                 try {
                     serverSession.disconnect(SshConstants.SSH2_DISCONNECT_TOO_MANY_CONNECTIONS,
                             "Connection limit reached");
@@ -191,6 +202,8 @@ public final class SshProxyServer implements ProxyListener, AutoCloseable {
                 return;
             }
             serverSession.setAttribute(TRACKED_KEY, tracked.get());
+            serverSession.setAttribute(CONNECTION_LOG, connectionLog.open(
+                    remote(serverSession), auth == null ? null : auth.userId(), getProtocol()));
             if (properties.isSshKeepaliveEnabled()) {
                 int interval = SshKeepalive.intervalSeconds(properties.getIdleTimeoutSeconds(), properties.getSshKeepaliveCount());
                 SshKeepalive.start(serverSession, interval, properties.getSshKeepaliveCount());
@@ -200,6 +213,10 @@ public final class SshProxyServer implements ProxyListener, AutoCloseable {
         @Override
         public void sessionClosed(Session session) {
             SshKeepalive.stop(session);
+            UserConnectionLog.Tracker tracker = session.removeAttribute(CONNECTION_LOG);
+            if (tracker != null) {
+                tracker.finish("Connected");
+            }
             if (session instanceof TrafficAwareServerSession trafficSession) {
                 trafficSession.flushTraffic(true);
             }
@@ -261,7 +278,7 @@ public final class SshProxyServer implements ProxyListener, AutoCloseable {
         @Override
         public void messageReceived(Readable buffer) throws Exception {
             if (isAuthenticated()) {
-                account(pendingUp, buffer.available());
+                account(pendingUp, buffer.available(), true);
             }
             super.messageReceived(buffer);
         }
@@ -269,16 +286,24 @@ public final class SshProxyServer implements ProxyListener, AutoCloseable {
         @Override
         public IoWriteFuture writePacket(Buffer buffer) throws IOException {
             if (isAuthenticated()) {
-                account(pendingDown, Math.max(0, buffer.wpos() - buffer.rpos()));
+                account(pendingDown, Math.max(0, buffer.wpos() - buffer.rpos()), false);
             }
             return super.writePacket(buffer);
         }
 
-        private void account(AtomicLong counter, long bytes) throws IOException {
+        private void account(AtomicLong counter, long bytes, boolean upload) throws IOException {
             if (bytes <= 0) {
                 return;
             }
             long pending = counter.addAndGet(bytes);
+            UserConnectionLog.Tracker tracker = getAttribute(CONNECTION_LOG);
+            if (tracker != null) {
+                if (upload) {
+                    tracker.addUp(bytes);
+                } else {
+                    tracker.addDown(bytes);
+                }
+            }
             if (pending >= TRAFFIC_FLUSH_BYTES) {
                 flushTraffic(false);
             }
@@ -299,5 +324,16 @@ public final class SshProxyServer implements ProxyListener, AutoCloseable {
                 metrics.recordTraffic(auth.userId(), up, down);
             }
         }
+    }
+
+    private static InetSocketAddress remote(Session session) {
+        if (session == null || session.getIoSession() == null) {
+            return null;
+        }
+        SocketAddress address = session.getIoSession().getRemoteAddress();
+        if (address instanceof InetSocketAddress inet) {
+            return inet;
+        }
+        return null;
     }
 }

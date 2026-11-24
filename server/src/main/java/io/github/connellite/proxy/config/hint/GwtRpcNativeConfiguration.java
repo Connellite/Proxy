@@ -46,6 +46,7 @@ import io.github.connellite.proxy.client.rpc.dto.UpstreamProxiesPageGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.UpstreamProxyFormGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.UpstreamProxyRowGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.UpstreamProxyTypeGWT;
+import io.github.connellite.proxy.client.rpc.dto.UserConnectionRowGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.UserFormGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.UserRowGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.UsersPageGWTDTO;
@@ -117,6 +118,7 @@ public class GwtRpcNativeConfiguration {
                 RelayAllowRowGWTDTO.class,
                 RelayQueryRowGWTDTO.class,
                 RelayTcpSessionRowGWTDTO.class,
+                UserConnectionRowGWTDTO.class,
                 UpstreamProxyTypeGWT.class,
                 AutoRefreshIntervalGWT.class,
                 ArrayList.class,

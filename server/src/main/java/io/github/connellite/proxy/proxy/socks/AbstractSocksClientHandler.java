@@ -9,6 +9,7 @@ import io.github.connellite.proxy.proxy.outbound.TunnelCallback;
 import io.github.connellite.proxy.service.ProxyAuthService;
 import io.github.connellite.proxy.service.ProxyMetrics;
 import io.github.connellite.proxy.service.SettingsService;
+import io.github.connellite.proxy.service.UserConnectionLog;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandler;
@@ -25,6 +26,7 @@ import io.netty.handler.codec.socksx.v5.Socks5CommandStatus;
 import io.netty.util.AttributeKey;
 import lombok.extern.slf4j.Slf4j;
 
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -37,27 +39,36 @@ abstract class AbstractSocksClientHandler extends SimpleChannelInboundHandler<So
     final ProxyMetrics metrics;
     final SettingsService settingsService;
     final OutboundConnector outboundConnector;
+    final UserConnectionLog connectionLog;
 
     AbstractSocksClientHandler(ProxyAuthService authService,
                                ProxyMetrics metrics,
                                SettingsService settingsService,
-                               OutboundConnector outboundConnector) {
+                               OutboundConnector outboundConnector,
+                               UserConnectionLog connectionLog) {
         this.authService = authService;
         this.metrics = metrics;
         this.settingsService = settingsService;
         this.outboundConnector = outboundConnector;
+        this.connectionLog = connectionLog;
     }
+
+    abstract String getProtocol();
 
     final void relay(ChannelHandlerContext ctx, String host, int port,
                      AuthenticatedSession session, boolean socks4) {
         Channel inbound = ctx.channel();
         String userId = session == null ? null : session.userId();
+        UserConnectionLog.Tracker tracker = connectionLog.open(remote(inbound), userId, getProtocol());
         UserTrafficShaping.install(inbound, session);
         outboundConnector.openTunnel(inbound, host, port, new TunnelCallback() {
             @Override
             public void onSuccess(Channel outbound) {
                 outbound.pipeline().addLast(new RelayHandler(inbound,
-                        bytes -> metrics.recordTraffic(userId, 0, bytes),
+                        bytes -> {
+                            metrics.recordTraffic(userId, 0, bytes);
+                            tracker.addDown(bytes);
+                        },
                         () -> metrics.allowMoreTraffic(session)));
                 QuietCloseHandlerAdapter.installLast(outbound.pipeline());
                 Object success = socks4
@@ -72,16 +83,21 @@ abstract class AbstractSocksClientHandler extends SimpleChannelInboundHandler<So
                     }
                     stripSocksHandlers(inbound.pipeline());
                     inbound.pipeline().addLast(new RelayHandler(outbound,
-                            bytes -> metrics.recordTraffic(userId, bytes, 0),
+                            bytes -> {
+                                metrics.recordTraffic(userId, bytes, 0);
+                                tracker.addUp(bytes);
+                            },
                             () -> metrics.allowMoreTraffic(session)));
                     QuietCloseHandlerAdapter.installLast(inbound.pipeline());
                     inbound.config().setAutoRead(true);
                     outbound.config().setAutoRead(true);
                 });
+                inbound.closeFuture().addListener(future -> tracker.finish("Connected"));
             }
 
             @Override
             public void onFailure(Throwable cause) {
+                tracker.finish("Failed");
                 log.debug("SOCKS connect failed to {}:{} — {}", host, port, cause.toString());
                 Object fail = socks4
                         ? new DefaultSocks4CommandResponse(Socks4CommandStatus.REJECTED_OR_FAILED)
@@ -122,5 +138,12 @@ abstract class AbstractSocksClientHandler extends SimpleChannelInboundHandler<So
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
         log.debug("SOCKS client error: {}", cause.toString());
         ctx.close();
+    }
+
+    static InetSocketAddress remote(Channel channel) {
+        if (channel.remoteAddress() instanceof InetSocketAddress address) {
+            return address;
+        }
+        return null;
     }
 }

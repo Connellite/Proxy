@@ -14,6 +14,7 @@ import io.github.connellite.proxy.service.HttpStripHeaderService;
 import io.github.connellite.proxy.service.ProxyAuthService;
 import io.github.connellite.proxy.service.ProxyMetrics;
 import io.github.connellite.proxy.service.SettingsService;
+import io.github.connellite.proxy.service.UserConnectionLog;
 import io.netty.handler.ssl.SslContext;
 #if SPRING_BOOT_3
 import jakarta.annotation.PreDestroy;
@@ -57,7 +58,8 @@ public class ProxyServerManager implements ApplicationRunner {
                               DnsRuntime dnsRuntime,
                               TcpRuntime tcpRuntime,
                               OutboundConnector outboundConnector,
-                              HttpStripHeaderService stripHeaderService) {
+                              HttpStripHeaderService stripHeaderService,
+                              UserConnectionLog connectionLog) {
         this.settingsService = settingsService;
         this.metrics = metrics;
         this.tlsService = tlsService;
@@ -66,9 +68,9 @@ public class ProxyServerManager implements ApplicationRunner {
         this.dnsRuntime = dnsRuntime;
         this.tcpRuntime = tcpRuntime;
         this.httpServer = new HttpProxyServerInstance(
-                authService, metrics, properties, outboundConnector, stripHeaderService);
+                authService, metrics, properties, outboundConnector, stripHeaderService, connectionLog);
         this.httpsServer = new HttpsProxyServerInstance(
-                authService, metrics, properties, outboundConnector, stripHeaderService);
+                authService, metrics, properties, outboundConnector, stripHeaderService, connectionLog);
     }
 
     @Override

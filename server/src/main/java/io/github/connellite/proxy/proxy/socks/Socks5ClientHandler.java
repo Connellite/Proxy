@@ -8,6 +8,7 @@ import io.github.connellite.proxy.proxy.outbound.OutboundIpTtl;
 import io.github.connellite.proxy.service.ProxyAuthService;
 import io.github.connellite.proxy.service.ProxyMetrics;
 import io.github.connellite.proxy.service.SettingsService;
+import io.github.connellite.proxy.service.UserConnectionLog;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
@@ -34,6 +35,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.net.InetSocketAddress;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Slf4j
 final class Socks5ClientHandler extends AbstractSocksClientHandler {
@@ -41,8 +43,14 @@ final class Socks5ClientHandler extends AbstractSocksClientHandler {
     Socks5ClientHandler(ProxyAuthService authService,
                         ProxyMetrics metrics,
                         SettingsService settingsService,
-                        OutboundConnector outboundConnector) {
-        super(authService, metrics, settingsService, outboundConnector);
+                        OutboundConnector outboundConnector,
+                        UserConnectionLog connectionLog) {
+        super(authService, metrics, settingsService, outboundConnector, connectionLog);
+    }
+
+    @Override
+    String getProtocol() {
+        return "SOCKS5";
     }
 
     @Override
@@ -65,6 +73,7 @@ final class Socks5ClientHandler extends AbstractSocksClientHandler {
             return;
         }
         if (!metrics.track(ctx.channel(), null)) {
+            connectionLog.open(remote(ctx.channel()), null, getProtocol()).finish("Limit");
             ctx.close();
             return;
         }
@@ -74,7 +83,13 @@ final class Socks5ClientHandler extends AbstractSocksClientHandler {
 
     private void handlePassword(ChannelHandlerContext ctx, Socks5PasswordAuthRequest request) {
         Optional<AuthenticatedSession> session = authService.authenticate(request.username(), request.password());
-        if (session.isEmpty() || !metrics.track(ctx.channel(), session.get())) {
+        if (session.isEmpty()) {
+            ctx.writeAndFlush(new DefaultSocks5PasswordAuthResponse(Socks5PasswordAuthStatus.FAILURE))
+                    .addListener(ChannelFutureListener.CLOSE);
+            return;
+        }
+        if (!metrics.track(ctx.channel(), session.get())) {
+            connectionLog.open(remote(ctx.channel()), session.get().userId(), getProtocol()).finish("Limit");
             ctx.writeAndFlush(new DefaultSocks5PasswordAuthResponse(Socks5PasswordAuthStatus.FAILURE))
                     .addListener(ChannelFutureListener.CLOSE);
             return;
@@ -113,6 +128,7 @@ final class Socks5ClientHandler extends AbstractSocksClientHandler {
             return;
         }
 
+        AtomicReference<Socks5UdpRelayHandler> relay = new AtomicReference<>();
         Bootstrap udpBootstrap = new Bootstrap();
         udpBootstrap.group(inbound.eventLoop())
                 .channel(NioDatagramChannel.class)
@@ -121,7 +137,9 @@ final class Socks5ClientHandler extends AbstractSocksClientHandler {
                     @Override
                     protected void initChannel(NioDatagramChannel ch) {
                         OutboundIpTtl.apply(ch, settingsService.get().getOutboundTtl());
-                        ch.pipeline().addLast(new Socks5UdpRelayHandler(inbound, session, metrics));
+                        Socks5UdpRelayHandler handler = new Socks5UdpRelayHandler(inbound, session, metrics, connectionLog);
+                        relay.set(handler);
+                        ch.pipeline().addLast(handler);
                         QuietCloseHandlerAdapter.installLast(ch.pipeline());
                     }
                 });
@@ -134,6 +152,7 @@ final class Socks5ClientHandler extends AbstractSocksClientHandler {
                         .addListener(ChannelFutureListener.CLOSE);
                 return;
             }
+            relay.get().opened();
             Channel udpChannel = future.channel();
             InetSocketAddress bound = (InetSocketAddress) udpChannel.localAddress();
             Socks5AddressType bndType = Socks5UdpMessages.addressType(bound.getAddress());
