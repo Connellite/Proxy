@@ -1,10 +1,16 @@
 package io.github.connellite.proxy.client.ui;
 
-import com.google.gwt.safehtml.shared.SafeHtmlUtils;
+import com.google.gwt.core.client.GWT;
+import com.google.gwt.safehtml.client.SafeHtmlTemplates;
+import com.google.gwt.safehtml.client.SafeHtmlTemplates.Template;
+import com.google.gwt.safehtml.shared.SafeHtml;
 import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.FlowPanel;
 import com.google.gwt.user.client.ui.HTML;
+import io.github.connellite.proxy.client.messages.AppMessages;
+import io.github.connellite.proxy.client.messages.CommonMessages;
+import io.github.connellite.proxy.client.messages.DashboardMessages;
 import io.github.connellite.proxy.client.rpc.dto.DashboardDnsGWTDTO;
 import io.github.connellite.proxy.client.util.CellCopy;
 import io.github.connellite.proxy.client.util.Rpc;
@@ -16,7 +22,19 @@ public class DashboardDnsPage extends Composite {
 
     private final AppShell shell;
     private final FlowPanel stats = new FlowPanel();
-    private final HTML help = new HTML();
+    private final FlowPanel help = new FlowPanel();
+    private static final Templates TEMPLATES = GWT.create(Templates.class);
+
+    interface Templates extends SafeHtmlTemplates {
+        @Template("<p><strong>{0}</strong></p>")
+        SafeHtml heading(String title);
+
+        @Template("<p>{0} → <code>{1}</code></p>")
+        SafeHtml endpoint(String label, String endpoint);
+
+        @Template("<p class=\"muted\">{0}</p>")
+        SafeHtml empty(String text);
+    }
 
     public DashboardDnsPage(AppShell shell) {
         this.shell = shell;
@@ -26,7 +44,7 @@ public class DashboardDnsPage extends Composite {
 
         FlowPanel helpPanel = new FlowPanel();
         helpPanel.setStyleName("panel");
-        helpPanel.add(new HTML("<h2>DNS Relay</h2>"));
+        helpPanel.add(new HTML(UiTemplates.HEADINGS.h2(AppMessages.DASHBOARD.sectionDnsRelay())));
         helpPanel.add(help);
         CellCopy.installCode(help);
 
@@ -50,52 +68,55 @@ public class DashboardDnsPage extends Composite {
     }
 
     private void render(DashboardDnsGWTDTO dto) {
+        DashboardMessages text = AppMessages.DASHBOARD;
+        CommonMessages common = AppMessages.COMMON;
+        String stopped = common.stopped();
+        String up = common.up();
+        String down = common.down();
         stats.clear();
-        DashboardStats.addStat(stats, "DNS", dto.isDnsRunning() ? dto.getDnsBind() : "stopped",
-                dto.isDnsRunning() ? "up" : "down");
-        DashboardStats.addStat(stats, "TCP relay", dto.isTcpRunning() ? dto.getTcpBind() : "stopped",
-                dto.isTcpRunning() ? "up" : "down");
-        DashboardStats.addStat(stats, "DoH", dto.isDohRunning() ? dto.getDohBind() : "stopped",
-                dto.isDohRunning() ? "up" : "down");
-        DashboardStats.addStat(stats, "DoH3", dto.isDoh3Running() ? dto.getDoh3Bind() : "stopped",
-                dto.isDoh3Running() ? "up" : "down");
-        DashboardStats.addStat(stats, "DoT", dto.isDotRunning() ? dto.getDotBind() : "stopped",
-                dto.isDotRunning() ? "up" : "down");
-        DashboardStats.addStat(stats, "DoQ", dto.isDoqRunning() ? dto.getDoqBind() : "stopped",
-                dto.isDoqRunning() ? "up" : "down");
-        DashboardStats.addStat(stats, "Routes", dto.getEnabledRouteCount() + " / " + dto.getRouteCount(), null);
-        DashboardStats.addStat(stats, "Advertised address",
+        DashboardStats.addStat(stats, text.statDns(), dto.isDnsRunning() ? dto.getDnsBind() : stopped,
+                dto.isDnsRunning() ? up : down);
+        DashboardStats.addStat(stats, text.statTcpRelay(), dto.isTcpRunning() ? dto.getTcpBind() : stopped,
+                dto.isTcpRunning() ? up : down);
+        DashboardStats.addStat(stats, text.statDoh(), dto.isDohRunning() ? dto.getDohBind() : stopped,
+                dto.isDohRunning() ? up : down);
+        DashboardStats.addStat(stats, text.statDoh3(), dto.isDoh3Running() ? dto.getDoh3Bind() : stopped,
+                dto.isDoh3Running() ? up : down);
+        DashboardStats.addStat(stats, text.statDot(), dto.isDotRunning() ? dto.getDotBind() : stopped,
+                dto.isDotRunning() ? up : down);
+        DashboardStats.addStat(stats, text.statDoq(), dto.isDoqRunning() ? dto.getDoqBind() : stopped,
+                dto.isDoqRunning() ? up : down);
+        DashboardStats.addStat(stats, text.statRoutes(),
+                common.ratio(String.valueOf(dto.getEnabledRouteCount()), String.valueOf(dto.getRouteCount())), null);
+        DashboardStats.addStat(stats, text.statAdvertised(),
                 blank(dto.getAdvertisedAddress()), null);
-        DashboardStats.addStat(stats, "Upstream resolver",
+        DashboardStats.addStat(stats, text.statUpstreamResolver(),
                 blank(dto.getUpstreamResolver()), null);
-        DashboardStats.addStat(stats, "TCP via upstream",
-                dto.isTcpUseUpstream() ? "yes" : "no", null);
+        DashboardStats.addStat(stats, text.statTcpViaUpstream(),
+                dto.isTcpUseUpstream() ? common.yes() : common.no(), null);
 
-        StringBuilder html = new StringBuilder();
-        html.append("<p><strong>Connection strings</strong></p>");
+        help.clear();
+        help.add(new HTML(TEMPLATES.heading(text.connectionStrings())));
         boolean any = false;
-        any |= appendEndpoint(html, "Plain DNS", dto.isDnsRunning(), dto.getDnsEndpoint());
-        any |= appendEndpoint(html, "DoH", dto.isDohRunning(), dto.getDohEndpoint());
-        any |= appendEndpoint(html, "DoH3", dto.isDoh3Running(), dto.getDoh3Endpoint());
-        any |= appendEndpoint(html, "DoT", dto.isDotRunning(), dto.getDotEndpoint());
-        any |= appendEndpoint(html, "DoQ", dto.isDoqRunning(), dto.getDoqEndpoint());
+        any |= appendEndpoint(text.plainDns(), dto.isDnsRunning(), dto.getDnsEndpoint());
+        any |= appendEndpoint(text.statDoh(), dto.isDohRunning(), dto.getDohEndpoint());
+        any |= appendEndpoint(text.statDoh3(), dto.isDoh3Running(), dto.getDoh3Endpoint());
+        any |= appendEndpoint(text.statDot(), dto.isDotRunning(), dto.getDotEndpoint());
+        any |= appendEndpoint(text.statDoq(), dto.isDoqRunning(), dto.getDoqEndpoint());
         if (!any) {
-            html.append("<p class=\"muted\">No running DNS listeners with a public host yet. "
-                    + "Set the TLS server name or advertised address, then enable a listener.</p>");
+            help.add(new HTML(TEMPLATES.empty(text.emptyDnsListeners())));
         }
-        help.setHTML(html.toString());
     }
 
-    private static boolean appendEndpoint(StringBuilder html, String label, boolean running, String endpoint) {
+    private boolean appendEndpoint(String label, boolean running, String endpoint) {
         if (!running || endpoint == null || endpoint.isEmpty()) {
             return false;
         }
-        html.append("<p>").append(SafeHtmlUtils.htmlEscape(label)).append(" → <code>")
-                .append(SafeHtmlUtils.htmlEscape(endpoint)).append("</code></p>");
+        help.add(new HTML(TEMPLATES.endpoint(label, endpoint)));
         return true;
     }
 
     private static String blank(String value) {
-        return value == null || value.isEmpty() ? "—" : value;
+        return value == null || value.isEmpty() ? AppMessages.COMMON.dash() : value;
     }
 }

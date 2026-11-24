@@ -1,7 +1,11 @@
 package io.github.connellite.proxy.client.ui;
 
+import com.google.gwt.core.client.GWT;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
+import com.google.gwt.safehtml.client.SafeHtmlTemplates;
+import com.google.gwt.safehtml.client.SafeHtmlTemplates.Template;
+import com.google.gwt.safehtml.shared.SafeHtml;
 import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.CheckBox;
@@ -11,6 +15,8 @@ import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.TextArea;
 import com.google.gwt.user.client.ui.TextBox;
+import io.github.connellite.proxy.client.messages.AppMessages;
+import io.github.connellite.proxy.client.messages.EncryptionMessages;
 import io.github.connellite.proxy.client.rpc.dto.EncryptionGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.TlsStatusGWTDTO;
 import io.github.connellite.proxy.client.util.BindHostList;
@@ -22,8 +28,9 @@ public class EncryptionPage extends Composite {
 
     private final AppShell shell;
 
-    private final CheckBox httpsEnabled = Forms.checkbox("Enable HTTPS proxy encryption");
-    private final CheckBox httpsAuthRequired = Forms.checkbox("Require username/password for HTTPS proxy");
+    private final EncryptionMessages text = AppMessages.ENCRYPTION;
+    private final CheckBox httpsEnabled = Forms.checkbox(text.enableHttps());
+    private final CheckBox httpsAuthRequired = Forms.checkbox(text.httpsAuth());
     private final BindHostList httpsBindHost = new BindHostList();
     private final PlainIntegerBox httpsPort = new PlainIntegerBox();
     private final TextBox serverName = new TextBox();
@@ -35,28 +42,37 @@ public class EncryptionPage extends Composite {
     private final HTML runtime = new HTML();
     private final FlowPanel tlsPanel = new FlowPanel();
     private boolean privateKeySaved;
+    private static final Templates TEMPLATES = GWT.create(Templates.class);
+
+    interface Templates extends SafeHtmlTemplates {
+        @Template("<p class=\"muted\">{0} <code>{1}</code></p>")
+        SafeHtml labeledCode(String label, String value);
+
+        @Template("<p class=\"muted\">{0}</p>")
+        SafeHtml muted(String text);
+
+        @Template("<p class=\"muted\"><code>{0}</code></p>")
+        SafeHtml name(String value);
+    }
 
     public EncryptionPage(AppShell shell) {
         this.shell = shell;
         httpsPort.setMin(1);
         httpsPort.setMax(65535);
         serverName.getElement().setAttribute("maxlength", "255");
-        serverName.getElement().setAttribute("placeholder", "proxy.example.com");
+        serverName.getElement().setAttribute("placeholder", text.serverNamePlaceholder());
         certificatePath.getElement().setAttribute("maxlength", "1024");
-        certificatePath.getElement().setAttribute("placeholder",
-                "/etc/letsencrypt/live/proxy.example.com/fullchain.pem");
+        certificatePath.getElement().setAttribute("placeholder", text.certificatePathPlaceholder());
         privateKeyPath.getElement().setAttribute("maxlength", "1024");
-        privateKeyPath.getElement().setAttribute("placeholder",
-                "/etc/letsencrypt/live/proxy.example.com/privkey.pem");
+        privateKeyPath.getElement().setAttribute("placeholder", text.privateKeyPathPlaceholder());
         certificateChain.setVisibleLines(10);
-        certificateChain.getElement().setAttribute("placeholder",
-                "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----");
+        certificateChain.getElement().setAttribute("placeholder", text.certificatePlaceholder());
         privateKey.setVisibleLines(8);
 
         FlowPanel root = new FlowPanel();
         FlowPanel header = new FlowPanel();
         header.setStyleName("row-between");
-        header.add(new HTML("<h1>Encryption settings</h1>"));
+        header.add(new HTML(UiTemplates.HEADINGS.h1(text.title())));
         runtime.setStyleName("muted");
         runtime.getElement().getStyle().setProperty("margin", "0");
         header.add(runtime);
@@ -66,30 +82,23 @@ public class EncryptionPage extends Composite {
         form.setStyleName("panel form");
         form.add(httpsEnabled);
         form.add(Forms.twoCol(
-                Forms.field("HTTPS bind address", httpsBindHost,
-                        "0.0.0.0 = all interfaces; 127.0.0.1 = this PC only."),
-                Forms.field("HTTPS port", httpsPort)));
+                Forms.field(text.httpsBind(), httpsBindHost, AppMessages.COMMON.bindHint()),
+                Forms.field(text.httpsPort(), httpsPort)));
         form.add(httpsAuthRequired);
-        form.add(Forms.field("Server name", serverName,
-                "Must match a DNS name or IP in the certificate."));
-        form.add(Forms.field("Certificates", certificateChain,
-                "Paste the PEM certificate chain (for example Let’s Encrypt fullchain.pem). "
-                        + "Do not set both paste and path."));
-        form.add(Forms.field("Certificate path", certificatePath,
-                "Or path to a PEM certificate chain file on this server."));
-        form.add(Forms.field("Private key", privateKey,
-                "Paste the PEM private key. Do not set both paste and path."));
+        form.add(Forms.field(text.serverName(), serverName, text.serverNameHint()));
+        form.add(Forms.field(text.certificates(), certificateChain, text.certificatesHint()));
+        form.add(Forms.field(text.certificatePath(), certificatePath, text.certificatePathHint()));
+        form.add(Forms.field(text.privateKey(), privateKey, text.privateKeyHint()));
         keyHint.setStyleName("field-hint");
         keyHint.setVisible(false);
         form.add(keyHint);
-        form.add(Forms.field("Private key path", privateKeyPath,
-                "Or path to a PEM private key file on this server."));
+        form.add(Forms.field(text.privateKeyPath(), privateKeyPath, text.privateKeyPathHint()));
 
         tlsPanel.setStyleName("tls-status");
         tlsPanel.setVisible(false);
         form.add(tlsPanel);
 
-        Button save = new Button("Save settings");
+        Button save = new Button(text.saveSettings());
         save.setStyleName("primary");
         save.addClickHandler(new ClickHandler() {
             @Override
@@ -97,7 +106,7 @@ public class EncryptionPage extends Composite {
                 save();
             }
         });
-        Button back = new Button("Back to settings");
+        Button back = new Button(text.backToSettings());
         back.setStyleName("button");
         back.addClickHandler(new ClickHandler() {
             @Override
@@ -137,13 +146,12 @@ public class EncryptionPage extends Composite {
         privateKey.setText("");
         privateKey.setFocus(false);
         privateKey.getElement().setAttribute("placeholder", privateKeySaved
-                ? "Private key is saved. Leave empty to keep it, or paste a new key."
-                : "-----BEGIN PRIVATE KEY-----");
+                ? text.privateKeySavedPlaceholder()
+                : text.privateKeyEmptyPlaceholder());
         privateKeyPath.setText(nullToEmpty(dto.getPrivateKeyPath()));
-        runtime.setHTML("HTTPS: " + (dto.isHttpsRunning() ? "running" : "stopped"));
-        keyHint.setText(privateKeySaved
-                ? "A private key is already saved and will not be shown again."
-                : "");
+        runtime.setText(text.httpsRuntime(dto.isHttpsRunning()
+                ? AppMessages.COMMON.running() : AppMessages.COMMON.stopped()));
+        keyHint.setText(privateKeySaved ? text.privateKeySavedHint() : "");
         keyHint.setVisible(privateKeySaved);
         if (dto.getLastError() != null && !dto.getLastError().isEmpty()) {
             shell.showFlash(dto.getLastError(), false);
@@ -161,7 +169,7 @@ public class EncryptionPage extends Composite {
 
             @Override
             public void onSuccess(Void result) {
-                shell.showFlash("Encryption settings saved and listeners restarted", true);
+                shell.showFlash(text.saved(), true);
                 load();
             }
         });
@@ -191,40 +199,37 @@ public class EncryptionPage extends Composite {
             return;
         }
         tlsPanel.setVisible(true);
-        tlsPanel.add(new HTML("<h3>Certificate status</h3>"));
+        tlsPanel.add(new HTML(UiTemplates.HEADINGS.h3(text.certificateStatus())));
 
         FlowPanel flags = new FlowPanel();
         flags.setStyleName("tls-flags");
-        flags.add(flag("Certificate: " + (tls.isValidCert() ? "valid" : "invalid"), tls.isValidCert()));
-        String keyLabel = "Private key: " + (tls.isValidKey() ? "valid" : "invalid");
-        if (tls.getKeyType() != null && !tls.getKeyType().isEmpty()) {
-            keyLabel += " (" + tls.getKeyType() + ")";
-        }
+        String valid = text.valid();
+        String invalid = text.invalid();
+        flags.add(flag(text.certificateFlag(tls.isValidCert() ? valid : invalid), tls.isValidCert()));
+        String keyState = tls.isValidKey() ? valid : invalid;
+        String keyLabel = tls.getKeyType() != null && !tls.getKeyType().isEmpty()
+                ? text.privateKeyFlagTyped(keyState, tls.getKeyType())
+                : text.privateKeyFlag(keyState);
         flags.add(flag(keyLabel, tls.isValidKey()));
-        flags.add(flag("Pair: " + (tls.isValidPair() ? "valid" : "invalid"), tls.isValidPair()));
-        flags.add(flag("Chain: " + (tls.isValidChain() ? "valid" : "invalid"),
+        flags.add(flag(text.pairFlag(tls.isValidPair() ? valid : invalid), tls.isValidPair()));
+        flags.add(flag(text.chainFlag(tls.isValidChain() ? valid : invalid),
                 tls.isValidChain(), !tls.isValidChain()));
         tlsPanel.add(flags);
 
         if (tls.getSubject() != null && !tls.getSubject().isEmpty()) {
-            tlsPanel.add(mutedHtml("Subject: <code>" + escape(tls.getSubject()) + "</code>"));
+            tlsPanel.add(new HTML(TEMPLATES.labeledCode(text.subject(), tls.getSubject())));
         }
         if (tls.getIssuer() != null && !tls.getIssuer().isEmpty()) {
-            tlsPanel.add(mutedHtml("Issuer: <code>" + escape(tls.getIssuer()) + "</code>"));
+            tlsPanel.add(new HTML(TEMPLATES.labeledCode(text.issuer(), tls.getIssuer())));
         }
         if (tls.getNotBefore() != null && tls.getNotAfter() != null) {
-            tlsPanel.add(mutedHtml("Validity: " + escape(tls.getNotBefore())
-                    + " → " + escape(tls.getNotAfter())));
+            tlsPanel.add(new HTML(TEMPLATES.muted(text.validity(tls.getNotBefore(), tls.getNotAfter()))));
         }
         if (tls.getDnsNames() != null && !tls.getDnsNames().isEmpty()) {
-            StringBuilder names = new StringBuilder("Names: ");
-            for (int i = 0; i < tls.getDnsNames().size(); i++) {
-                if (i > 0) {
-                    names.append(", ");
-                }
-                names.append("<code>").append(escape(tls.getDnsNames().get(i))).append("</code>");
+            tlsPanel.add(new Label(text.names()));
+            for (String dnsName : tls.getDnsNames()) {
+                tlsPanel.add(new HTML(TEMPLATES.name(dnsName)));
             }
-            tlsPanel.add(mutedHtml(names.toString()));
         }
         if (tls.getWarningValidation() != null && !tls.getWarningValidation().isEmpty()) {
             Label warn = new Label(tls.getWarningValidation());
@@ -241,14 +246,6 @@ public class EncryptionPage extends Composite {
         Label label = new Label(text);
         label.setStyleName(ok ? "ok" : (warn ? "warn" : "bad"));
         return label;
-    }
-
-    private static HTML mutedHtml(String html) {
-        return new HTML("<p class=\"muted\">" + html + "</p>");
-    }
-
-    private static String escape(String value) {
-        return value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
     }
 
     private static String nullToEmpty(String value) {

@@ -1,6 +1,7 @@
 package io.github.connellite.proxy.client.util;
 
 import com.google.gwt.user.client.Window;
+import io.github.connellite.proxy.client.messages.AppMessages;
 
 public final class Rpc {
 
@@ -8,7 +9,7 @@ public final class Rpc {
     }
 
     public static void showFailure(Throwable caught) {
-        String message = caught == null ? "Request failed" : caught.getMessage();
+        String message = caught == null ? AppMessages.COMMON.requestFailed() : caught.getMessage();
         if (message == null || message.isEmpty()) {
             message = caught.getClass().getName();
         }
@@ -19,7 +20,7 @@ public final class Rpc {
     /** Cause chain included: GWT hides the real SerializationException behind a generic message. */
     private static String format(Throwable caught) {
         if (caught == null) {
-            return "Request failed";
+            return AppMessages.COMMON.requestFailed();
         }
         StringBuilder text = new StringBuilder();
         Throwable current = caught;

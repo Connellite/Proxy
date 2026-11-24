@@ -6,6 +6,7 @@ import com.google.gwt.user.client.Timer;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.FlowPanel;
 import com.google.gwt.user.client.ui.Label;
+import io.github.connellite.proxy.client.messages.AppMessages;
 import io.github.connellite.proxy.client.rpc.dto.AutoRefreshIntervalGWT;
 
 /**
@@ -19,15 +20,20 @@ public class AutoRefresh extends Composite {
 
     private final Callback callback;
     private final EnumListBox<AutoRefreshIntervalGWT> interval =
-            new EnumListBox<>(AutoRefreshIntervalGWT.values());
+            new EnumListBox<>(AutoRefreshIntervalGWT.values(), new EnumListBox.Labels<AutoRefreshIntervalGWT>() {
+                @Override
+                public String label(AutoRefreshIntervalGWT value) {
+                    return AppMessages.refreshInterval(value);
+                }
+            });
     private Timer timer;
 
     public AutoRefresh(Callback callback) {
         this.callback = callback;
         FlowPanel root = new FlowPanel();
         root.setStyleName("refresh-control");
-        Label caption = new Label("Auto-refresh");
-        interval.getElement().setAttribute("aria-label", "Auto-refresh interval");
+        Label caption = new Label(AppMessages.RELAY.autoRefresh());
+        interval.getElement().setAttribute("aria-label", AppMessages.RELAY.autoRefreshInterval());
         interval.select(AutoRefreshIntervalGWT.defaultInterval());
         interval.addChangeHandler(new ChangeHandler() {
             @Override

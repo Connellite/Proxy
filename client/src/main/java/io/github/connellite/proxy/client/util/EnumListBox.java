@@ -1,24 +1,30 @@
 package io.github.connellite.proxy.client.util;
 
 import com.google.gwt.user.client.ui.ListBox;
-import io.github.connellite.proxy.client.rpc.dto.HasGwtLabel;
 
 /**
- * ListBox backed by a GWT-serializable enum ({@link HasGwtLabel}).
+ * ListBox backed by a GWT-serializable enum.
  */
-public class EnumListBox<E extends Enum<E> & HasGwtLabel> extends ListBox {
+public class EnumListBox<E extends Enum<E>> extends ListBox {
+
+    /**
+     * Supplies the visible label for an enum value.
+     */
+    public interface Labels<E> {
+        String label(E value);
+    }
 
     private final Class<E> type;
     private final E fallback;
 
-    public EnumListBox(E[] values) {
+    public EnumListBox(E[] values, Labels<E> labels) {
         if (values == null || values.length == 0) {
             throw new IllegalArgumentException("values required");
         }
         this.type = values[0].getDeclaringClass();
         this.fallback = values[0];
         for (E value : values) {
-            addItem(value.getLabel(), value.name());
+            addItem(labels.label(value), value.name());
         }
         setSelectedIndex(0);
     }

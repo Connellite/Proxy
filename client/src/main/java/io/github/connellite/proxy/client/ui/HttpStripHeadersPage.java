@@ -13,6 +13,8 @@ import com.google.gwt.user.client.ui.FlowPanel;
 import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.TextBox;
+import io.github.connellite.proxy.client.messages.AppMessages;
+import io.github.connellite.proxy.client.messages.StripHeadersMessages;
 import io.github.connellite.proxy.client.rpc.dto.HttpStripHeaderRowGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.HttpStripHeadersPageGWTDTO;
 import io.github.connellite.proxy.client.util.CellCopy;
@@ -30,14 +32,14 @@ public class HttpStripHeadersPage extends Composite {
         FlowPanel root = new FlowPanel();
         FlowPanel header = new FlowPanel();
         header.setStyleName("row-between");
-        header.add(new HTML("<h1>Strip headers</h1>"));
+        StripHeadersMessages text = AppMessages.STRIP;
+        header.add(new HTML(UiTemplates.HEADINGS.h1(text.title())));
 
-        Label hint = new Label("Headers removed from plain HTTP proxy requests before forwarding. "
-                + "Does not apply to HTTPS CONNECT tunnels. Changes take effect immediately.");
+        Label hint = new Label(text.hint());
         hint.setStyleName("hint");
         tableHost.setStyleName("table-wrap");
 
-        nameInput.getElement().setAttribute("placeholder", "Header name, e.g. Via");
+        nameInput.getElement().setAttribute("placeholder", text.namePlaceholder());
         nameInput.setWidth("100%");
         nameInput.addKeyDownHandler(new KeyDownHandler() {
             @Override
@@ -74,8 +76,9 @@ public class HttpStripHeadersPage extends Composite {
         FlexTable table = new FlexTable();
         table.setStyleName("users-table strip-headers-table");
 
-        table.setText(0, 0, "Name");
-        table.setText(0, 1, "Action");
+        StripHeadersMessages text = AppMessages.STRIP;
+        table.setText(0, 0, text.colName());
+        table.setText(0, 1, text.colAction());
         styleHeaderCell(table, 0, 0);
         styleHeaderCell(table, 0, 1);
         table.getColumnFormatter().setWidth(0, "75%");
@@ -104,7 +107,7 @@ public class HttpStripHeadersPage extends Composite {
         actions.setStyleName("actions");
         Button add = new Button("+");
         add.setStyleName("btn-icon success");
-        add.setTitle("Add header");
+        add.setTitle(AppMessages.STRIP.addHeader());
         add.addClickHandler(new ClickHandler() {
             @Override
             public void onClick(ClickEvent event) {
@@ -120,11 +123,11 @@ public class HttpStripHeadersPage extends Composite {
         actions.setStyleName("actions");
         Button remove = new Button("−");
         remove.setStyleName("btn-icon danger-fill");
-        remove.setTitle("Remove " + header.getName());
+        remove.setTitle(AppMessages.STRIP.removeHeader(header.getName()));
         remove.addClickHandler(new ClickHandler() {
             @Override
             public void onClick(ClickEvent event) {
-                shell.getRpc().deleteHttpStripHeader(header.getId(), voidReload("Removed \"" + header.getName() + "\""));
+                shell.getRpc().deleteHttpStripHeader(header.getId(), voidReload(AppMessages.STRIP.removed(header.getName())));
             }
         });
         actions.add(remove);
@@ -134,7 +137,7 @@ public class HttpStripHeadersPage extends Composite {
     private void addHeader() {
         final String name = nameInput.getText() == null ? "" : nameInput.getText().trim();
         if (name.isEmpty()) {
-            shell.showFlash("Enter a header name", false);
+            shell.showFlash(AppMessages.STRIP.enterName(), false);
             return;
         }
         shell.getRpc().addHttpStripHeader(name, new AsyncCallback<>() {
@@ -146,7 +149,7 @@ public class HttpStripHeadersPage extends Composite {
             @Override
             public void onSuccess(Void result) {
                 nameInput.setText("");
-                shell.showFlash("Added \"" + name + "\"", true);
+                shell.showFlash(AppMessages.STRIP.added(name), true);
                 load();
             }
         });

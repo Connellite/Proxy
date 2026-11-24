@@ -4,13 +4,19 @@
 <module rename-to="proxyAdmin">
     <inherits name="com.google.gwt.user.User"/>
     <inherits name="com.google.gwt.user.theme.clean.Clean"/>
+    <inherits name="com.google.gwt.i18n.I18N"/>
     <inherits name="io.github.connellite.proxy.client.rpc.Rpc"/>
+
+    <extend-property name="locale" values="en"/>
+    <set-property name="locale" value="en"/>
+    <set-property-fallback name="locale" value="en"/>
 
     <entry-point class="io.github.connellite.proxy.client.ProxyAdminApp"/>
 
     <source path=""/>
     <source path="ui"/>
     <source path="util"/>
+    <source path="messages"/>
 
     <set-property name="user.agent" value="gecko1_8,safari"/>
 </module>

@@ -1,7 +1,11 @@
 package io.github.connellite.proxy.client.ui;
 
+import com.google.gwt.core.client.GWT;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
+import com.google.gwt.safehtml.client.SafeHtmlTemplates;
+import com.google.gwt.safehtml.client.SafeHtmlTemplates.Template;
+import com.google.gwt.safehtml.shared.SafeHtml;
 import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.ui.Button;
@@ -10,6 +14,8 @@ import com.google.gwt.user.client.ui.FlexTable;
 import com.google.gwt.user.client.ui.FlowPanel;
 import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.Label;
+import io.github.connellite.proxy.client.messages.AppMessages;
+import io.github.connellite.proxy.client.messages.UsersMessages;
 import io.github.connellite.proxy.client.rpc.dto.UserRowGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.UsersPageGWTDTO;
 import io.github.connellite.proxy.client.util.AutoRefresh;
@@ -21,6 +27,39 @@ public class UsersPage extends Composite {
 
     private final AppShell shell;
     private final FlowPanel tableHost = new FlowPanel();
+    private static final Templates TEMPLATES = GWT.create(Templates.class);
+
+    interface Templates extends SafeHtmlTemplates {
+        @Template("<span class=\"badge admin\">{0}</span> <span class=\"badge\">{1}</span>")
+        SafeHtml adminAndUser(String admin, String user);
+
+        @Template("<span class=\"badge admin\">{0}</span>")
+        SafeHtml adminOnly(String admin);
+
+        @Template("<span class=\"badge\">{0}</span>")
+        SafeHtml userOnly(String user);
+
+        @Template("<span class=\"muted-cell\">{0}</span>")
+        SafeHtml none(String dash);
+
+        @Template("<span class=\"badge ok\">{0}</span>")
+        SafeHtml active(String label);
+
+        @Template("<span class=\"badge muted\">{0}</span>")
+        SafeHtml muted(String label);
+
+        @Template("<span class=\"badge warn\">{0}</span>")
+        SafeHtml warn(String label);
+
+        @Template("<span>{0}</span><span> / {1}</span>")
+        SafeHtml connections(int active, String limit);
+
+        @Template("<div class=\"metric-line\">↑ <span class=\"num\">{0}</span> <span class=\"muted-cell\">/ {1}</span></div><div class=\"metric-line\">↓ <span class=\"num\">{2}</span> <span class=\"muted-cell\">/ {3}</span></div>")
+        SafeHtml speed(String up, String upLimit, String down, String downLimit);
+
+        @Template("<div class=\"metric-line traffic\">↑ <span class=\"num\">{0}</span></div><div class=\"metric-line\">↓ <span class=\"num\">{1}</span></div><div class=\"metric-line muted-cell\">Σ {2} / {3}</div>")
+        SafeHtml traffic(String up, String down, String used, String limit);
+    }
 
     public UsersPage(AppShell shell) {
         this.shell = shell;
@@ -28,7 +67,8 @@ public class UsersPage extends Composite {
         FlowPanel root = new FlowPanel();
         FlowPanel header = new FlowPanel();
         header.setStyleName("row-between");
-        header.add(new HTML("<h1>Users</h1>"));
+        UsersMessages text = AppMessages.USERS;
+        header.add(new HTML(UiTemplates.HEADINGS.h1(text.title())));
 
         FlowPanel actions = new FlowPanel();
         actions.setStyleName("row-actions");
@@ -39,7 +79,7 @@ public class UsersPage extends Composite {
             }
         });
         shell.attachRefresh(refresh);
-        Button create = new Button("Add user");
+        Button create = new Button(text.addUser());
         create.setStyleName("primary");
         create.addClickHandler(new ClickHandler() {
             @Override
@@ -51,8 +91,7 @@ public class UsersPage extends Composite {
         actions.add(create);
         header.add(actions);
 
-        Label hint = new Label("Admin can sign in to this UI; User can use the proxy. "
-                + "Accounts may have either, both, or neither role.");
+        Label hint = new Label(text.rolesHint());
         hint.setStyleName("hint");
 
         tableHost.setStyleName("table-wrap");
@@ -82,8 +121,10 @@ public class UsersPage extends Composite {
         tableHost.clear();
         FlexTable table = new FlexTable();
         table.setStyleName("users-table");
+        UsersMessages text = AppMessages.USERS;
         String[] headers = {
-                "Username", "Roles", "Status", "Conn", "Speed", "Expires", "Traffic", "Last used", "Actions"
+                text.colUsername(), text.colRoles(), text.colStatus(), text.colConn(), text.colSpeed(),
+                text.colExpires(), text.colTraffic(), text.colLastUsed(), text.colActions()
         };
         for (int i = 0; i < headers.length; i++) {
             table.setText(0, i, headers[i]);
@@ -111,29 +152,20 @@ public class UsersPage extends Composite {
                 table.setHTML(row, 3, connCell(user));
                 table.getCellFormatter().addStyleName(row, 3, "num");
                 boolean live = user.getUpBps() > 0 || user.getDownBps() > 0;
-                table.setHTML(row, 4,
-                        "<div class=\"metric-line\">↑ <span class=\"num\">"
-                                + Formatters.formatRate(user.getUpBps())
-                                + "</span> <span class=\"muted-cell\">/ "
-                                + Formatters.formatRateLimit(user.getSpeedLimitUpBps())
-                                + "</span></div>"
-                                + "<div class=\"metric-line\">↓ <span class=\"num\">"
-                                + Formatters.formatRate(user.getDownBps())
-                                + "</span> <span class=\"muted-cell\">/ "
-                                + Formatters.formatRateLimit(user.getSpeedLimitDownBps())
-                                + "</span></div>");
+                table.setHTML(row, 4, TEMPLATES.speed(
+                        Formatters.formatRate(user.getUpBps()),
+                        Formatters.formatRateLimit(user.getSpeedLimitUpBps()),
+                        Formatters.formatRate(user.getDownBps()),
+                        Formatters.formatRateLimit(user.getSpeedLimitDownBps())));
                 table.getCellFormatter().setStyleName(row, 4, live ? "speed live" : "speed");
                 table.setText(row, 5, Formatters.never(user.getExpiresAt()));
                 table.getCellFormatter().addStyleName(row, 5, "num");
                 long used = user.getBytesUp() + user.getBytesDown();
-                table.setHTML(row, 6,
-                        "<div class=\"metric-line traffic\">↑ <span class=\"num\">"
-                                + Formatters.formatBytes(user.getBytesUp()) + "</span></div>"
-                                + "<div class=\"metric-line\">↓ <span class=\"num\">"
-                                + Formatters.formatBytes(user.getBytesDown()) + "</span></div>"
-                                + "<div class=\"metric-line muted-cell\">Σ "
-                                + Formatters.formatBytes(used) + " / "
-                                + Formatters.formatLimit(user.getTrafficLimitBytes()) + "</div>");
+                table.setHTML(row, 6, TEMPLATES.traffic(
+                        Formatters.formatBytes(user.getBytesUp()),
+                        Formatters.formatBytes(user.getBytesDown()),
+                        Formatters.formatBytes(used),
+                        Formatters.formatLimit(user.getTrafficLimitBytes())));
                 table.setText(row, 7, Formatters.dash(user.getLastUsedAt()));
                 table.getCellFormatter().addStyleName(row, 7, "num");
                 table.setWidget(row, 8, actionsFor(user));
@@ -142,7 +174,7 @@ public class UsersPage extends Composite {
         }
 
         if (row == 1) {
-            table.setText(1, 0, "No accounts yet.");
+            table.setText(1, 0, AppMessages.USERS.noAccounts());
             table.getFlexCellFormatter().setColSpan(1, 0, 9);
             table.getCellFormatter().setStyleName(1, 0, "empty");
         }
@@ -151,55 +183,57 @@ public class UsersPage extends Composite {
         tableHost.add(table);
     }
 
-    private static String rolesBadge(UserRowGWTDTO user) {
-        StringBuilder badges = new StringBuilder();
+    private static SafeHtml rolesBadge(UserRowGWTDTO user) {
+        UsersMessages text = AppMessages.USERS;
+        if (user.isRoleAdmin() && user.isRoleUser()) {
+            return TEMPLATES.adminAndUser(text.roleAdmin(), text.roleUser());
+        }
         if (user.isRoleAdmin()) {
-            badges.append("<span class=\"badge admin\">Admin</span> ");
+            return TEMPLATES.adminOnly(text.roleAdmin());
         }
         if (user.isRoleUser()) {
-            badges.append("<span class=\"badge\">User</span> ");
+            return TEMPLATES.userOnly(text.roleUser());
         }
-        if (badges.length() == 0) {
-            return "<span class=\"muted-cell\">—</span>";
-        }
-        return badges.toString().trim();
+        return TEMPLATES.none(AppMessages.COMMON.dash());
     }
 
-    private static String statusBadge(UserRowGWTDTO user) {
+    private static SafeHtml statusBadge(UserRowGWTDTO user) {
+        UsersMessages text = AppMessages.USERS;
         if (user.isUsable()) {
-            return "<span class=\"badge ok\">active</span>";
+            return TEMPLATES.active(text.statusActive());
         }
         if (!user.isEnabled()) {
-            return "<span class=\"badge muted\">disabled</span>";
+            return TEMPLATES.muted(text.statusDisabled());
         }
         if (user.isExpired()) {
-            return "<span class=\"badge warn\">expired</span>";
+            return TEMPLATES.warn(text.statusExpired());
         }
         if (user.isTrafficLimitExceeded()) {
-            return "<span class=\"badge warn\">quota</span>";
+            return TEMPLATES.warn(text.statusQuota());
         }
-        return "<span class=\"badge muted\">inactive</span>";
+        return TEMPLATES.muted(text.statusInactive());
     }
 
-    private static String connCell(UserRowGWTDTO user) {
+    private static SafeHtml connCell(UserRowGWTDTO user) {
         String limit = user.getMaxConnections() > 0
-                ? " / " + user.getMaxConnections()
-                : " / ∞";
-        return "<span>" + user.getActiveConnections() + "</span><span>" + limit + "</span>";
+                ? String.valueOf(user.getMaxConnections())
+                : AppMessages.COMMON.infinity();
+        return TEMPLATES.connections(user.getActiveConnections(), limit);
     }
 
     private FlowPanel actionsFor(final UserRowGWTDTO user) {
         FlowPanel actions = new FlowPanel();
         actions.setStyleName("actions");
 
-        Button edit = new Button("Edit");
+        UsersMessages text = AppMessages.USERS;
+        Button edit = new Button(AppMessages.COMMON.edit());
         edit.addClickHandler(new ClickHandler() {
             @Override
             public void onClick(ClickEvent event) {
                 shell.showUserForm(user.getId());
             }
         });
-        Button ssh = new Button("SSH");
+        Button ssh = new Button(text.ssh());
         ssh.addClickHandler(new ClickHandler() {
             @Override
             public void onClick(ClickEvent event) {
@@ -207,37 +241,37 @@ public class UsersPage extends Composite {
             }
         });
 
-        Button reset = new Button("Reset traffic");
+        Button reset = new Button(text.resetTraffic());
         reset.addClickHandler(new ClickHandler() {
             @Override
             public void onClick(ClickEvent event) {
-                if (Window.confirm("Reset traffic counters for " + user.getId() + "?")) {
-                    shell.getRpc().resetUserTraffic(user.getId(), voidReload("Traffic counters reset"));
+                if (Window.confirm(text.resetTrafficConfirm(user.getId()))) {
+                    shell.getRpc().resetUserTraffic(user.getId(), voidReload(text.trafficReset()));
                 }
             }
         });
 
         actions.add(edit);
         actions.add(ssh);
-        Button toggle = new Button(user.isEnabled() ? "Disable" : "Enable");
+        Button toggle = new Button(user.isEnabled() ? text.disable() : text.enable());
         toggle.addClickHandler(new ClickHandler() {
             @Override
             public void onClick(ClickEvent event) {
                 shell.getRpc().setUserEnabled(user.getId(), !user.isEnabled(), voidReload(
-                        user.isEnabled() ? "User disabled" : "User enabled"));
+                        user.isEnabled() ? text.userDisabled() : text.userEnabled()));
             }
         });
         actions.add(toggle);
         actions.add(reset);
 
         if (!user.isBootstrapAdmin()) {
-            Button delete = new Button("Delete");
+            Button delete = new Button(AppMessages.COMMON.delete());
             delete.setStyleName("danger");
             delete.addClickHandler(new ClickHandler() {
                 @Override
                 public void onClick(ClickEvent event) {
-                    if (Window.confirm("Delete this user?")) {
-                        shell.getRpc().deleteUser(user.getId(), voidReload("User deleted"));
+                    if (Window.confirm(text.deleteUserConfirm())) {
+                        shell.getRpc().deleteUser(user.getId(), voidReload(text.userDeleted()));
                     }
                 }
             });

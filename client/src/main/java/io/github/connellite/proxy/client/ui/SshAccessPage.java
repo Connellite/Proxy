@@ -14,6 +14,8 @@ import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.PasswordTextBox;
 import com.google.gwt.user.client.ui.TextArea;
 import com.google.gwt.user.client.ui.TextBox;
+import io.github.connellite.proxy.client.messages.AppMessages;
+import io.github.connellite.proxy.client.messages.SshMessages;
 import io.github.connellite.proxy.client.rpc.dto.SshAccessGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.SshIssuedKeyGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.SshUserKeyRowGWTDTO;
@@ -26,7 +28,8 @@ public class SshAccessPage extends Composite {
     private final AppShell shell;
     private final String userId;
     private final FlowPanel tableHost = new FlowPanel();
-    private final CheckBox passwordEnabled = Forms.checkbox("Allow SSH password authentication");
+    private final SshMessages text = AppMessages.SSH;
+    private final CheckBox passwordEnabled = Forms.checkbox(text.allowPassword());
     private final TextBox comment = new TextBox();
     private final PasswordTextBox passphrase = new PasswordTextBox();
     private final FlowPanel issuedPanel = new FlowPanel();
@@ -44,7 +47,7 @@ public class SshAccessPage extends Composite {
         privateKey.setWidth("100%");
 
         FlowPanel root = new FlowPanel();
-        root.add(new HTML("<h1>SSH</h1>"));
+        root.add(new HTML(UiTemplates.HEADINGS.h1(text.title())));
 //        Label userLabel = new Label(userId == null ? "" : userId);
 //        userLabel.setStyleName("hint");
 //        root.add(userLabel);
@@ -52,11 +55,10 @@ public class SshAccessPage extends Composite {
         FlowPanel passwordPanel = new FlowPanel();
         passwordPanel.setStyleName("panel form");
         passwordPanel.add(passwordEnabled);
-        Label passwordHint = new Label("Turns SSH password login on or off for this user. "
-                + "HTTP, SOCKS, and admin login keep using the account password.");
+        Label passwordHint = new Label(text.passwordHint());
         passwordHint.setStyleName("field-hint");
         passwordPanel.add(passwordHint);
-        Button savePassword = new Button("Save");
+        Button savePassword = new Button(AppMessages.COMMON.save());
         savePassword.setStyleName("primary");
         savePassword.addClickHandler(new ClickHandler() {
             @Override
@@ -67,9 +69,8 @@ public class SshAccessPage extends Composite {
         passwordPanel.add(Forms.formActions(savePassword));
         root.add(passwordPanel);
 
-        root.add(new HTML("<h2>Keys</h2>"));
-        Label keysHint = new Label("The server stores only the public key. "
-                + "The private key is shown once, when you issue it.");
+        root.add(new HTML(UiTemplates.HEADINGS.h2(text.keys())));
+        Label keysHint = new Label(text.keysHint());
         keysHint.setStyleName("hint");
         root.add(keysHint);
         tableHost.setStyleName("table-wrap");
@@ -77,12 +78,10 @@ public class SshAccessPage extends Composite {
 
         FlowPanel issuePanel = new FlowPanel();
         issuePanel.setStyleName("panel form");
-        issuePanel.add(new HTML("<h2>Issue key</h2>"));
-        issuePanel.add(Forms.field("Comment", comment, "Optional label so you can tell keys apart."));
-        issuePanel.add(Forms.field("Passphrase", passphrase,
-                "Optional. Encrypts the downloaded private key file only. "
-                        + "The server does not store it. Leave blank for an unencrypted key."));
-        Button issue = new Button("Issue key");
+        issuePanel.add(new HTML(UiTemplates.HEADINGS.h2(text.issueKey())));
+        issuePanel.add(Forms.field(text.comment(), comment, text.commentHint()));
+        issuePanel.add(Forms.field(text.passphrase(), passphrase, text.passphraseHint()));
+        Button issue = new Button(text.issue());
         issue.setStyleName("primary");
         issue.addClickHandler(new ClickHandler() {
             @Override
@@ -95,18 +94,18 @@ public class SshAccessPage extends Composite {
 
         issuedPanel.setStyleName("panel form");
         issuedPanel.setVisible(false);
-        issuedPanel.add(new HTML("<h2>Private key</h2>"));
+        issuedPanel.add(new HTML(UiTemplates.HEADINGS.h2(text.privateKey())));
         issuedWarning.setStyleName("hint");
         issuedPanel.add(issuedWarning);
         issuedPanel.add(privateKey);
-        Button download = new Button("Download");
+        Button download = new Button(text.download());
         download.addClickHandler(new ClickHandler() {
             @Override
             public void onClick(ClickEvent event) {
                 downloadPrivateKey();
             }
         });
-        Button back = new Button("Back to users");
+        Button back = new Button(text.backToUsers());
         back.addClickHandler(new ClickHandler() {
             @Override
             public void onClick(ClickEvent event) {
@@ -143,7 +142,7 @@ public class SshAccessPage extends Composite {
         tableHost.clear();
         FlexTable table = new FlexTable();
         table.setStyleName("users-table");
-        String[] headers = {"Comment", "Fingerprint", "Created", "Actions"};
+        String[] headers = {text.colComment(), text.colFingerprint(), text.colCreated(), text.colActions()};
         for (int i = 0; i < headers.length; i++) {
             table.setText(0, i, headers[i]);
             styleHeaderCell(table, 0, i);
@@ -162,7 +161,7 @@ public class SshAccessPage extends Composite {
             }
         }
         if (row == 1) {
-            table.setText(1, 0, "No keys yet.");
+            table.setText(1, 0, text.noKeys());
             table.getFlexCellFormatter().setColSpan(1, 0, 4);
             table.getCellFormatter().setStyleName(1, 0, "empty");
         }
@@ -173,13 +172,13 @@ public class SshAccessPage extends Composite {
     private FlowPanel revokeButton(final SshUserKeyRowGWTDTO key) {
         FlowPanel actions = new FlowPanel();
         actions.setStyleName("actions");
-        Button revoke = new Button("Revoke");
+        Button revoke = new Button(text.revoke());
         revoke.setStyleName("danger");
         revoke.addClickHandler(new ClickHandler() {
             @Override
             public void onClick(ClickEvent event) {
-                String label = key.getFingerprint() == null ? "this key" : key.getFingerprint();
-                if (Window.confirm("Revoke " + label + "? Clients using it will no longer be able to connect.")) {
+                String label = key.getFingerprint() == null ? text.thisKey() : key.getFingerprint();
+                if (Window.confirm(text.revokeConfirm(label))) {
                     shell.getRpc().revokeSshKey(userId, key.getId(), new AsyncCallback<Void>() {
                         @Override
                         public void onFailure(Throwable caught) {
@@ -188,7 +187,7 @@ public class SshAccessPage extends Composite {
 
                         @Override
                         public void onSuccess(Void result) {
-                            shell.showFlash("Key revoked", true);
+                            shell.showFlash(text.keyRevoked(), true);
                             load();
                         }
                     });
@@ -209,7 +208,7 @@ public class SshAccessPage extends Composite {
 
             @Override
             public void onSuccess(Void result) {
-                shell.showFlash(enabled ? "SSH password enabled" : "SSH password disabled", true);
+                shell.showFlash(enabled ? text.passwordEnabled() : text.passwordDisabled(), true);
             }
         });
     }
@@ -228,7 +227,7 @@ public class SshAccessPage extends Composite {
                 comment.setText("");
                 passphrase.setText("");
                 showIssued(result);
-                shell.showFlash("Key issued. Save the private key now.", true);
+                shell.showFlash(text.keyIssued(), true);
                 load();
             }
         });
@@ -236,13 +235,12 @@ public class SshAccessPage extends Composite {
 
     private void showIssued(SshIssuedKeyGWTDTO issued) {
         StringBuilder warning = new StringBuilder();
-        warning.append("This private key is shown once. Save it now. The server does not keep a copy.");
+        warning.append(text.shownOnce());
         if (issued.isEncrypted()) {
-            warning.append(" This file is encrypted. OpenSSH or PuTTY will ask for the passphrase locally. "
-                    + "The server does not store it.");
+            warning.append(" ").append(text.encryptedFile());
         }
         if (issued.getFingerprint() != null && !issued.getFingerprint().isEmpty()) {
-            warning.append(" Fingerprint: ").append(issued.getFingerprint()).append(".");
+            warning.append(" ").append(text.fingerprint(issued.getFingerprint()));
         }
         issuedWarning.setText(warning.toString());
         privateKey.setText(issued.getPrivateKey() == null ? "" : issued.getPrivateKey());
@@ -266,7 +264,7 @@ public class SshAccessPage extends Composite {
     }
 
     private static String blankToDash(String value) {
-        return value == null || value.isEmpty() ? "—" : value;
+        return value == null || value.isEmpty() ? AppMessages.COMMON.dash() : value;
     }
 
     private static void styleHeaderCell(FlexTable table, int row, int col) {

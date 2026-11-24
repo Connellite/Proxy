@@ -1,10 +1,14 @@
 package io.github.connellite.proxy.client.ui;
 
+import com.google.gwt.core.client.GWT;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.event.dom.client.KeyCodes;
 import com.google.gwt.event.dom.client.KeyDownEvent;
 import com.google.gwt.event.dom.client.KeyDownHandler;
+import com.google.gwt.safehtml.client.SafeHtmlTemplates;
+import com.google.gwt.safehtml.client.SafeHtmlTemplates.Template;
+import com.google.gwt.safehtml.shared.SafeHtml;
 import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.ui.Button;
@@ -15,6 +19,8 @@ import com.google.gwt.user.client.ui.FlowPanel;
 import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.TextBox;
+import io.github.connellite.proxy.client.messages.AppMessages;
+import io.github.connellite.proxy.client.messages.SftpMessages;
 import io.github.connellite.proxy.client.rpc.dto.SftpPageGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.SftpUserRowGWTDTO;
 import io.github.connellite.proxy.client.util.CellCopy;
@@ -29,16 +35,29 @@ public class SftpPage extends Composite {
     private final AppShell shell;
     private final Label notice = new Label();
     private final FlowPanel tableHost = new FlowPanel();
+    private static final Templates TEMPLATES = GWT.create(Templates.class);
+
+    interface Templates extends SafeHtmlTemplates {
+        @Template("<span>{0}</span> <span class=\"badge muted\">{1}</span>")
+        SafeHtml off(String userId, String status);
+
+        @Template("<span>{0}</span> <span class=\"badge warn\">{1}</span>")
+        SafeHtml inactive(String userId, String status);
+
+        @Template("<span>{0}</span> <span class=\"badge\">{1}</span>")
+        SafeHtml readOnly(String userId, String status);
+
+        @Template("<span>{0}</span> <span class=\"badge ok\">{1}</span>")
+        SafeHtml readWrite(String userId, String status);
+    }
 
     public SftpPage(AppShell shell) {
         this.shell = shell;
 
         FlowPanel root = new FlowPanel();
-        root.add(new HTML("<h1>SFTP</h1>"));
-        Label hint = new Label("Pick a server folder for each user. Over SFTP that folder is the user's "
-                + "root (/): subfolders are visible, nothing above it is. Read only lets the user list and download; "
-                + "otherwise the user can also upload, rename and delete. "
-                + "Users without a folder cannot use SFTP. Changes apply to new connections.");
+        SftpMessages text = AppMessages.SFTP;
+        root.add(new HTML(UiTemplates.HEADINGS.h1(text.title())));
+        Label hint = new Label(text.hint());
         hint.setStyleName("hint");
         root.add(hint);
 
@@ -69,11 +88,12 @@ public class SftpPage extends Composite {
 
     private void render(SftpPageGWTDTO page) {
         boolean editable = page.isSshEnabled();
+        SftpMessages text = AppMessages.SFTP;
         if (!page.isSshEnabled()) {
-            notice.setText("The SSH proxy is disabled. Enable it in Settings to use SFTP.");
+            notice.setText(text.sshDisabled());
             notice.setVisible(true);
         } else if (!page.isSshRunning()) {
-            notice.setText("The SSH proxy is enabled but not running. Check the last error on the Dashboard.");
+            notice.setText(text.sshNotRunning());
             notice.setVisible(true);
         } else {
             notice.setText("");
@@ -83,7 +103,7 @@ public class SftpPage extends Composite {
         tableHost.clear();
         FlexTable table = new FlexTable();
         table.setStyleName("users-table sftp-table");
-        String[] headers = {"User", "SFTP folder", "Access", "Actions"};
+        String[] headers = {text.colUser(), text.colFolder(), text.colAccess(), text.colActions()};
         for (int i = 0; i < headers.length; i++) {
             table.setText(0, i, headers[i]);
         }
@@ -96,7 +116,7 @@ public class SftpPage extends Composite {
             }
         }
         if (row == 1) {
-            table.setText(1, 0, "No users yet.");
+            table.setText(1, 0, text.noUsers());
             table.getFlexCellFormatter().setColSpan(1, 0, headers.length);
             table.getCellFormatter().setStyleName(1, 0, "empty");
         }
@@ -105,26 +125,27 @@ public class SftpPage extends Composite {
     }
 
     private void addRow(FlexTable table, int row, final SftpUserRowGWTDTO user, boolean editable) {
-        String status;
+        SftpMessages text = AppMessages.SFTP;
+        SafeHtml status;
         if (user.getRoot() == null) {
-            status = " <span class=\"badge muted\">off</span>";
+            status = TEMPLATES.off(user.getUserId(), text.off());
         } else if (!user.isUsable()) {
-            status = " <span class=\"badge warn\">user inactive</span>";
+            status = TEMPLATES.inactive(user.getUserId(), text.userInactive());
         } else if (user.isReadOnly()) {
-            status = " <span class=\"badge\">read only</span>";
+            status = TEMPLATES.readOnly(user.getUserId(), text.readOnly());
         } else {
-            status = " <span class=\"badge ok\">read/write</span>";
+            status = TEMPLATES.readWrite(user.getUserId(), text.readWrite());
         }
-        table.setHTML(row, 0, "<span>" + escape(user.getUserId()) + "</span>" + status);
+        table.setHTML(row, 0, status);
 
-        final CheckBox readOnly = new CheckBox("Read only");
+        final CheckBox readOnly = new CheckBox(text.readOnly());
         readOnly.setValue(user.getRoot() != null && user.isReadOnly());
-        readOnly.setTitle("List and download only: no upload, rename, delete or mkdir");
+        readOnly.setTitle(text.readOnlyTitle());
         readOnly.setEnabled(editable);
 
         final TextBox folder = new TextBox();
         folder.setText(user.getRoot() == null ? "" : user.getRoot());
-        folder.getElement().setAttribute("placeholder", "Not set: SFTP is off for this user");
+        folder.getElement().setAttribute("placeholder", text.folderPlaceholder());
         folder.getElement().setAttribute("maxlength", "1024");
         folder.setWidth("100%");
         folder.setEnabled(editable);
@@ -141,7 +162,7 @@ public class SftpPage extends Composite {
 
         FlowPanel actions = new FlowPanel();
         actions.setStyleName("actions");
-        Button browse = new Button("Browse…");
+        Button browse = new Button(text.browse());
         browse.addClickHandler(new ClickHandler() {
             @Override
             public void onClick(ClickEvent event) {
@@ -153,7 +174,7 @@ public class SftpPage extends Composite {
                 });
             }
         });
-        Button save = new Button("Save");
+        Button save = new Button(AppMessages.COMMON.save());
         save.setStyleName("primary");
         save.addClickHandler(new ClickHandler() {
             @Override
@@ -161,12 +182,12 @@ public class SftpPage extends Composite {
                 save(user.getUserId(), folder.getText(), readOnly.getValue());
             }
         });
-        Button clear = new Button("Disable");
+        Button clear = new Button(text.disable());
         clear.setStyleName("danger");
         clear.addClickHandler(new ClickHandler() {
             @Override
             public void onClick(ClickEvent event) {
-                if (Window.confirm("Turn off SFTP for " + user.getUserId() + "? Files on the server are kept.")) {
+                if (Window.confirm(text.turnOffConfirm(user.getUserId()))) {
                     remove(user.getUserId());
                 }
             }
@@ -189,7 +210,7 @@ public class SftpPage extends Composite {
 
             @Override
             public void onSuccess(Void result) {
-                shell.showFlash("SFTP turned off for " + userId, true);
+                shell.showFlash(AppMessages.SFTP.turnedOff(userId), true);
                 load();
             }
         });
@@ -205,18 +226,12 @@ public class SftpPage extends Composite {
 
             @Override
             public void onSuccess(Void result) {
+                SftpMessages text = AppMessages.SFTP;
                 shell.showFlash(clearing
-                        ? "SFTP turned off for " + userId
-                        : "SFTP access saved for " + userId + (readOnly ? " (read only)" : " (read/write)"), true);
+                        ? text.turnedOff(userId)
+                        : (readOnly ? text.savedReadOnly(userId) : text.savedReadWrite(userId)), true);
                 load();
             }
         });
-    }
-
-    private static String escape(String value) {
-        if (value == null) {
-            return "";
-        }
-        return value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;");
     }
 }

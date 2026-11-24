@@ -19,6 +19,8 @@ import com.google.gwt.user.client.ui.InlineLabel;
 import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.PopupPanel;
 import com.google.gwt.user.client.ui.TextBox;
+import io.github.connellite.proxy.client.messages.AppMessages;
+import io.github.connellite.proxy.client.messages.SftpMessages;
 import io.github.connellite.proxy.client.rpc.AdminServiceAsync;
 import io.github.connellite.proxy.client.rpc.dto.DirectoryListingGWTDTO;
 import io.github.connellite.proxy.client.util.Rpc;
@@ -41,7 +43,7 @@ public class DirectoryPickerDialog extends PopupPanel {
     private final Callback callback;
     private final FlowPanel tree = new FlowPanel();
     private final TextBox pathBox = new TextBox();
-    private final Button select = new Button("Select");
+    private final Button select = new Button(AppMessages.COMMON.select());
     private Node selected;
 
     public DirectoryPickerDialog(AdminServiceAsync rpc, String initialPath, Callback callback) {
@@ -54,11 +56,12 @@ public class DirectoryPickerDialog extends PopupPanel {
 
         FlowPanel header = new FlowPanel();
         header.setStyleName("dir-picker-header");
-        Label title = new Label("Choose server folder");
+        SftpMessages text = AppMessages.SFTP;
+        Label title = new Label(text.chooseFolder());
         title.setStyleName("dir-picker-title");
         Button close = new Button("\u00d7");
         close.setStyleName("dir-picker-close");
-        close.setTitle("Close");
+        close.setTitle(AppMessages.COMMON.close());
         close.addClickHandler(new ClickHandler() {
             @Override
             public void onClick(ClickEvent event) {
@@ -69,7 +72,7 @@ public class DirectoryPickerDialog extends PopupPanel {
         header.add(close);
 
         // Icons are CSS masks over static/icons/*.svg (see app.css), so their colour stays in CSS.
-        Anchor newFolder = new Anchor("New folder", "#");
+        Anchor newFolder = new Anchor(text.newFolder(), "#");
         newFolder.setStyleName("dir-picker-new");
         newFolder.addClickHandler(new ClickHandler() {
             @Override
@@ -83,7 +86,7 @@ public class DirectoryPickerDialog extends PopupPanel {
 
         FlowPanel pathRow = new FlowPanel();
         pathRow.setStyleName("dir-picker-path-row");
-        InlineLabel pathLabel = new InlineLabel("Path");
+        InlineLabel pathLabel = new InlineLabel(text.path());
         pathLabel.setStyleName("dir-picker-path-label");
         pathBox.setStyleName("dir-picker-path");
         pathBox.getElement().setAttribute("spellcheck", "false");
@@ -107,7 +110,7 @@ public class DirectoryPickerDialog extends PopupPanel {
                 choose();
             }
         });
-        Button cancel = new Button("Close");
+        Button cancel = new Button(AppMessages.COMMON.close());
         cancel.addClickHandler(new ClickHandler() {
             @Override
             public void onClick(ClickEvent event) {
@@ -220,11 +223,11 @@ public class DirectoryPickerDialog extends PopupPanel {
 
     private void createFolder() {
         if (selected == null) {
-            Window.alert("Select the folder to create the new folder in.");
+            Window.alert(AppMessages.SFTP.selectFolderFirst());
             return;
         }
         final Node parent = selected;
-        String name = Window.prompt("New folder in " + parent.path, "");
+        String name = Window.prompt(AppMessages.SFTP.newFolderPrompt(parent.path), "");
         if (name == null || name.trim().isEmpty()) {
             return;
         }

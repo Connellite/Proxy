@@ -11,6 +11,8 @@ import com.google.gwt.user.client.ui.FlowPanel;
 import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.PasswordTextBox;
+import io.github.connellite.proxy.client.messages.AppMessages;
+import io.github.connellite.proxy.client.messages.SettingsMessages;
 import io.github.connellite.proxy.client.rpc.dto.PasswordChangeGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.SettingsGWTDTO;
 import io.github.connellite.proxy.client.util.BindHostList;
@@ -22,13 +24,13 @@ public class SettingsPage extends Composite {
 
     private final AppShell shell;
 
-    private final CheckBox httpEnabled = Forms.checkbox("Enable HTTP proxy");
-    private final CheckBox socksEnabled = Forms.checkbox("Enable SOCKS4/5 proxy");
-    private final CheckBox sshEnabled = Forms.checkbox("Enable SSH tunnel proxy (port forward / PuTTY)");
-    private final CheckBox httpAuthRequired = Forms.checkbox("Require username/password for HTTP proxy");
-    private final CheckBox socksAuthRequired = Forms.checkbox(
-            "Require username/password for SOCKS5 (SOCKS4 disabled while on)");
-    private final CheckBox socksUdpEnabled = Forms.checkbox("Full SOCKS5 with UDP (TCP CONNECT + UDP ASSOCIATE)");
+    private final SettingsMessages text = AppMessages.SETTINGS;
+    private final CheckBox httpEnabled = Forms.checkbox(text.enableHttp());
+    private final CheckBox socksEnabled = Forms.checkbox(text.enableSocks());
+    private final CheckBox sshEnabled = Forms.checkbox(text.enableSsh());
+    private final CheckBox httpAuthRequired = Forms.checkbox(text.httpAuth());
+    private final CheckBox socksAuthRequired = Forms.checkbox(text.socksAuth());
+    private final CheckBox socksUdpEnabled = Forms.checkbox(text.socksUdp());
     private final BindHostList httpBindHost = new BindHostList();
     private final BindHostList socksBindHost = new BindHostList();
     private final BindHostList sshBindHost = new BindHostList();
@@ -59,8 +61,8 @@ public class SettingsPage extends Composite {
         FlowPanel root = new FlowPanel();
         FlowPanel header = new FlowPanel();
         header.setStyleName("row-between");
-        header.add(new HTML("<h1>Settings</h1>"));
-        Button restart = new Button("Restart listeners");
+        header.add(new HTML(UiTemplates.HEADINGS.h1(text.title())));
+        Button restart = new Button(text.restartListeners());
         restart.addClickHandler(new ClickHandler() {
             @Override
             public void onClick(ClickEvent event) {
@@ -74,7 +76,7 @@ public class SettingsPage extends Composite {
         statusRow.setStyleName("muted");
         statusRow.getElement().getStyle().setProperty("marginBottom", "1rem");
         statusRow.add(status);
-        Anchor encLink = new Anchor("Encryption settings", "#");
+        Anchor encLink = new Anchor(text.encryptionSettings(), "#");
         encLink.addClickHandler(new ClickHandler() {
             @Override
             public void onClick(ClickEvent event) {
@@ -86,62 +88,51 @@ public class SettingsPage extends Composite {
         statusRow.add(encLink);
         root.add(statusRow);
 
-        root.add(new HTML("<h2>Listeners</h2>"));
+        root.add(new HTML(UiTemplates.HEADINGS.h2(text.listeners())));
 
         FlowPanel httpPanel = new FlowPanel();
         httpPanel.setStyleName("panel form");
-        httpPanel.add(new HTML("<h2>HTTP</h2>"));
+        httpPanel.add(new HTML(UiTemplates.HEADINGS.h2(text.http())));
         httpPanel.add(httpEnabled);
         httpPanel.add(Forms.twoCol(
-                Forms.field("HTTP bind address", httpBindHost,
-                        "0.0.0.0 = all interfaces; 127.0.0.1 = this PC only."),
-                Forms.field("HTTP port", httpPort)));
+                Forms.field(text.httpBind(), httpBindHost, AppMessages.COMMON.bindHint()),
+                Forms.field(text.httpPort(), httpPort)));
         httpPanel.add(httpAuthRequired);
         root.add(httpPanel);
 
         FlowPanel socksPanel = new FlowPanel();
         socksPanel.setStyleName("panel form");
-        socksPanel.add(new HTML("<h2>SOCKS</h2>"));
+        socksPanel.add(new HTML(UiTemplates.HEADINGS.h2(text.socks())));
         socksPanel.add(socksEnabled);
         socksPanel.add(Forms.twoCol(
-                Forms.field("SOCKS bind address", socksBindHost,
-                        "0.0.0.0 = all interfaces; 127.0.0.1 = this PC only."),
-                Forms.field("SOCKS port", socksPort)));
+                Forms.field(text.socksBind(), socksBindHost, AppMessages.COMMON.bindHint()),
+                Forms.field(text.socksPort(), socksPort)));
         socksPanel.add(socksAuthRequired);
         socksPanel.add(socksUdpEnabled);
-        Label udpHint = new Label("When off, SOCKS5 accepts only TCP CONNECT (current default). "
-                + "UDP ASSOCIATE is needed for some apps (DNS-over-SOCKS, games, VoIP).");
+        Label udpHint = new Label(text.socksUdpHint());
         udpHint.setStyleName("muted");
         socksPanel.add(udpHint);
         root.add(socksPanel);
 
         FlowPanel sshPanel = new FlowPanel();
         sshPanel.setStyleName("panel form");
-        sshPanel.add(new HTML("<h2>SSH</h2>"));
+        sshPanel.add(new HTML(UiTemplates.HEADINGS.h2(text.ssh())));
         sshPanel.add(sshEnabled);
         sshPanel.add(Forms.twoCol(
-                Forms.field("SSH bind address", sshBindHost,
-                        "0.0.0.0 = all interfaces; 127.0.0.1 = this PC only."),
-                Forms.field("SSH port", sshPort)));
-        Label sshHint = new Label("Password and public keys use proxy users. "
-                + "Keys and the SSH password switch are on the user SSH page. Shell/exec are disabled "
-                + "(GitHub-style notice in PuTTY). Use local/remote port forwarding for tunnels. "
-                + "SFTP folders per user are set in the SFTP section. "
-                + "Host key is stored under the data directory.");
+                Forms.field(text.sshBind(), sshBindHost, AppMessages.COMMON.bindHint()),
+                Forms.field(text.sshPort(), sshPort)));
+        Label sshHint = new Label(text.sshHint());
         sshHint.setStyleName("muted");
         sshPanel.add(sshHint);
         root.add(sshPanel);
 
         FlowPanel outboundPanel = new FlowPanel();
         outboundPanel.setStyleName("panel form");
-        outboundPanel.add(new HTML("<h2>Outbound</h2>"));
-        outboundPanel.add(Forms.field("Outbound IP TTL", outboundTtl,
-                "0 = OS default. 1–255 overrides TTL on sockets this proxy opens to the internet or an upstream "
-                        + "(ZeroOmega → this proxy → direct/upstream). Useful when the proxy runs on the same PC "
-                        + "(e.g. tethering). Takes effect on new outbound connections after Save."));
+        outboundPanel.add(new HTML(UiTemplates.HEADINGS.h2(text.outbound())));
+        outboundPanel.add(Forms.field(text.outboundTtl(), outboundTtl, text.outboundTtlHint()));
         root.add(outboundPanel);
 
-        Button save = new Button("Save & restart");
+        Button save = new Button(text.saveRestart());
         save.setStyleName("primary");
         save.addClickHandler(new ClickHandler() {
             @Override
@@ -155,11 +146,11 @@ public class SettingsPage extends Composite {
 
         FlowPanel passwordPanel = new FlowPanel();
         passwordPanel.setStyleName("panel form");
-        passwordPanel.add(new HTML("<h2>Admin password</h2>"));
-        passwordPanel.add(Forms.field("Current password", currentPassword));
-        passwordPanel.add(Forms.field("New password", newPassword));
-        passwordPanel.add(Forms.field("Confirm new password", confirmPassword));
-        Button changePwd = new Button("Change password");
+        passwordPanel.add(new HTML(UiTemplates.HEADINGS.h2(text.adminPassword())));
+        passwordPanel.add(Forms.field(text.currentPassword(), currentPassword));
+        passwordPanel.add(Forms.field(text.newPassword(), newPassword));
+        passwordPanel.add(Forms.field(text.confirmPassword(), confirmPassword));
+        Button changePwd = new Button(text.changePassword());
         changePwd.setStyleName("primary");
         changePwd.addClickHandler(new ClickHandler() {
             @Override
@@ -196,11 +187,12 @@ public class SettingsPage extends Composite {
                 socksPort.setIntValue(dto.getSocksPort());
                 sshPort.setIntValue(dto.getSshPort());
                 outboundTtl.setIntValue(dto.getOutboundTtl());
-                adminPortHint.setText("Takes effect after restart (tray Exit → relaunch).");
-                status.setHTML("HTTP: " + onOff(dto.isHttpRunning())
-                        + " · HTTPS: " + onOff(dto.isHttpsRunning())
-                        + " · SOCKS4/5: " + onOff(dto.isSocksRunning())
-                        + " · SSH: " + onOff(dto.isSshRunning()));
+                adminPortHint.setText(text.adminPortHint());
+                status.setText(text.listenerStatus(
+                        onOff(dto.isHttpRunning()),
+                        onOff(dto.isHttpsRunning()),
+                        onOff(dto.isSocksRunning()),
+                        onOff(dto.isSshRunning())));
                 if (dto.getLastError() != null && !dto.getLastError().isEmpty()) {
                     shell.showFlash(dto.getLastError(), false);
                 }
@@ -217,7 +209,7 @@ public class SettingsPage extends Composite {
 
             @Override
             public void onSuccess(Void result) {
-                shell.showFlash("Settings saved and proxy listeners restarted", true);
+                shell.showFlash(text.saved(), true);
                 shell.refreshNavState();
                 load();
             }
@@ -233,7 +225,7 @@ public class SettingsPage extends Composite {
 
             @Override
             public void onSuccess(Void result) {
-                shell.showFlash("Proxy listeners restarted", true);
+                shell.showFlash(text.restarted(), true);
                 load();
             }
         });
@@ -255,7 +247,7 @@ public class SettingsPage extends Composite {
                 currentPassword.setText("");
                 newPassword.setText("");
                 confirmPassword.setText("");
-                shell.showFlash("Admin password changed", true);
+                shell.showFlash(text.passwordChanged(), true);
             }
         });
     }
@@ -283,6 +275,6 @@ public class SettingsPage extends Composite {
     }
 
     private static String onOff(boolean running) {
-        return running ? "running" : "stopped";
+        return running ? AppMessages.COMMON.running() : AppMessages.COMMON.stopped();
     }
 }

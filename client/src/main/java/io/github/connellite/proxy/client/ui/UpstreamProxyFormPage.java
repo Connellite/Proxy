@@ -12,6 +12,8 @@ import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.PasswordTextBox;
 import com.google.gwt.user.client.ui.TextBox;
+import io.github.connellite.proxy.client.messages.AppMessages;
+import io.github.connellite.proxy.client.messages.UpstreamMessages;
 import io.github.connellite.proxy.client.rpc.dto.UpstreamProxyFormGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.UpstreamProxyTypeGWT;
 import io.github.connellite.proxy.client.util.EnumListBox;
@@ -26,9 +28,16 @@ public class UpstreamProxyFormPage extends Composite {
     private boolean creating = true;
     private boolean passwordSaved;
 
-    private final HTML title = new HTML("<h1>Upstream</h1>");
+    private final UpstreamMessages text = AppMessages.UPSTREAM;
+    private final HTML title = new HTML(UiTemplates.HEADINGS.h1(text.title()));
     private final TextBox name = new TextBox();
-    private final EnumListBox<UpstreamProxyTypeGWT> type = new EnumListBox<>(UpstreamProxyTypeGWT.values());
+    private final EnumListBox<UpstreamProxyTypeGWT> type = new EnumListBox<>(UpstreamProxyTypeGWT.values(),
+            new EnumListBox.Labels<UpstreamProxyTypeGWT>() {
+                @Override
+                public String label(UpstreamProxyTypeGWT value) {
+                    return AppMessages.upstreamType(value);
+                }
+            });
     private final TextBox host = new TextBox();
     private final PlainIntegerBox port = new PlainIntegerBox();
     private final TextBox username = new TextBox();
@@ -59,20 +68,19 @@ public class UpstreamProxyFormPage extends Composite {
 
         FlowPanel panel = new FlowPanel();
         panel.setStyleName("panel form");
-        panel.add(Forms.field("Name", name));
-        panel.add(Forms.field("Type", type));
-        panel.add(Forms.field("Host", host));
-        panel.add(Forms.field("Port", port));
-        panel.add(Forms.field("Username", username));
-        panel.add(Forms.field("Password", password));
+        panel.add(Forms.field(text.name(), name));
+        panel.add(Forms.field(text.type(), type));
+        panel.add(Forms.field(text.host(), host));
+        panel.add(Forms.field(text.port(), port));
+        panel.add(Forms.field(text.username(), username));
+        panel.add(Forms.field(text.password(), password));
         passwordHint.setStyleName("field-hint");
         panel.add(passwordHint);
         sshHint.setStyleName("muted");
-        sshHint.setText("SSH upstream uses password auth and TCP port forwarding "
-                + "(same as connecting with ssh -L). Username is required.");
+        sshHint.setText(text.sshHint());
         panel.add(sshHint);
 
-        Button save = new Button(id == null ? "Create" : "Save");
+        Button save = new Button(id == null ? AppMessages.COMMON.create() : AppMessages.COMMON.save());
         save.setStyleName("primary");
         save.addClickHandler(new ClickHandler() {
             @Override
@@ -80,7 +88,7 @@ public class UpstreamProxyFormPage extends Composite {
                 save();
             }
         });
-        Button cancel = new Button("Cancel");
+        Button cancel = new Button(AppMessages.COMMON.cancel());
         cancel.setStyleName("button");
         cancel.addClickHandler(new ClickHandler() {
             @Override
@@ -106,7 +114,9 @@ public class UpstreamProxyFormPage extends Composite {
             public void onSuccess(UpstreamProxyFormGWTDTO form) {
                 creating = form.isCreating() || form.getId() == null;
                 passwordSaved = form.isPasswordSaved();
-                title.setHTML(creating ? "<h1>New upstream</h1>" : "<h1>Edit upstream</h1>");
+                title.setHTML(creating
+                        ? UiTemplates.HEADINGS.h1(text.titleNew())
+                        : UiTemplates.HEADINGS.h1(text.titleEdit()));
                 name.setText(nullToEmpty(form.getName()));
                 UpstreamProxyTypeGWT selectedType = form.getType() == null
                         ? UpstreamProxyTypeGWT.HTTP : form.getType();
@@ -141,7 +151,7 @@ public class UpstreamProxyFormPage extends Composite {
             @Override
             public void onSuccess(Void result) {
                 shell.showUpstreamProxies();
-                shell.showFlash(creating ? "Upstream created" : "Upstream updated", true);
+                shell.showFlash(creating ? text.created() : text.updated(), true);
             }
         };
 
@@ -157,13 +167,9 @@ public class UpstreamProxyFormPage extends Composite {
         boolean ssh = selected == UpstreamProxyTypeGWT.SSH;
         sshHint.setVisible(ssh);
         if (ssh) {
-            passwordHint.setText(passwordSaved
-                    ? "Password is saved. Leave blank to keep the current value."
-                    : "Username is required for SSH. Password is sent to the upstream SSH server.");
+            passwordHint.setText(passwordSaved ? text.passwordSaved() : text.sshPasswordEmpty());
         } else {
-            passwordHint.setText(passwordSaved
-                    ? "Password is saved. Leave blank to keep the current value."
-                    : "Leave username empty for no authentication.");
+            passwordHint.setText(passwordSaved ? text.passwordSaved() : text.passwordEmpty());
         }
         if (suggestDefaultPort) {
             Integer current = port.getIntValue();

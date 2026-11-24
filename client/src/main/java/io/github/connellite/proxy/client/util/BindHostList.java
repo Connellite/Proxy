@@ -1,6 +1,7 @@
 package io.github.connellite.proxy.client.util;
 
 import com.google.gwt.user.client.ui.ListBox;
+import io.github.connellite.proxy.client.messages.AppMessages;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -61,10 +62,10 @@ public class BindHostList extends ListBox {
 
     private static String label(String address) {
         if ("0.0.0.0".equals(address)) {
-            return "0.0.0.0 (all interfaces)";
+            return AppMessages.COMMON.bindAll();
         }
         if ("127.0.0.1".equals(address)) {
-            return "127.0.0.1 (localhost)";
+            return AppMessages.COMMON.bindLocalhost();
         }
         return address;
     }

@@ -6,6 +6,8 @@ import com.google.gwt.user.client.ui.Anchor;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.FlowPanel;
 import com.google.gwt.user.client.ui.HTML;
+import io.github.connellite.proxy.client.messages.AppMessages;
+import io.github.connellite.proxy.client.messages.DashboardMessages;
 import io.github.connellite.proxy.client.util.AutoRefresh;
 
 /** Dashboard shell with Proxy and DNS tabs. */
@@ -13,8 +15,9 @@ public class DashboardPage extends Composite {
 
     private final DashboardProxyPage proxyPage;
     private final DashboardDnsPage dnsPage;
-    private final Anchor proxyTab = new Anchor("Proxy");
-    private final Anchor dnsTab = new Anchor("DNS");
+    private final DashboardMessages text = AppMessages.DASHBOARD;
+    private final Anchor proxyTab = new Anchor(text.tabProxy());
+    private final Anchor dnsTab = new Anchor(text.tabDns());
 
     public DashboardPage(AppShell shell) {
         proxyPage = new DashboardProxyPage(shell);
@@ -23,7 +26,7 @@ public class DashboardPage extends Composite {
         FlowPanel root = new FlowPanel();
         FlowPanel header = new FlowPanel();
         header.setStyleName("row-between");
-        header.add(new HTML("<h1>Dashboard</h1>"));
+        header.add(new HTML(UiTemplates.HEADINGS.h1(text.title())));
         AutoRefresh refresh = new AutoRefresh(new AutoRefresh.Callback() {
             @Override
             public void onRefresh() {

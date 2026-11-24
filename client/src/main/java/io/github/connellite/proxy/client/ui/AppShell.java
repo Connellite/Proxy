@@ -1,7 +1,11 @@
 package io.github.connellite.proxy.client.ui;
 
+import com.google.gwt.core.client.GWT;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
+import com.google.gwt.safehtml.client.SafeHtmlTemplates;
+import com.google.gwt.safehtml.client.SafeHtmlTemplates.Template;
+import com.google.gwt.safehtml.shared.SafeHtml;
 import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.ui.Anchor;
@@ -11,6 +15,8 @@ import com.google.gwt.user.client.ui.FlowPanel;
 import com.google.gwt.user.client.ui.HTMLPanel;
 import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.SimplePanel;
+import io.github.connellite.proxy.client.messages.AppMessages;
+import io.github.connellite.proxy.client.messages.ShellMessages;
 import io.github.connellite.proxy.client.rpc.AdminServiceAsync;
 import io.github.connellite.proxy.client.rpc.dto.SettingsGWTDTO;
 import io.github.connellite.proxy.client.util.AutoRefresh;
@@ -29,6 +35,12 @@ public class AppShell extends Composite {
     /** Mirrors the saved "SSH enabled" setting; SFTP needs the SSH listener. */
     private boolean sshEnabled = true;
     private final List<AutoRefresh> autoRefresh = new ArrayList<>();
+    private static final BrandTemplate BRAND = GWT.create(BrandTemplate.class);
+
+    interface BrandTemplate extends SafeHtmlTemplates {
+        @Template("<a href=\"#\">{0}</a>")
+        SafeHtml link(String text);
+    }
 
     public AppShell(AdminServiceAsync rpc) {
         this.rpc = rpc;
@@ -39,7 +51,8 @@ public class AppShell extends Composite {
         FlowPanel topbar = new FlowPanel();
         topbar.setStyleName("topbar");
 
-        HTMLPanel brand = new HTMLPanel("div", "<a href=\"#\">Proxy Admin</a>");
+        ShellMessages text = AppMessages.SHELL;
+        HTMLPanel brand = new HTMLPanel("div", BRAND.link(text.brand()).asString());
         brand.setStyleName("brand");
         brand.addDomHandler(new ClickHandler() {
             @Override
@@ -51,7 +64,7 @@ public class AppShell extends Composite {
         }, ClickEvent.getType());
 
         HTMLPanel nav = new HTMLPanel("nav", "");
-        nav.add(navLink("Dashboard", new ClickHandler() {
+        nav.add(navLink(text.navDashboard(), new ClickHandler() {
             @Override
             public void onClick(ClickEvent event) {
                 event.preventDefault();
@@ -59,7 +72,7 @@ public class AppShell extends Composite {
                 showDashboard();
             }
         }));
-        nav.add(navLink("Users", new ClickHandler() {
+        nav.add(navLink(text.navUsers(), new ClickHandler() {
             @Override
             public void onClick(ClickEvent event) {
                 event.preventDefault();
@@ -67,7 +80,7 @@ public class AppShell extends Composite {
                 showUsers();
             }
         }));
-        nav.add(navLink("Settings", new ClickHandler() {
+        nav.add(navLink(text.navSettings(), new ClickHandler() {
             @Override
             public void onClick(ClickEvent event) {
                 event.preventDefault();
@@ -75,7 +88,7 @@ public class AppShell extends Composite {
                 showSettings();
             }
         }));
-        nav.add(navLink("Upstream", new ClickHandler() {
+        nav.add(navLink(text.navUpstream(), new ClickHandler() {
             @Override
             public void onClick(ClickEvent event) {
                 event.preventDefault();
@@ -83,7 +96,7 @@ public class AppShell extends Composite {
                 showUpstreamProxies();
             }
         }));
-        nav.add(navLink("Strip headers", new ClickHandler() {
+        nav.add(navLink(text.navStripHeaders(), new ClickHandler() {
             @Override
             public void onClick(ClickEvent event) {
                 event.preventDefault();
@@ -91,7 +104,7 @@ public class AppShell extends Composite {
                 showHttpStripHeaders();
             }
         }));
-        nav.add(navLink("Encryption", new ClickHandler() {
+        nav.add(navLink(text.navEncryption(), new ClickHandler() {
             @Override
             public void onClick(ClickEvent event) {
                 event.preventDefault();
@@ -99,7 +112,7 @@ public class AppShell extends Composite {
                 showEncryption();
             }
         }));
-        sftpLink = navLink("SFTP", new ClickHandler() {
+        sftpLink = navLink(text.navSftp(), new ClickHandler() {
             @Override
             public void onClick(ClickEvent event) {
                 event.preventDefault();
@@ -107,12 +120,12 @@ public class AppShell extends Composite {
                 if (sshEnabled) {
                     showSftp();
                 } else {
-                    showFlash("Enable the SSH proxy in Settings to use SFTP.", false);
+                    showFlash(text.sftpRequiresSsh(), false);
                 }
             }
         });
         nav.add(sftpLink);
-        nav.add(navLink("DNS Relay", new ClickHandler() {
+        nav.add(navLink(text.navDnsRelay(), new ClickHandler() {
             @Override
             public void onClick(ClickEvent event) {
                 event.preventDefault();
@@ -123,7 +136,7 @@ public class AppShell extends Composite {
 
         FlowPanel logout = new FlowPanel();
         logout.setStyleName("logout");
-        Button logoutBtn = new Button("Logout");
+        Button logoutBtn = new Button(text.logout());
         logoutBtn.addClickHandler(new ClickHandler() {
             @Override
             public void onClick(ClickEvent event) {
@@ -168,7 +181,7 @@ public class AppShell extends Composite {
                     sftpLink.setTitle("");
                 } else {
                     sftpLink.addStyleName("nav-disabled");
-                    sftpLink.setTitle("Requires the SSH proxy (Settings)");
+                    sftpLink.setTitle(AppMessages.SHELL.sftpRequiresSshTitle());
                 }
             }
         });

@@ -16,6 +16,8 @@ import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.TextBox;
 
 import java.util.List;
+import io.github.connellite.proxy.client.messages.AppMessages;
+import io.github.connellite.proxy.client.messages.RelayMessages;
 import io.github.connellite.proxy.client.rpc.dto.RelayAllowRowGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.RelayPageGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.RelayQueryRowGWTDTO;
@@ -34,13 +36,14 @@ import io.github.connellite.proxy.client.util.Rpc;
 public class RelayPage extends Composite {
 
     private final AppShell shell;
-    private final CheckBox dnsEnabled = Forms.checkbox("Enable DNS");
-    private final CheckBox tcpEnabled = Forms.checkbox("Enable TCP relay");
-    private final CheckBox tcpUseUpstream = Forms.checkbox("Use the selected upstream proxy");
-    private final CheckBox dohEnabled = Forms.checkbox("Enable DoH");
-    private final CheckBox doh3Enabled = Forms.checkbox("Enable DoH3");
-    private final CheckBox dotEnabled = Forms.checkbox("Enable DoT");
-    private final CheckBox doqEnabled = Forms.checkbox("Enable DoQ");
+    private final RelayMessages text = AppMessages.RELAY;
+    private final CheckBox dnsEnabled = Forms.checkbox(text.enableDns());
+    private final CheckBox tcpEnabled = Forms.checkbox(text.enableTcp());
+    private final CheckBox tcpUseUpstream = Forms.checkbox(text.tcpUseUpstream());
+    private final CheckBox dohEnabled = Forms.checkbox(text.enableDoh());
+    private final CheckBox doh3Enabled = Forms.checkbox(text.enableDoh3());
+    private final CheckBox dotEnabled = Forms.checkbox(text.enableDot());
+    private final CheckBox doqEnabled = Forms.checkbox(text.enableDoq());
     private final BindHostList dnsBind = new BindHostList();
     private final BindHostList tcpBind = new BindHostList();
     private final BindHostList dohBind = new BindHostList();
@@ -60,16 +63,21 @@ public class RelayPage extends Composite {
     private final FlowPanel dnsAllowHost = new FlowPanel();
     private final FlowPanel tcpAllowHost = new FlowPanel();
     private final TextBox routeName = new TextBox();
-    private final EnumListBox<RelayRouteModeGWT> routeMode = new EnumListBox<>(RelayRouteModeGWT.values());
+    private final EnumListBox<RelayRouteModeGWT> routeMode = new EnumListBox<>(RelayRouteModeGWT.values(),
+            new EnumListBox.Labels<RelayRouteModeGWT>() {
+                @Override
+                public String label(RelayRouteModeGWT value) {
+                    return AppMessages.routeMode(value);
+                }
+            });
     private final TextBox upstreamHost = new TextBox();
     private final TextBox upstreamPort = new TextBox();
     private final TextBox answerAddress = new TextBox();
     private final FlowPanel upstreamFields = Forms.twoCol(
-            Forms.field("Upstream host", upstreamHost,
-                    "Empty uses the real address of the name the client opened. Host only, not host:port."),
-            Forms.field("Upstream port", upstreamPort, "Empty uses the port the client opened."));
-    private final FlowPanel answerField = Forms.field("Answer IP", answerAddress, "One IPv4 or IPv6.");
-    private final CheckBox routeEnabled = Forms.checkbox("Enabled");
+            Forms.field(text.upstreamHost(), upstreamHost, text.upstreamHostHint()),
+            Forms.field(text.upstreamPort(), upstreamPort, text.upstreamPortHint()));
+    private final FlowPanel answerField = Forms.field(text.answerIp(), answerAddress, text.answerIpHint());
+    private final CheckBox routeEnabled = Forms.checkbox(AppMessages.COMMON.enabled());
     private final FlowPanel tableHost = new FlowPanel();
     private Long editingRouteId;
     private final FlowPanel logTable = new FlowPanel();
@@ -101,36 +109,28 @@ public class RelayPage extends Composite {
         applyRouteMode();
 
         FlowPanel root = new FlowPanel();
-        root.add(new HTML("<h1>DNS Relay</h1>"));
-        Label hint = new Label("DNS on the device points here. A relay name returns this server's address and the "
-                + "TCP relay connects by SNI. An address name returns that IP and is not accepted by the relay. "
-                + "TLS is not decrypted. Saving replaces the working snapshot; open connections keep the old target.");
+        root.add(new HTML(UiTemplates.HEADINGS.h1(text.title())));
+        Label hint = new Label(text.hint());
         hint.setStyleName("hint");
         root.add(hint);
 
-        root.add(new HTML("<h2>Listeners</h2>"));
+        root.add(new HTML(UiTemplates.HEADINGS.h2(text.listeners())));
 
         FlowPanel addressPanel = new FlowPanel();
         addressPanel.setStyleName("panel form");
-        addressPanel.add(new HTML("<h2>This server</h2>"));
-        addressPanel.add(Forms.field("IP for relay names", advertised,
-                "DNS answers a relay name with this IP, so the device connects here instead of the real server. "
-                        + "One IPv4 or IPv6. A relay route cannot be saved until this is set."));
-        addressPanel.add(Forms.field("Resolver for everything else", resolver,
-                "IP, host:port, https://…, tls://…, h3://… or quic://…. Names that are not in the route table "
-                        + "are forwarded there. A relay upstream host is resolved there too, so it does not point "
-                        + "back at this server."));
+        addressPanel.add(new HTML(UiTemplates.HEADINGS.h2(text.thisServer())));
+        addressPanel.add(Forms.field(text.advertised(), advertised, text.advertisedHint()));
+        addressPanel.add(Forms.field(text.resolver(), resolver, text.resolverHint()));
         root.add(addressPanel);
 
         FlowPanel dnsPanel = new FlowPanel();
         dnsPanel.setStyleName("panel form");
-        dnsPanel.add(new HTML("<h2>DNS</h2>"));
+        dnsPanel.add(new HTML(UiTemplates.HEADINGS.h2(text.dns())));
         dnsPanel.add(dnsEnabled);
         dnsPanel.add(Forms.twoCol(
-                Forms.field("DNS bind address", dnsBind,
-                        "0.0.0.0 = all interfaces; 127.0.0.1 = this PC only."),
-                Forms.field("DNS port", dnsPort)));
-        Label dnsHint = new Label("Anyone who can reach this port can query other names through it.");
+                Forms.field(text.dnsBind(), dnsBind, AppMessages.COMMON.bindHint()),
+                Forms.field(text.dnsPort(), dnsPort)));
+        Label dnsHint = new Label(text.dnsHint());
         dnsHint.setStyleName("muted");
         dnsPanel.add(dnsHint);
         dnsPanel.add(allowEditor(dnsAllowHost, dnsAllowInput, true));
@@ -138,77 +138,67 @@ public class RelayPage extends Composite {
 
         FlowPanel dohPanel = new FlowPanel();
         dohPanel.setStyleName("panel form");
-        dohPanel.add(new HTML("<h2>DNS over HTTPS</h2>"));
+        dohPanel.add(new HTML(UiTemplates.HEADINGS.h2(text.doh())));
         dohPanel.add(dohEnabled);
         dohPanel.add(Forms.twoCol(
-                Forms.field("DoH bind address", dohBind,
-                        "0.0.0.0 = all interfaces; 127.0.0.1 = this PC only."),
-                Forms.field("DoH port", dohPort)));
-        Label dohHint = new Label("GET and POST /dns-query. Uses the certificate from Encryption. "
-                + "Cannot share an address and port with the TCP relay.");
+                Forms.field(text.dohBind(), dohBind, AppMessages.COMMON.bindHint()),
+                Forms.field(text.dohPort(), dohPort)));
+        Label dohHint = new Label(text.dohHint());
         dohHint.setStyleName("muted");
         dohPanel.add(dohHint);
         root.add(dohPanel);
 
         FlowPanel doh3Panel = new FlowPanel();
         doh3Panel.setStyleName("panel form");
-        doh3Panel.add(new HTML("<h2>DNS over HTTP/3</h2>"));
+        doh3Panel.add(new HTML(UiTemplates.HEADINGS.h2(text.doh3())));
         doh3Panel.add(doh3Enabled);
         doh3Panel.add(Forms.twoCol(
-                Forms.field("DoH3 bind address", doh3Bind,
-                        "0.0.0.0 = all interfaces; 127.0.0.1 = this PC only."),
-                Forms.field("DoH3 port", doh3Port)));
-        Label doh3Hint = new Label("GET and POST /dns-query over HTTP/3. UDP, so port 443 can be used beside the TCP relay. "
-                + "Uses the certificate from Encryption. Cannot share an address and port with DoQ.");
+                Forms.field(text.doh3Bind(), doh3Bind, AppMessages.COMMON.bindHint()),
+                Forms.field(text.doh3Port(), doh3Port)));
+        Label doh3Hint = new Label(text.doh3Hint());
         doh3Hint.setStyleName("muted");
         doh3Panel.add(doh3Hint);
         root.add(doh3Panel);
 
         FlowPanel dotPanel = new FlowPanel();
         dotPanel.setStyleName("panel form");
-        dotPanel.add(new HTML("<h2>DNS over TLS</h2>"));
+        dotPanel.add(new HTML(UiTemplates.HEADINGS.h2(text.dot())));
         dotPanel.add(dotEnabled);
         dotPanel.add(Forms.twoCol(
-                Forms.field("DoT bind address", dotBind,
-                        "0.0.0.0 = all interfaces; 127.0.0.1 = this PC only."),
-                Forms.field("DoT port", dotPort)));
-        Label dotHint = new Label("TLS on TCP, then the same DNS messages as plain DNS. Uses the certificate from Encryption. "
-                + "Cannot share an address and port with DoH or the TCP relay.");
+                Forms.field(text.dotBind(), dotBind, AppMessages.COMMON.bindHint()),
+                Forms.field(text.dotPort(), dotPort)));
+        Label dotHint = new Label(text.dotHint());
         dotHint.setStyleName("muted");
         dotPanel.add(dotHint);
         root.add(dotPanel);
 
         FlowPanel doqPanel = new FlowPanel();
         doqPanel.setStyleName("panel form");
-        doqPanel.add(new HTML("<h2>DNS over QUIC</h2>"));
+        doqPanel.add(new HTML(UiTemplates.HEADINGS.h2(text.doq())));
         doqPanel.add(doqEnabled);
         doqPanel.add(Forms.twoCol(
-                Forms.field("DoQ bind address", doqBind,
-                        "0.0.0.0 = all interfaces; 127.0.0.1 = this PC only."),
-                Forms.field("DoQ port", doqPort)));
-        Label doqHint = new Label("QUIC on UDP. Uses the same certificate. "
-                + "If the native QUIC library is missing, only this listener stays down.");
+                Forms.field(text.doqBind(), doqBind, AppMessages.COMMON.bindHint()),
+                Forms.field(text.doqPort(), doqPort)));
+        Label doqHint = new Label(text.doqHint());
         doqHint.setStyleName("muted");
         doqPanel.add(doqHint);
         root.add(doqPanel);
 
         FlowPanel tcpPanel = new FlowPanel();
         tcpPanel.setStyleName("panel form");
-        tcpPanel.add(new HTML("<h2>TCP relay</h2>"));
+        tcpPanel.add(new HTML(UiTemplates.HEADINGS.h2(text.tcp())));
         tcpPanel.add(tcpEnabled);
         tcpPanel.add(tcpUseUpstream);
         tcpPanel.add(Forms.twoCol(
-                Forms.field("TCP bind address", tcpBind,
-                        "0.0.0.0 = all interfaces; 127.0.0.1 = this PC only."),
-                Forms.field("TCP port", tcpPort)));
-        Label tcpHint = new Label("Reads the name from ClientHello and copies the bytes unchanged. "
-                + "An empty upstream host is looked up through the resolver above.");
+                Forms.field(text.tcpBind(), tcpBind, AppMessages.COMMON.bindHint()),
+                Forms.field(text.tcpPort(), tcpPort)));
+        Label tcpHint = new Label(text.tcpHint());
         tcpHint.setStyleName("muted");
         tcpPanel.add(tcpHint);
         tcpPanel.add(allowEditor(tcpAllowHost, tcpAllowInput, false));
         root.add(tcpPanel);
 
-        Button saveSettings = new Button("Save listeners");
+        Button saveSettings = new Button(text.saveListeners());
         saveSettings.setStyleName("primary");
         saveSettings.addClickHandler(new ClickHandler() {
             @Override
@@ -222,14 +212,14 @@ public class RelayPage extends Composite {
 
         FlowPanel routesPanel = new FlowPanel();
         routesPanel.setStyleName("panel form");
-        routesPanel.add(new HTML("<h2>Routes</h2>"));
+        routesPanel.add(new HTML(UiTemplates.HEADINGS.h2(text.routes())));
         routesPanel.add(Forms.twoCol(
-                Forms.field("Name", routeName, "Hostname or *.example.com. One row is one name."),
-                Forms.field("Mode", routeMode)));
+                Forms.field(text.routeName(), routeName, text.routeNameHint()),
+                Forms.field(text.mode(), routeMode)));
         routesPanel.add(upstreamFields);
         routesPanel.add(answerField);
         routesPanel.add(routeEnabled);
-        Button add = new Button("Save route");
+        Button add = new Button(text.saveRoute());
         add.setStyleName("primary");
         add.addClickHandler(new ClickHandler() {
             @Override
@@ -238,7 +228,7 @@ public class RelayPage extends Composite {
             }
         });
         routesPanel.add(Forms.formActions(add));
-        Label routeHint = new Label("Click a row to fill the form. Save updates that route.");
+        Label routeHint = new Label(text.routeHint());
         routeHint.setStyleName("muted");
         routesPanel.add(routeHint);
         tableHost.setVisible(false);
@@ -249,7 +239,7 @@ public class RelayPage extends Composite {
         logPanel.setStyleName("panel form");
         FlowPanel logHeader = new FlowPanel();
         logHeader.setStyleName("row-between");
-        logHeader.add(new HTML("<h2>Recent queries</h2>"));
+        logHeader.add(new HTML(UiTemplates.HEADINGS.h2(text.recentQueries())));
         AutoRefresh refresh = new AutoRefresh(new AutoRefresh.Callback() {
             @Override
             public void onRefresh() {
@@ -267,7 +257,7 @@ public class RelayPage extends Composite {
         tcpLogPanel.setStyleName("panel form");
         FlowPanel tcpLogHeader = new FlowPanel();
         tcpLogHeader.setStyleName("row-between");
-        tcpLogHeader.add(new HTML("<h2>Recent TCP connections</h2>"));
+        tcpLogHeader.add(new HTML(UiTemplates.HEADINGS.h2(text.recentTcp())));
         AutoRefresh tcpRefresh = new AutoRefresh(new AutoRefresh.Callback() {
             @Override
             public void onRefresh() {
@@ -333,15 +323,15 @@ public class RelayPage extends Composite {
 
     private FlowPanel allowEditor(FlowPanel host, TextBox input, boolean dns) {
         FlowPanel box = new FlowPanel();
-        Label title = new Label("Allowed networks");
+        Label title = new Label(text.allowedNetworks());
         title.getElement().getStyle().setProperty("fontWeight", "600");
         box.add(title);
-        Label hint = new Label("Empty allows every address. One IP or CIDR, for example 203.0.113.0/24.");
+        Label hint = new Label(text.allowedNetworksHint());
         hint.setStyleName("field-hint");
         box.add(hint);
         input.setWidth("100%");
         box.add(input);
-        Button add = new Button("Add");
+        Button add = new Button(AppMessages.COMMON.add());
         add.addClickHandler(new ClickHandler() {
             @Override
             public void onClick(ClickEvent event) {
@@ -365,14 +355,14 @@ public class RelayPage extends Composite {
         host.setVisible(true);
         FlexTable table = new FlexTable();
         table.setStyleName("users-table");
-        table.setText(0, 0, "Network");
+        table.setText(0, 0, text.network());
         table.setText(0, 1, "");
         styleHeader(table, 0);
         styleHeader(table, 1);
         int row = 1;
         for (RelayAllowRowGWTDTO allow : rows) {
             table.setText(row, 0, text(allow.getCidr()));
-            Button remove = new Button("Delete");
+            Button remove = new Button(AppMessages.COMMON.delete());
             remove.addClickHandler(new ClickHandler() {
                 @Override
                 public void onClick(ClickEvent event) {
@@ -396,7 +386,7 @@ public class RelayPage extends Composite {
             @Override
             public void onSuccess(Void result) {
                 input.setText("");
-                shell.showFlash("Network saved", true);
+                shell.showFlash(text.networkSaved(), true);
                 load();
             }
         };
@@ -419,7 +409,7 @@ public class RelayPage extends Composite {
 
             @Override
             public void onSuccess(Void result) {
-                shell.showFlash("Network deleted", true);
+                shell.showFlash(text.networkDeleted(), true);
                 load();
             }
         };
@@ -441,7 +431,7 @@ public class RelayPage extends Composite {
         tableHost.setVisible(true);
         FlexTable table = new FlexTable();
         table.setStyleName("users-table route-table");
-        String[] headers = {"Name", "Mode", "Upstream", "Answer", "Enabled", ""};
+        String[] headers = {text.colName(), text.colMode(), text.colUpstream(), text.colAnswer(), text.colEnabled(), ""};
         for (int i = 0; i < headers.length; i++) {
             table.setText(0, i, headers[i]);
             table.getCellFormatter().getElement(0, i).getStyle().setProperty("background", "#efe8dc");
@@ -455,9 +445,9 @@ public class RelayPage extends Composite {
         for (RelayRouteRowGWTDTO route : routes) {
                 table.setText(row, 0, route.getName());
                 RelayRouteModeGWT mode = route.getMode() == null ? RelayRouteModeGWT.RELAY : route.getMode();
-                table.setText(row, 1, mode.getLabel());
+                table.setText(row, 1, AppMessages.routeMode(mode));
                 String upstream = route.getUpstreamHost() == null || route.getUpstreamHost().isEmpty()
-                        ? "real address" : route.getUpstreamHost();
+                        ? text.realAddress() : route.getUpstreamHost();
                 if (mode == RelayRouteModeGWT.ADDRESS) {
                     upstream = "";
                 } else if (route.getUpstreamPort() != null && !route.getUpstreamPort().isEmpty()) {
@@ -465,10 +455,10 @@ public class RelayPage extends Composite {
                 }
                 table.setText(row, 2, upstream);
                 table.setText(row, 3, route.getAnswerAddress() == null ? "" : route.getAnswerAddress());
-                table.setText(row, 4, route.isEnabled() ? "yes" : "no");
+                table.setText(row, 4, route.isEnabled() ? AppMessages.COMMON.yes() : AppMessages.COMMON.no());
                 FlowPanel actions = new FlowPanel();
                 actions.setStyleName("actions");
-                Button remove = new Button("Delete");
+                Button remove = new Button(AppMessages.COMMON.delete());
                 remove.addClickHandler(new ClickHandler() {
                     @Override
                     public void onClick(ClickEvent event) {
@@ -522,14 +512,17 @@ public class RelayPage extends Composite {
     private void renderLog(List<RelayQueryRowGWTDTO> rows) {
         logTable.clear();
         if (rows == null || rows.isEmpty()) {
-            Label empty = new Label("No queries yet.");
+            Label empty = new Label(text.noQueries());
             empty.setStyleName("muted");
             logTable.add(empty);
             return;
         }
         FlexTable table = new FlexTable();
         table.setStyleName("users-table query-log");
-        String[] headers = {"Time", "Client", "Proto", "Name", "Type", "Result", "Answer", "Elapsed"};
+        String[] headers = {
+                text.colTime(), text.colClient(), text.colProto(), text.colName(),
+                text.colType(), text.colResult(), text.colAnswer(), text.colElapsed()
+        };
         for (int i = 0; i < headers.length; i++) {
             table.setText(0, i, headers[i]);
             styleHeader(table, i);
@@ -567,14 +560,14 @@ public class RelayPage extends Composite {
     private void renderTcpLog(List<RelayTcpSessionRowGWTDTO> rows) {
         tcpLogTable.clear();
         if (rows == null || rows.isEmpty()) {
-            Label empty = new Label("No TCP sessions yet.");
+            Label empty = new Label(text.noTcpSessions());
             empty.setStyleName("muted");
             tcpLogTable.add(empty);
             return;
         }
         FlexTable table = new FlexTable();
         table.setStyleName("users-table query-log");
-        String[] headers = {"Time", "Client", "Host", "Result", "Elapsed"};
+        String[] headers = {text.colTime(), text.colClient(), text.colHost(), text.colResult(), text.colElapsed()};
         for (int i = 0; i < headers.length; i++) {
             table.setText(0, i, headers[i]);
             styleHeader(table, i);
@@ -635,7 +628,7 @@ public class RelayPage extends Composite {
 
             @Override
             public void onSuccess(Void result) {
-                shell.showFlash("Relay listeners saved", true);
+                shell.showFlash(text.listenersSaved(), true);
                 load();
             }
         });
@@ -684,7 +677,7 @@ public class RelayPage extends Composite {
 
             @Override
             public void onSuccess(Void result) {
-                shell.showFlash("Route saved", true);
+                shell.showFlash(text.routeSaved(), true);
                 clearRouteForm();
                 load();
             }
@@ -704,7 +697,7 @@ public class RelayPage extends Composite {
 
             @Override
             public void onSuccess(Void result) {
-                shell.showFlash("Route deleted", true);
+                shell.showFlash(text.routeDeleted(), true);
                 if (removed.equals(editingRouteId)) {
                     clearRouteForm();
                 }

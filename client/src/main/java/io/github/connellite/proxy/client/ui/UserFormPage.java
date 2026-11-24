@@ -10,6 +10,9 @@ import com.google.gwt.user.client.ui.FlowPanel;
 import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.PasswordTextBox;
 import com.google.gwt.user.client.ui.TextBox;
+import io.github.connellite.proxy.client.messages.AppMessages;
+import io.github.connellite.proxy.client.messages.CommonMessages;
+import io.github.connellite.proxy.client.messages.UsersMessages;
 import io.github.connellite.proxy.client.rpc.dto.UserFormGWTDTO;
 import io.github.connellite.proxy.client.util.DateInput;
 import io.github.connellite.proxy.client.util.Forms;
@@ -24,12 +27,14 @@ public class UserFormPage extends Composite {
     private boolean creating = true;
     private boolean bootstrapAdmin;
 
-    private final HTML title = new HTML("<h1>User</h1>");
+    private final UsersMessages text = AppMessages.USERS;
+    private final CommonMessages common = AppMessages.COMMON;
+    private final HTML title = new HTML(UiTemplates.HEADINGS.h1(text.titleUser()));
     private final TextBox username = new TextBox();
     private final PasswordTextBox password = new PasswordTextBox();
-    private final CheckBox enabled = Forms.checkbox("Enabled");
-    private final CheckBox roleAdmin = Forms.checkbox("Admin (UI login)");
-    private final CheckBox roleUser = Forms.checkbox("User (proxy access)");
+    private final CheckBox enabled = Forms.checkbox(common.enabled());
+    private final CheckBox roleAdmin = Forms.checkbox(text.adminUi());
+    private final CheckBox roleUser = Forms.checkbox(text.userProxy());
     private final PlainIntegerBox maxConnections = new PlainIntegerBox();
     private final PlainLongBox trafficLimitBytes = new PlainLongBox();
     private final PlainLongBox speedLimitUpBps = new PlainLongBox();
@@ -53,22 +58,18 @@ public class UserFormPage extends Composite {
 
         FlowPanel panel = new FlowPanel();
         panel.setStyleName("panel form");
-        panel.add(Forms.field("Username", username));
-        panel.add(Forms.field(id == null ? "Password" : "Password (leave blank to keep)", password));
+        panel.add(Forms.field(text.username(), username));
+        panel.add(Forms.field(id == null ? text.password() : text.passwordKeep(), password));
         panel.add(enabled);
-        panel.add(Forms.field("Roles", rolesPanel(),
-                "Bootstrap admin always keeps Admin. Other accounts may have either, both, or none."));
-        panel.add(Forms.field("Max connections (0 = unlimited)", maxConnections));
-        panel.add(Forms.field("Traffic limit, bytes (−1 = ∞)", trafficLimitBytes,
-                "Total ↑+↓. When reached, proxy access is denied until counters are reset."));
+        panel.add(Forms.field(text.roles(), rolesPanel(), text.rolesFormHint()));
+        panel.add(Forms.field(text.maxConnections(), maxConnections));
+        panel.add(Forms.field(text.trafficLimit(), trafficLimitBytes, text.trafficLimitHint()));
         panel.add(Forms.twoCol(
-                Forms.field("Upload speed limit, B/s (−1 = ∞)", speedLimitUpBps,
-                        "Client → proxy."),
-                Forms.field("Download speed limit, B/s (−1 = ∞)", speedLimitDownBps,
-                        "Proxy → client.")));
-        panel.add(Forms.field("Expires on (optional)", expiresAt));
+                Forms.field(text.uploadLimit(), speedLimitUpBps, text.uploadHint()),
+                Forms.field(text.downloadLimit(), speedLimitDownBps, text.downloadHint())));
+        panel.add(Forms.field(text.expires(), expiresAt));
 
-        Button save = new Button(id == null ? "Create" : "Save");
+        Button save = new Button(id == null ? common.create() : common.save());
         save.setStyleName("primary");
         save.addClickHandler(new ClickHandler() {
             @Override
@@ -76,7 +77,7 @@ public class UserFormPage extends Composite {
                 save();
             }
         });
-        Button cancel = new Button("Cancel");
+        Button cancel = new Button(common.cancel());
         cancel.setStyleName("button");
         cancel.addClickHandler(new ClickHandler() {
             @Override
@@ -109,7 +110,7 @@ public class UserFormPage extends Composite {
             public void onSuccess(UserFormGWTDTO form) {
                 creating = form.isCreating() || form.getId() == null;
                 bootstrapAdmin = form.isBootstrapAdmin();
-                title.setHTML(creating ? "<h1>New user</h1>" : "<h1>Edit user</h1>");
+                title.setHTML(creating ? UiTemplates.HEADINGS.h1(text.titleNew()) : UiTemplates.HEADINGS.h1(text.titleEdit()));
                 username.setText(nullToEmpty(form.getId()));
                 password.setText(nullToEmpty(form.getPassword()));
                 expiresAt.setDateValue(nullToEmpty(form.getExpiresAt()));
@@ -151,7 +152,7 @@ public class UserFormPage extends Composite {
             @Override
             public void onSuccess(Void result) {
                 shell.showUsers();
-                shell.showFlash(creating ? "User created" : "User updated", true);
+                shell.showFlash(creating ? text.userCreated() : text.userUpdated(), true);
             }
         };
 
