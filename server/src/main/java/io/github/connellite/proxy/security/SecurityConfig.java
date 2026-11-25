@@ -4,11 +4,13 @@ import io.github.connellite.proxy.service.AdminUserDetailsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 #if SPRING_BOOT_3
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 #else
@@ -38,6 +40,10 @@ public class SecurityConfig {
                         .logoutRequestMatcher(PathPatternRequestMatcher.withDefaults().matcher("/logout"))
                         .logoutSuccessUrl("/login?logout")
                         .permitAll())
+                // GWT RPC cannot follow a redirect to the login page; the client handles 401 itself
+                .exceptionHandling(ex -> ex.defaultAuthenticationEntryPointFor(
+                        new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED),
+                        PathPatternRequestMatcher.withDefaults().matcher("/proxyAdmin/rpc/**")))
                 .userDetailsService(adminUserDetailsService)
                 .csrf(csrf -> csrf.ignoringRequestMatchers("/proxyAdmin/rpc/**"));
 #else
@@ -55,6 +61,12 @@ public class SecurityConfig {
                 .logoutRequestMatcher(new AntPathRequestMatcher("/logout"))
                 .logoutSuccessUrl("/login?logout")
                 .permitAll()
+                .and()
+                // GWT RPC cannot follow a redirect to the login page; the client handles 401 itself
+                .exceptionHandling()
+                .defaultAuthenticationEntryPointFor(
+                        new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED),
+                        new AntPathRequestMatcher("/proxyAdmin/rpc/**"))
                 .and()
                 .csrf()
                 .ignoringAntMatchers("/proxyAdmin/rpc/**")
