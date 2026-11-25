@@ -19,6 +19,8 @@ import org.apache.sshd.common.SshConstants;
 import org.apache.sshd.common.SshException;
 import org.apache.sshd.common.io.IoSession;
 import org.apache.sshd.common.io.IoWriteFuture;
+import org.apache.sshd.common.keyprovider.KeyIdentityProvider;
+import org.apache.sshd.common.keyprovider.KeyPairProvider;
 import org.apache.sshd.common.session.Session;
 import org.apache.sshd.common.session.SessionListener;
 import org.apache.sshd.common.util.Readable;
@@ -46,6 +48,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.PublicKey;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
@@ -84,15 +88,16 @@ public final class SshProxyServer implements ProxyListener, AutoCloseable {
 
     public synchronized void start(String bindHost, int port) throws IOException {
         stop();
-        Path hostKey = Path.of(properties.getDataDir()).toAbsolutePath().normalize().resolve("ssh-hostkey.ser");
-        Files.createDirectories(hostKey.getParent());
+        Path dataDir = Path.of(properties.getDataDir()).toAbsolutePath().normalize();
+        Files.createDirectories(dataDir);
+        List<SshHostKeyType> hostKeys = properties.getSsh().getHostKeys();
 
         SshServer sshd = SshServer.setUpDefaultServer();
         // Windows NIO2 race on stop(): AcceptTask.failed after group executor shutdown (mina-sshd#409).
         sshd.setIoServiceFactoryFactory(ShutdownSafeNio2Executor.serviceFactoryFactory());
         sshd.setHost(bindHost);
         sshd.setPort(port);
-        sshd.setKeyPairProvider(new SimpleGeneratorHostKeyProvider(hostKey));
+        sshd.setKeyPairProvider(hostKeyProvider(dataDir, hostKeys));
         sshd.setPasswordAuthenticator(this::authenticatePassword);
         sshd.setPublickeyAuthenticator(this::authenticatePublicKey);
         sshd.setKeyboardInteractiveAuthenticator(DefaultKeyboardInteractiveAuthenticator.INSTANCE);
@@ -117,7 +122,26 @@ public final class SshProxyServer implements ProxyListener, AutoCloseable {
 
         sshd.start();
         this.server = sshd;
-        log.info("SSH tunnel proxy listening on {}:{}", bindHost, port);
+        log.info("SSH tunnel proxy listening on {}:{} with host keys {}", bindHost, port,
+                hostKeys.stream().map(SshHostKeyType::getSshName).distinct().toList());
+    }
+
+    /**
+     * One generated key per type, each in its own file under {@code dataDir}. SSHD offers the client
+     * only the host key algorithms these keys cover.
+     */
+    private static KeyPairProvider hostKeyProvider(Path dataDir, List<SshHostKeyType> types) {
+        if (types == null || types.isEmpty()) {
+            throw new IllegalStateException("proxy.ssh.host-keys must list at least one host key type");
+        }
+        List<KeyPairProvider> providers = new ArrayList<>();
+        for (SshHostKeyType type : new LinkedHashSet<>(types)) {
+            SimpleGeneratorHostKeyProvider provider = new SimpleGeneratorHostKeyProvider(dataDir.resolve(type.getFileName()));
+            provider.setAlgorithm(type.getAlgorithm());
+            provider.setKeySize(type.getKeySize());
+            providers.add(provider);
+        }
+        return session -> KeyIdentityProvider.iterableOf(session, providers);
     }
 
     @Override

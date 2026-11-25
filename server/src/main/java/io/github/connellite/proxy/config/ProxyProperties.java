@@ -1,10 +1,14 @@
 package io.github.connellite.proxy.config;
 
+import io.github.connellite.proxy.proxy.ssh.SshHostKeyType;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Getter
 @Setter
@@ -33,7 +37,7 @@ public class ProxyProperties {
     private final Listener http = new Listener(false, "0.0.0.0", 3128);
     private final Listener https = new Listener(false, "0.0.0.0", 3129);
     private final Listener socks5 = new Listener(false, "0.0.0.0", 1080);
-    private final Listener ssh = new Listener(false, "0.0.0.0", 2222);
+    private final Ssh ssh = new Ssh();
 
     @Getter
     @Setter
@@ -50,6 +54,21 @@ public class ProxyProperties {
         private boolean enabled;
         private String bindHost;
         private int port;
+    }
+
+    @Getter
+    @Setter
+    public static class Ssh extends Listener {
+        /**
+         * Host key types offered to clients, each kept in its own file under the data directory.
+         */
+        private List<SshHostKeyType> hostKeys = List.of(
+                SshHostKeyType.SSH_ED25519, SshHostKeyType.ECDSA_SHA2_NISTP521, SshHostKeyType.SSH_RSA
+        );
+
+        public Ssh() {
+            super(false, "0.0.0.0", 2222);
+        }
     }
 
     /** TLS defaults: certificate/private-key paths (or paste PEM in the UI). */
