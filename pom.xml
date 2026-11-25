@@ -38,13 +38,13 @@
         <mapstruct.version>1.6.3</mapstruct.version>
         <manifold.version>2026.1.6</manifold.version>
         <sqlite-jdbc.version>3.53.2.0</sqlite-jdbc.version>
-        <postgresql.version>42.7.13</postgresql.version>
-        <mssql-jdbc.version>12.8.2.jre11</mssql-jdbc.version>
-        <oracle-jdbc.version>23.6.0.24.10</oracle-jdbc.version>
+        <postgresql.version>42.7.15</postgresql.version>
+        <mssql-jdbc.version>13.6.0.jre11</mssql-jdbc.version>
+        <oracle-jdbc.version>23.26.3.0.0</oracle-jdbc.version>
         <!-- runtime in the executable JAR; the WAR omits them (Tomcat lib). Native sets provided. -->
         <jdbc-drivers.scope>runtime</jdbc-drivers.scope>
-        <guava.version>33.6.0-jre</guava.version>
-        <bouncycastle.version>1.86</bouncycastle.version>
+        <guava.version>33.8.0-jre</guava.version>
+        <bouncycastle.version>1.87</bouncycastle.version>
         <micrometer.version>1.16.7</micrometer.version>
         <sshd.version>2.20.0</sshd.version>
         <commons-lang3.version>3.21.0</commons-lang3.version>
@@ -63,7 +63,7 @@
         <manifold.spring.symbol>SPRING_BOOT_2</manifold.spring.symbol>
         <spring.boot.compat.version>2.7.18</spring.boot.compat.version>
         <sqlite.dialect>org.sqlite.hibernate.dialect.SQLiteDialect</sqlite.dialect>
-        <netty.version>4.2.18.Final</netty.version>
+        <netty.version>4.2.21.Final</netty.version>
         <dnsjava.version>3.6.3</dnsjava.version>
         <ipaddress.version>5.5.1</ipaddress.version>
         <!-- provided for WAR; compile for standalone / native -->
