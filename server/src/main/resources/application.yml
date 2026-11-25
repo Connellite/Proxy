@@ -2,6 +2,10 @@ server:
   port: 8080
   servlet:
     context-path: /
+    # Admin UI idle session for embedded Tomcat and the native image.
+    # A WAR on external Tomcat uses WEB-INF/web.xml instead.
+    session:
+      timeout: 10m
 
 spring:
   application:

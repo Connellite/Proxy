@@ -330,6 +330,7 @@
                     </execution>
                 </executions>
                 <configuration>
+                    <!-- Boot 2 WAR: src/main/webapp (Tomcat 9). The spring-3 profile points at src/main/webapp-jakarta. -->
                     <attachClasses>false</attachClasses>
                     <failOnMissingWebXml>false</failOnMissingWebXml>
                     <!-- PostgreSQL, SQL Server and Oracle drivers ship only in the executable JAR. -->
@@ -389,6 +390,15 @@
             </dependencies>
             <build>
                 <finalName>${project.artifactId}-${project.version}-spring-3</finalName>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-war-plugin</artifactId>
+                        <configuration>
+                            <warSourceDirectory>${project.basedir}/src/main/webapp-jakarta</warSourceDirectory>
+                        </configuration>
+                    </plugin>
+                </plugins>
             </build>
         </profile>
 
