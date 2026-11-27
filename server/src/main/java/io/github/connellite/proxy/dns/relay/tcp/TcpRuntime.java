@@ -1,4 +1,4 @@
-package io.github.connellite.proxy.dns.tcp;
+package io.github.connellite.proxy.dns.relay.tcp;
 
 import io.github.connellite.proxy.dns.relay.RelayCatalog;
 import io.github.connellite.proxy.dns.relay.RelaySnapshot;

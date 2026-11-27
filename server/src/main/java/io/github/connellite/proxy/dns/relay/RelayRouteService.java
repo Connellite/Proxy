@@ -1,7 +1,7 @@
 package io.github.connellite.proxy.dns.relay;
 
 import io.github.connellite.proxy.dns.server.DnsRuntime;
-import io.github.connellite.proxy.dns.tcp.TcpRuntime;
+import io.github.connellite.proxy.dns.relay.tcp.TcpRuntime;
 import io.github.connellite.proxy.dns.upstream.UpstreamDnsEndpoint;
 import io.github.connellite.proxy.dto.AppSettings;
 import io.github.connellite.proxy.model.RelayRoute;

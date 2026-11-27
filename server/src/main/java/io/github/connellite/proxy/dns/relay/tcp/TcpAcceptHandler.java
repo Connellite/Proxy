@@ -1,4 +1,4 @@
-package io.github.connellite.proxy.dns.tcp;
+package io.github.connellite.proxy.dns.relay.tcp;
 
 import io.github.connellite.proxy.config.ProxyProperties;
 import io.github.connellite.proxy.model.RelayRouteMode;

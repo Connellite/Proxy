@@ -1,4 +1,4 @@
-package io.github.connellite.proxy.dns.tcp;
+package io.github.connellite.proxy.dns.relay.tcp;
 
 import org.junit.jupiter.api.Test;
 

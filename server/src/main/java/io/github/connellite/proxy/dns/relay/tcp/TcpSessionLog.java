@@ -1,4 +1,4 @@
-package io.github.connellite.proxy.dns.tcp;
+package io.github.connellite.proxy.dns.relay.tcp;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
