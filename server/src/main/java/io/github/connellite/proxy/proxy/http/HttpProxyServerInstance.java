@@ -23,12 +23,14 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpServerCodec;
 import io.netty.handler.timeout.IdleStateHandler;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.net.InetSocketAddress;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
+@RequiredArgsConstructor
 public class HttpProxyServerInstance implements ProxyListener, AutoCloseable {
 
     protected final ProxyAuthService authService;
@@ -42,22 +44,6 @@ public class HttpProxyServerInstance implements ProxyListener, AutoCloseable {
     private EventLoopGroup bossGroup;
     private EventLoopGroup workerGroup;
     private Channel serverChannel;
-
-    public HttpProxyServerInstance(ProxyAuthService authService,
-                            ProxyMetrics metrics,
-                            ProxyProperties properties,
-                            OutboundConnector outboundConnector,
-                            HttpStripHeaderService stripHeaderService,
-                            UserConnectionLog connectionLog,
-                            ProxyAllowCatalog allowCatalog) {
-        this.authService = authService;
-        this.metrics = metrics;
-        this.properties = properties;
-        this.outboundConnector = outboundConnector;
-        this.stripHeaderService = stripHeaderService;
-        this.connectionLog = connectionLog;
-        this.allowCatalog = allowCatalog;
-    }
 
     protected String scheme() {
         return "HTTP proxy";

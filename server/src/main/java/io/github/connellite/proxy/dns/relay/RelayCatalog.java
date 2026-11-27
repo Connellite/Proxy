@@ -71,14 +71,32 @@ public class RelayCatalog {
             routes.add(new RelaySnapshot.Route(row.getName(), row.getMode(), row.getUpstreamHost(),
                     row.getUpstreamPort(), answer));
         }
-        return new RelaySnapshot(routes, advertised, resolver,
-                settings.isRelayDnsEnabled(), settings.getRelayDnsBindHost(), settings.getRelayDnsPort(),
-                settings.isRelayTcpEnabled(), settings.getRelayTcpBindHost(), settings.getRelayTcpPort(),
-                settings.isRelayDohEnabled(), settings.getRelayDohBindHost(), settings.getRelayDohPort(),
-                settings.isRelayDoqEnabled(), settings.getRelayDoqBindHost(), settings.getRelayDoqPort(),
-                settings.isRelayDotEnabled(), settings.getRelayDotBindHost(), settings.getRelayDotPort(),
-                settings.isRelayDoh3Enabled(), settings.getRelayDoh3BindHost(), settings.getRelayDoh3Port(),
-                dnsNetworks(dnsRows), tcpNetworks(tcpRows), settings.isRelayTcpUseUpstream());
+        return RelaySnapshot.builder()
+                .routes(routes)
+                .advertisedAddress(advertised)
+                .upstreamResolver(resolver)
+                .dnsEnabled(settings.isRelayDnsEnabled())
+                .dnsBindHost(settings.getRelayDnsBindHost())
+                .dnsPort(settings.getRelayDnsPort())
+                .tcpEnabled(settings.isRelayTcpEnabled())
+                .tcpBindHost(settings.getRelayTcpBindHost())
+                .tcpPort(settings.getRelayTcpPort())
+                .dohEnabled(settings.isRelayDohEnabled())
+                .dohBindHost(settings.getRelayDohBindHost())
+                .dohPort(settings.getRelayDohPort())
+                .doqEnabled(settings.isRelayDoqEnabled())
+                .doqBindHost(settings.getRelayDoqBindHost())
+                .doqPort(settings.getRelayDoqPort())
+                .dotEnabled(settings.isRelayDotEnabled())
+                .dotBindHost(settings.getRelayDotBindHost())
+                .dotPort(settings.getRelayDotPort())
+                .doh3Enabled(settings.isRelayDoh3Enabled())
+                .doh3BindHost(settings.getRelayDoh3BindHost())
+                .doh3Port(settings.getRelayDoh3Port())
+                .dnsAllow(dnsNetworks(dnsRows))
+                .tcpAllow(tcpNetworks(tcpRows))
+                .tcpUseUpstream(settings.isRelayTcpUseUpstream())
+                .build();
     }
 
     private static AllowNetworks dnsNetworks(List<RelayDnsAllow> rows) {

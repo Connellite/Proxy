@@ -21,11 +21,14 @@ import io.netty.handler.codec.socksx.v5.Socks5InitialResponseDecoder;
 import io.netty.handler.codec.socksx.v5.Socks5PasswordAuthResponse;
 import io.netty.handler.codec.socksx.v5.Socks5PasswordAuthResponseDecoder;
 import io.netty.handler.codec.socksx.v5.Socks5PasswordAuthStatus;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.Arrays;
 import java.util.Collections;
 
+@RequiredArgsConstructor(access = AccessLevel.PACKAGE)
 final class Socks5UpstreamHandler extends SimpleChannelInboundHandler<Object> {
 
     private enum Phase { INIT, AUTH, COMMAND, DONE }
@@ -37,15 +40,6 @@ final class Socks5UpstreamHandler extends SimpleChannelInboundHandler<Object> {
     private final TunnelCallback callback;
     private Phase phase = Phase.INIT;
     private boolean finished;
-
-    Socks5UpstreamHandler(UpstreamSnapshot upstream, String targetHost, int targetPort,
-                          boolean wantAuth, TunnelCallback callback) {
-        this.upstream = upstream;
-        this.targetHost = targetHost;
-        this.targetPort = targetPort;
-        this.wantAuth = wantAuth;
-        this.callback = callback;
-    }
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) {

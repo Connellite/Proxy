@@ -3,6 +3,7 @@ package io.github.connellite.proxy.dns.relay;
 import io.github.connellite.proxy.dns.upstream.UpstreamDnsEndpoint;
 import io.github.connellite.proxy.util.AllowNetworks;
 import io.github.connellite.proxy.model.RelayRouteMode;
+import lombok.Builder;
 import lombok.Getter;
 
 import java.net.InetAddress;
@@ -12,6 +13,7 @@ import java.util.List;
 /**
  * Immutable working copy. DNS and new accepts read this; open connections do not.
  */
+@Builder
 public record RelaySnapshot(List<Route> routes,
                             InetAddress advertisedAddress,
                             UpstreamDnsEndpoint upstreamResolver,
@@ -48,7 +50,7 @@ public record RelaySnapshot(List<Route> routes,
                          boolean dotEnabled, String dotBindHost, int dotPort,
                          boolean doh3Enabled, String doh3BindHost, int doh3Port,
                          AllowNetworks dnsAllow, AllowNetworks tcpAllow, boolean tcpUseUpstream) {
-        this.routes = List.copyOf(routes);
+        this.routes = routes == null ? List.of() : List.copyOf(routes);
         this.advertisedAddress = advertisedAddress;
         this.upstreamResolver = upstreamResolver == null ? UpstreamDnsEndpoint.DEFAULT : upstreamResolver;
         this.dnsEnabled = dnsEnabled;
@@ -75,10 +77,24 @@ public record RelaySnapshot(List<Route> routes,
     }
 
     public static RelaySnapshot defaults() {
-        return new RelaySnapshot(List.of(), null, UpstreamDnsEndpoint.DEFAULT,
-                false, "0.0.0.0", 53, false, "0.0.0.0", 443,
-                false, "0.0.0.0", 8443, false, "0.0.0.0", 853, false, "0.0.0.0", 853, false, "0.0.0.0", 443,
-                AllowNetworks.everyone(), AllowNetworks.everyone(), false);
+        return RelaySnapshot.builder()
+                .routes(List.of())
+                .upstreamResolver(UpstreamDnsEndpoint.DEFAULT)
+                .dnsBindHost("0.0.0.0")
+                .dnsPort(53)
+                .tcpBindHost("0.0.0.0")
+                .tcpPort(443)
+                .dohBindHost("0.0.0.0")
+                .dohPort(8443)
+                .doqBindHost("0.0.0.0")
+                .doqPort(853)
+                .dotBindHost("0.0.0.0")
+                .dotPort(853)
+                .doh3BindHost("0.0.0.0")
+                .doh3Port(443)
+                .dnsAllow(AllowNetworks.everyone())
+                .tcpAllow(AllowNetworks.everyone())
+                .build();
     }
 
     /**

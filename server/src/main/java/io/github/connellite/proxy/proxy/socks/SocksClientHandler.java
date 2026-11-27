@@ -8,11 +8,14 @@ import io.github.connellite.proxy.service.SettingsService;
 import io.github.connellite.proxy.service.UserConnectionLog;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
-import io.netty.util.ReferenceCountUtil;
 import io.netty.handler.codec.socksx.SocksMessage;
 import io.netty.handler.codec.socksx.v4.Socks4CommandRequest;
 import io.netty.handler.codec.socksx.v5.Socks5InitialRequest;
+import io.netty.util.ReferenceCountUtil;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
 
+@RequiredArgsConstructor(access = AccessLevel.PACKAGE)
 final class SocksClientHandler extends SimpleChannelInboundHandler<SocksMessage> {
 
     private final ProxyAuthService authService;
@@ -20,18 +23,6 @@ final class SocksClientHandler extends SimpleChannelInboundHandler<SocksMessage>
     private final SettingsService settingsService;
     private final OutboundConnector outboundConnector;
     private final UserConnectionLog connectionLog;
-
-    SocksClientHandler(ProxyAuthService authService,
-                       ProxyMetrics metrics,
-                       SettingsService settingsService,
-                       OutboundConnector outboundConnector,
-                       UserConnectionLog connectionLog) {
-        this.authService = authService;
-        this.metrics = metrics;
-        this.settingsService = settingsService;
-        this.outboundConnector = outboundConnector;
-        this.connectionLog = connectionLog;
-    }
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, SocksMessage msg) {

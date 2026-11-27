@@ -24,6 +24,8 @@ import io.netty.handler.codec.socksx.v5.DefaultSocks5CommandResponse;
 import io.netty.handler.codec.socksx.v5.Socks5AddressType;
 import io.netty.handler.codec.socksx.v5.Socks5CommandStatus;
 import io.netty.util.AttributeKey;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.net.InetSocketAddress;
@@ -31,6 +33,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
+@RequiredArgsConstructor(access = AccessLevel.PACKAGE)
 abstract class AbstractSocksClientHandler extends SimpleChannelInboundHandler<SocksMessage> {
 
     static final AttributeKey<AuthenticatedSession> SESSION_KEY = AttributeKey.valueOf("socksSession");
@@ -40,18 +43,6 @@ abstract class AbstractSocksClientHandler extends SimpleChannelInboundHandler<So
     final SettingsService settingsService;
     final OutboundConnector outboundConnector;
     final UserConnectionLog connectionLog;
-
-    AbstractSocksClientHandler(ProxyAuthService authService,
-                               ProxyMetrics metrics,
-                               SettingsService settingsService,
-                               OutboundConnector outboundConnector,
-                               UserConnectionLog connectionLog) {
-        this.authService = authService;
-        this.metrics = metrics;
-        this.settingsService = settingsService;
-        this.outboundConnector = outboundConnector;
-        this.connectionLog = connectionLog;
-    }
 
     abstract String getProtocol();
 
