@@ -90,6 +90,7 @@ import io.github.connellite.proxy.util.LocalBindAddresses;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.time.DurationFormatUtils;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -820,7 +821,7 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
             row.setType(entry.type());
             row.setOutcome(entry.outcome());
             row.setAnswer(entry.answer());
-            row.setElapsed(entry.millis() + " ms");
+            row.setElapsed(DurationFormatUtils.formatDurationHMS(entry.millis()));
             rows.add(row);
         }
         return rows;
@@ -835,7 +836,7 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
             row.setClient(entry.client());
             row.setHostname(entry.hostname());
             row.setOutcome(entry.outcome());
-            row.setElapsed(entry.millis() + " ms");
+            row.setElapsed(DurationFormatUtils.formatDurationHMS(entry.millis()));
             rows.add(row);
         }
         return rows;
@@ -853,7 +854,7 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
             row.setBytesUp(entry.bytesUp());
             row.setBytesDown(entry.bytesDown());
             row.setOutcome(entry.outcome());
-            row.setElapsed(entry.millis() + " ms");
+            row.setElapsed(DurationFormatUtils.formatDurationHMS(entry.millis()));
             rows.add(row);
         }
         return rows;
