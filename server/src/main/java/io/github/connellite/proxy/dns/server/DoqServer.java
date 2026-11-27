@@ -1,5 +1,6 @@
 package io.github.connellite.proxy.dns.server;
 
+import io.github.connellite.proxy.ServerListener;
 import io.github.connellite.proxy.config.ProxyProperties;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
@@ -31,7 +32,7 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class DoqServer implements Listener {
+public class DoqServer implements ServerListener {
 
     private final DnsServer dns;
     private final ProxyProperties properties;

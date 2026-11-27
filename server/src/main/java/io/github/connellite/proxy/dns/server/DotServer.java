@@ -1,5 +1,6 @@
 package io.github.connellite.proxy.dns.server;
 
+import io.github.connellite.proxy.ServerListener;
 import io.github.connellite.proxy.config.ProxyProperties;
 import io.github.connellite.proxy.proxy.IdleCloseHandler;
 import io.github.connellite.proxy.proxy.QuietCloseHandlerAdapter;
@@ -28,7 +29,7 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class DotServer implements Listener {
+public class DotServer implements ServerListener {
 
     private final DnsServer dns;
     private final ProxyProperties properties;

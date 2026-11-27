@@ -1,9 +1,9 @@
 package io.github.connellite.proxy.proxy.http;
 
+import io.github.connellite.proxy.ServerListener;
 import io.github.connellite.proxy.config.ProxyProperties;
 import io.github.connellite.proxy.proxy.AllowListHandler;
 import io.github.connellite.proxy.proxy.IdleCloseHandler;
-import io.github.connellite.proxy.proxy.ProxyListener;
 import io.github.connellite.proxy.proxy.QuietCloseHandlerAdapter;
 import io.github.connellite.proxy.proxy.outbound.OutboundConnector;
 import io.github.connellite.proxy.service.HttpStripHeaderService;
@@ -31,7 +31,7 @@ import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @RequiredArgsConstructor
-public class HttpProxyServerInstance implements ProxyListener, AutoCloseable {
+public class HttpProxyServerInstance implements ServerListener, AutoCloseable {
 
     protected final ProxyAuthService authService;
     protected final ProxyMetrics metrics;

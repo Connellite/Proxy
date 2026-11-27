@@ -1,9 +1,9 @@
-package io.github.connellite.proxy.dns.server;
+package io.github.connellite.proxy;
 
 /**
- * Lifecycle for an inbound DNS listener.
+ * Lifecycle for an inbound listener. {@code start} stays on each server: bind signatures differ.
  */
-public interface Listener {
+public interface ServerListener {
 
     boolean isRunning();
 

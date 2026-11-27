@@ -1,5 +1,6 @@
 package io.github.connellite.proxy.dns.server;
 
+import io.github.connellite.proxy.ServerListener;
 import io.github.connellite.proxy.config.ProxyProperties;
 import io.github.connellite.proxy.model.RelayRouteMode;
 import io.github.connellite.proxy.dns.relay.RelayAnswers;
@@ -47,7 +48,7 @@ import java.util.function.Consumer;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class DnsServer implements Listener {
+public class DnsServer implements ServerListener {
 
     private final RelayCatalog catalog;
     private final ProxyProperties properties;

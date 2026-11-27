@@ -1,5 +1,6 @@
 package io.github.connellite.proxy.dns.server;
 
+import io.github.connellite.proxy.ServerListener;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
@@ -29,7 +30,7 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class DohServer implements Listener {
+public class DohServer implements ServerListener {
 
     private final DnsServer dns;
 

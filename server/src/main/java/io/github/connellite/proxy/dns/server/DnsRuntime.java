@@ -1,5 +1,6 @@
 package io.github.connellite.proxy.dns.server;
 
+import io.github.connellite.proxy.ServerListener;
 import io.github.connellite.proxy.dns.relay.RelayCatalog;
 import io.github.connellite.proxy.dns.relay.RelaySnapshot;
 import io.github.connellite.proxy.proxy.http.ProxyTlsService;
@@ -103,7 +104,7 @@ public class DnsRuntime {
     }
 
     public void stop() {
-        for (Listener listener : List.of(dnsServer, dohServer, doh3Server, dotServer, doqServer)) {
+        for (ServerListener listener : List.of(dnsServer, dohServer, doh3Server, dotServer, doqServer)) {
             listener.stop();
         }
     }
