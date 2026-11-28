@@ -23,6 +23,7 @@ import io.github.connellite.proxy.client.util.CellCopy;
 import io.github.connellite.proxy.client.util.Forms;
 import io.github.connellite.proxy.client.util.PlainIntegerBox;
 import io.github.connellite.proxy.client.util.Rpc;
+import io.github.connellite.proxy.client.util.Tables;
 
 import java.util.List;
 
@@ -206,10 +207,7 @@ public class SettingsPage extends Composite {
         allowHost.setVisible(true);
         FlexTable table = new FlexTable();
         table.setStyleName("users-table");
-        table.setText(0, 0, text.network());
-        table.setText(0, 1, "");
-        styleHeader(table, 0);
-        styleHeader(table, 1);
+        Tables.header(table, text.network(), "");
         int row = 1;
         for (RelayAllowRowGWTDTO allow : rows) {
             table.setText(row, 0, allow.getCidr() == null ? "" : allow.getCidr());
@@ -259,14 +257,6 @@ public class SettingsPage extends Composite {
                 load();
             }
         });
-    }
-
-    private static void styleHeader(FlexTable table, int column) {
-        table.getCellFormatter().getElement(0, column).getStyle().setProperty("background", "#efe8dc");
-        table.getCellFormatter().getElement(0, column).getStyle().setProperty("fontSize", "0.75rem");
-        table.getCellFormatter().getElement(0, column).getStyle().setProperty("textTransform", "uppercase");
-        table.getCellFormatter().getElement(0, column).getStyle().setProperty("fontWeight", "700");
-        table.getCellFormatter().getElement(0, column).getStyle().setProperty("color", "#6b645a");
     }
 
     private void load() {

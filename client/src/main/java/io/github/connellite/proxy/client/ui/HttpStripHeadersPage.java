@@ -19,6 +19,7 @@ import io.github.connellite.proxy.client.rpc.dto.HttpStripHeaderRowGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.HttpStripHeadersPageGWTDTO;
 import io.github.connellite.proxy.client.util.CellCopy;
 import io.github.connellite.proxy.client.util.Rpc;
+import io.github.connellite.proxy.client.util.Tables;
 
 public class HttpStripHeadersPage extends Composite {
 
@@ -77,10 +78,7 @@ public class HttpStripHeadersPage extends Composite {
         table.setStyleName("users-table strip-headers-table");
 
         StripHeadersMessages text = AppMessages.STRIP;
-        table.setText(0, 0, text.colName());
-        table.setText(0, 1, text.colAction());
-        styleHeaderCell(table, 0, 0);
-        styleHeaderCell(table, 0, 1);
+        Tables.header(table, text.colName(), text.colAction());
         table.getColumnFormatter().setWidth(0, "75%");
         table.getColumnFormatter().setWidth(1, "25%");
 
@@ -168,13 +166,5 @@ public class HttpStripHeadersPage extends Composite {
                 load();
             }
         };
-    }
-
-    private static void styleHeaderCell(FlexTable table, int row, int col) {
-        table.getCellFormatter().getElement(row, col).getStyle().setProperty("background", "#efe8dc");
-        table.getCellFormatter().getElement(row, col).getStyle().setProperty("fontSize", "0.75rem");
-        table.getCellFormatter().getElement(row, col).getStyle().setProperty("textTransform", "uppercase");
-        table.getCellFormatter().getElement(row, col).getStyle().setProperty("fontWeight", "700");
-        table.getCellFormatter().getElement(row, col).getStyle().setProperty("color", "#6b645a");
     }
 }

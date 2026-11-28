@@ -216,19 +216,25 @@ th, td {
   background: var(--panel);
   padding: 0.65rem 0.75rem;
 }
-.users-table thead th {
+.users-table thead th,
+.users-table tr.table-head td {
   background: #efe8dc;
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--muted);
   font-weight: 700;
+}
+.users-table thead th {
   position: sticky;
   top: 0;
   z-index: 1;
 }
 .users-table tbody tr:hover td {
   background: #faf7f1;
+}
+.users-table tr.table-head:hover td {
+  background: #efe8dc;
 }
 table.users-table tr.route-row {
   cursor: pointer;
@@ -464,14 +470,6 @@ input[type="date"].date-input::-webkit-calendar-picker-indicator {
 .sftp-table td:nth-child(1) { width: 22%; }
 .sftp-table td:nth-child(3) { width: 12%; white-space: nowrap; }
 .sftp-table td:nth-child(4) { width: 26%; }
-.sftp-table tr.sftp-head td {
-  background: #efe8dc;
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--muted);
-  font-weight: 700;
-}
 .sftp-table td:nth-child(1) .badge { margin-left: 0.4rem; min-width: 0; }
 .sftp-table .actions { display: flex; gap: 0.4rem; flex-wrap: wrap; }
 .sftp-table input[type="text"] { font: inherit; padding: 0.4rem 0.55rem; border: 1px solid var(--line); border-radius: 6px; }

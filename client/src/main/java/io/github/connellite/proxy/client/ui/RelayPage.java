@@ -31,6 +31,7 @@ import io.github.connellite.proxy.client.util.EnumListBox;
 import io.github.connellite.proxy.client.util.Forms;
 import io.github.connellite.proxy.client.util.PlainIntegerBox;
 import io.github.connellite.proxy.client.util.Rpc;
+import io.github.connellite.proxy.client.util.Tables;
 
 /** DNS answers and the TCP relay that follows SNI. */
 public class RelayPage extends Composite {
@@ -355,10 +356,7 @@ public class RelayPage extends Composite {
         host.setVisible(true);
         FlexTable table = new FlexTable();
         table.setStyleName("users-table");
-        table.setText(0, 0, text.network());
-        table.setText(0, 1, "");
-        styleHeader(table, 0);
-        styleHeader(table, 1);
+        Tables.header(table, text.network(), "");
         int row = 1;
         for (RelayAllowRowGWTDTO allow : rows) {
             table.setText(row, 0, text(allow.getCidr()));
@@ -431,15 +429,8 @@ public class RelayPage extends Composite {
         tableHost.setVisible(true);
         FlexTable table = new FlexTable();
         table.setStyleName("users-table route-table");
-        String[] headers = {text.colName(), text.colMode(), text.colUpstream(), text.colAnswer(), text.colEnabled(), ""};
-        for (int i = 0; i < headers.length; i++) {
-            table.setText(0, i, headers[i]);
-            table.getCellFormatter().getElement(0, i).getStyle().setProperty("background", "#efe8dc");
-            table.getCellFormatter().getElement(0, i).getStyle().setProperty("fontSize", "0.75rem");
-            table.getCellFormatter().getElement(0, i).getStyle().setProperty("textTransform", "uppercase");
-            table.getCellFormatter().getElement(0, i).getStyle().setProperty("fontWeight", "700");
-            table.getCellFormatter().getElement(0, i).getStyle().setProperty("color", "#6b645a");
-        }
+        Tables.header(table,
+                text.colName(), text.colMode(), text.colUpstream(), text.colAnswer(), text.colEnabled(), "");
         int row = 1;
         final List<RelayRouteRowGWTDTO> routes = page.getRoutes();
         for (RelayRouteRowGWTDTO route : routes) {
@@ -519,14 +510,10 @@ public class RelayPage extends Composite {
         }
         FlexTable table = new FlexTable();
         table.setStyleName("users-table query-log");
-        String[] headers = {
+        Tables.header(table,
                 text.colTime(), text.colClient(), text.colProto(), text.colName(),
                 text.colType(), text.colResult(), text.colAnswer(), text.colElapsed()
-        };
-        for (int i = 0; i < headers.length; i++) {
-            table.setText(0, i, headers[i]);
-            styleHeader(table, i);
-        }
+        );
         int row = 1;
         for (RelayQueryRowGWTDTO query : rows) {
             table.setText(row, 0, text(query.getTime()));
@@ -567,11 +554,7 @@ public class RelayPage extends Composite {
         }
         FlexTable table = new FlexTable();
         table.setStyleName("users-table query-log");
-        String[] headers = {text.colTime(), text.colClient(), text.colHost(), text.colResult(), text.colElapsed()};
-        for (int i = 0; i < headers.length; i++) {
-            table.setText(0, i, headers[i]);
-            styleHeader(table, i);
-        }
+        Tables.header(table, text.colTime(), text.colClient(), text.colHost(), text.colResult(), text.colElapsed());
         int row = 1;
         for (RelayTcpSessionRowGWTDTO session : rows) {
             table.setText(row, 0, text(session.getTime()));
@@ -583,14 +566,6 @@ public class RelayPage extends Composite {
         }
         CellCopy.install(table);
         tcpLogTable.add(table);
-    }
-
-    private static void styleHeader(FlexTable table, int column) {
-        table.getCellFormatter().getElement(0, column).getStyle().setProperty("background", "#efe8dc");
-        table.getCellFormatter().getElement(0, column).getStyle().setProperty("fontSize", "0.75rem");
-        table.getCellFormatter().getElement(0, column).getStyle().setProperty("textTransform", "uppercase");
-        table.getCellFormatter().getElement(0, column).getStyle().setProperty("fontWeight", "700");
-        table.getCellFormatter().getElement(0, column).getStyle().setProperty("color", "#6b645a");
     }
 
     private static String text(String value) {

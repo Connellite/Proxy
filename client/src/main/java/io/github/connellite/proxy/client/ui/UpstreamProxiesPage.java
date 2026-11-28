@@ -20,6 +20,7 @@ import io.github.connellite.proxy.client.rpc.dto.UpstreamProxiesPageGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.UpstreamProxyRowGWTDTO;
 import io.github.connellite.proxy.client.util.CellCopy;
 import io.github.connellite.proxy.client.util.Rpc;
+import io.github.connellite.proxy.client.util.Tables;
 
 public class UpstreamProxiesPage extends Composite {
 
@@ -113,15 +114,8 @@ public class UpstreamProxiesPage extends Composite {
         tableHost.clear();
         FlexTable table = new FlexTable();
         table.setStyleName("users-table");
-        String[] headers = {text.colName(), text.colType(), text.colEndpoint(), text.colAuth(), text.colStatus(), text.colActions()};
-        for (int i = 0; i < headers.length; i++) {
-            table.setText(0, i, headers[i]);
-            table.getCellFormatter().getElement(0, i).getStyle().setProperty("background", "#efe8dc");
-            table.getCellFormatter().getElement(0, i).getStyle().setProperty("fontSize", "0.75rem");
-            table.getCellFormatter().getElement(0, i).getStyle().setProperty("textTransform", "uppercase");
-            table.getCellFormatter().getElement(0, i).getStyle().setProperty("fontWeight", "700");
-            table.getCellFormatter().getElement(0, i).getStyle().setProperty("color", "#6b645a");
-        }
+        Tables.header(table,
+                text.colName(), text.colType(), text.colEndpoint(), text.colAuth(), text.colStatus(), text.colActions());
 
         int row = 1;
         if (page.getProxies() != null) {

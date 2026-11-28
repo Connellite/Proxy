@@ -25,6 +25,7 @@ import io.github.connellite.proxy.client.rpc.dto.SftpPageGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.SftpUserRowGWTDTO;
 import io.github.connellite.proxy.client.util.CellCopy;
 import io.github.connellite.proxy.client.util.Rpc;
+import io.github.connellite.proxy.client.util.Tables;
 
 /**
  * Per-user SFTP folders. The folder becomes the user's {@code /} over SFTP, either read-only or
@@ -104,10 +105,7 @@ public class SftpPage extends Composite {
         FlexTable table = new FlexTable();
         table.setStyleName("users-table sftp-table");
         String[] headers = {text.colUser(), text.colFolder(), text.colAccess(), text.colActions()};
-        for (int i = 0; i < headers.length; i++) {
-            table.setText(0, i, headers[i]);
-        }
-        table.getRowFormatter().setStyleName(0, "sftp-head");
+        Tables.header(table, headers);
 
         int row = 1;
         if (page.getUsers() != null) {

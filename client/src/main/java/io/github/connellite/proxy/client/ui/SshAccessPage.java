@@ -22,6 +22,7 @@ import io.github.connellite.proxy.client.rpc.dto.SshUserKeyRowGWTDTO;
 import io.github.connellite.proxy.client.util.CellCopy;
 import io.github.connellite.proxy.client.util.Forms;
 import io.github.connellite.proxy.client.util.Rpc;
+import io.github.connellite.proxy.client.util.Tables;
 
 public class SshAccessPage extends Composite {
 
@@ -142,11 +143,7 @@ public class SshAccessPage extends Composite {
         tableHost.clear();
         FlexTable table = new FlexTable();
         table.setStyleName("users-table");
-        String[] headers = {text.colComment(), text.colFingerprint(), text.colCreated(), text.colActions()};
-        for (int i = 0; i < headers.length; i++) {
-            table.setText(0, i, headers[i]);
-            styleHeaderCell(table, 0, i);
-        }
+        Tables.header(table, text.colComment(), text.colFingerprint(), text.colCreated(), text.colActions());
 
         int row = 1;
         if (page.getKeys() != null) {
@@ -265,14 +262,6 @@ public class SshAccessPage extends Composite {
 
     private static String blankToDash(String value) {
         return value == null || value.isEmpty() ? AppMessages.COMMON.dash() : value;
-    }
-
-    private static void styleHeaderCell(FlexTable table, int row, int col) {
-        table.getCellFormatter().getElement(row, col).getStyle().setProperty("background", "#efe8dc");
-        table.getCellFormatter().getElement(row, col).getStyle().setProperty("fontSize", "0.75rem");
-        table.getCellFormatter().getElement(row, col).getStyle().setProperty("textTransform", "uppercase");
-        table.getCellFormatter().getElement(row, col).getStyle().setProperty("fontWeight", "700");
-        table.getCellFormatter().getElement(row, col).getStyle().setProperty("color", "#6b645a");
     }
 
     private static native void downloadText(String filename, String content) /*-{

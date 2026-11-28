@@ -23,6 +23,7 @@ import io.github.connellite.proxy.client.util.AutoRefresh;
 import io.github.connellite.proxy.client.util.CellCopy;
 import io.github.connellite.proxy.client.util.Formatters;
 import io.github.connellite.proxy.client.util.Rpc;
+import io.github.connellite.proxy.client.util.Tables;
 
 import java.util.List;
 
@@ -145,22 +146,9 @@ public class UsersPage extends Composite {
         FlexTable table = new FlexTable();
         table.setStyleName("users-table");
         UsersMessages text = AppMessages.USERS;
-        String[] headers = {
+        Tables.header(table,
                 text.colUsername(), text.colRoles(), text.colStatus(), text.colConn(), text.colSpeed(),
-                text.colExpires(), text.colTraffic(), text.colLastUsed(), text.colActions()
-        };
-        for (int i = 0; i < headers.length; i++) {
-            table.setText(0, i, headers[i]);
-            table.getCellFormatter().setStyleName(0, i, "");
-        }
-        table.getRowFormatter().setStyleName(0, "");
-        for (int i = 0; i < headers.length; i++) {
-            table.getCellFormatter().getElement(0, i).getStyle().setProperty("background", "#efe8dc");
-            table.getCellFormatter().getElement(0, i).getStyle().setProperty("fontSize", "0.75rem");
-            table.getCellFormatter().getElement(0, i).getStyle().setProperty("textTransform", "uppercase");
-            table.getCellFormatter().getElement(0, i).getStyle().setProperty("fontWeight", "700");
-            table.getCellFormatter().getElement(0, i).getStyle().setProperty("color", "#6b645a");
-        }
+                text.colExpires(), text.colTraffic(), text.colLastUsed(), text.colActions());
 
         int row = 1;
         if (page.getUsers() != null) {
@@ -229,10 +217,7 @@ public class UsersPage extends Composite {
                 text.colTime(), text.colUser(), text.colProto(), text.colClient(),
                 text.colUp(), text.colDown(), text.colResult(), text.colElapsed()
         };
-        for (int i = 0; i < headers.length; i++) {
-            table.setText(0, i, headers[i]);
-            styleHeader(table, i);
-        }
+        Tables.header(table, headers);
         if (rows == null || rows.isEmpty()) {
             table.setText(1, 0, text.noConnections());
             table.getFlexCellFormatter().setColSpan(1, 0, headers.length);
@@ -254,14 +239,6 @@ public class UsersPage extends Composite {
         }
         CellCopy.install(table);
         connectionTable.add(table);
-    }
-
-    private static void styleHeader(FlexTable table, int column) {
-        table.getCellFormatter().getElement(0, column).getStyle().setProperty("background", "#efe8dc");
-        table.getCellFormatter().getElement(0, column).getStyle().setProperty("fontSize", "0.75rem");
-        table.getCellFormatter().getElement(0, column).getStyle().setProperty("textTransform", "uppercase");
-        table.getCellFormatter().getElement(0, column).getStyle().setProperty("fontWeight", "700");
-        table.getCellFormatter().getElement(0, column).getStyle().setProperty("color", "#6b645a");
     }
 
     private static SafeHtml rolesBadge(UserRowGWTDTO user) {
