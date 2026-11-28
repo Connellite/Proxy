@@ -93,16 +93,6 @@ public class UpstreamProxiesPage extends Composite {
         status.setStyleName("hint");
         tableHost.setStyleName("table-wrap");
 
-        root.add(header);
-        root.add(hint);
-        root.add(status);
-        root.add(outboundPanel(text));
-        root.add(tableHost);
-        initWidget(root);
-        load();
-    }
-
-    private FlowPanel outboundPanel(UpstreamMessages text) {
         outboundTtl.setMin(0);
         outboundTtl.setMax(255);
         splitPosition.setMin(1);
@@ -120,21 +110,13 @@ public class UpstreamProxiesPage extends Composite {
             }
         });
 
-        FlowPanel panel = new FlowPanel();
-        panel.setStyleName("panel form");
-        panel.add(new HTML(UiTemplates.HEADINGS.h2(text.outbound())));
-        panel.add(Forms.field(text.outboundTtl(), outboundTtl, text.outboundTtlHint()));
-        panel.add(clientHelloSplit);
-        Label splitHint = new Label(text.clientHelloSplitHint());
-        splitHint.setStyleName("muted");
-        panel.add(splitHint);
-        panel.add(Forms.twoCol(
-                Forms.field(text.clientHelloSplitMode(), splitMode),
-                Forms.field(text.clientHelloSplitPosition(), splitPosition, text.clientHelloSplitPositionHint())));
-        panel.add(httpHeaderMangle);
-        Label mangleHint = new Label(text.httpHeaderMangleHint());
-        mangleHint.setStyleName("muted");
-        panel.add(mangleHint);
+        root.add(header);
+        root.add(hint);
+        root.add(status);
+        root.add(tableHost);
+        root.add(ttlPanel(text));
+        root.add(clientHelloSplitPanel(text));
+        root.add(httpHeaderManglePanel(text));
         Button save = new Button(text.saveOutbound());
         save.setStyleName("primary");
         save.addClickHandler(new ClickHandler() {
@@ -143,7 +125,47 @@ public class UpstreamProxiesPage extends Composite {
                 shell.getRpc().saveOutboundSettings(collectOutbound(), voidReload(AppMessages.UPSTREAM.outboundSaved()));
             }
         });
-        panel.add(Forms.formActions(save));
+        FlowPanel saveRow = Forms.formActions(save);
+        saveRow.addStyleName("settings-save");
+        root.add(saveRow);
+        initWidget(root);
+        load();
+    }
+
+    private FlowPanel ttlPanel(UpstreamMessages text) {
+        FlowPanel panel = new FlowPanel();
+        panel.setStyleName("panel form");
+        panel.add(new HTML(UiTemplates.HEADINGS.h2(text.outboundTtl())));
+        panel.add(outboundTtl);
+        Label ttlHint = new Label(text.outboundTtlHint());
+        ttlHint.setStyleName("field-hint");
+        panel.add(ttlHint);
+        return panel;
+    }
+
+    private FlowPanel clientHelloSplitPanel(UpstreamMessages text) {
+        FlowPanel panel = new FlowPanel();
+        panel.setStyleName("panel form");
+        panel.add(new HTML(UiTemplates.HEADINGS.h2(text.clientHelloSplit())));
+        panel.add(clientHelloSplit);
+        Label splitHint = new Label(text.clientHelloSplitHint());
+        splitHint.setStyleName("muted");
+        splitHint.getElement().getStyle().setProperty("marginBottom", "0.9rem");
+        panel.add(splitHint);
+        panel.add(Forms.twoCol(
+                Forms.field(text.clientHelloSplitMode(), splitMode),
+                Forms.field(text.clientHelloSplitPosition(), splitPosition, text.clientHelloSplitPositionHint())));
+        return panel;
+    }
+
+    private FlowPanel httpHeaderManglePanel(UpstreamMessages text) {
+        FlowPanel panel = new FlowPanel();
+        panel.setStyleName("panel form");
+        panel.add(new HTML(UiTemplates.HEADINGS.h2(text.httpHeaderMangle())));
+        panel.add(httpHeaderMangle);
+        Label mangleHint = new Label(text.httpHeaderMangleHint());
+        mangleHint.setStyleName("muted");
+        panel.add(mangleHint);
         return panel;
     }
 
