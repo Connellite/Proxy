@@ -22,17 +22,19 @@ record OutboundTweaks(
     }
 
     /**
-     * Puts the tweak handlers at the socket end of {@code pipeline}.
+     * Puts the tweak handlers at the socket end of {@code pipeline} and marks the channel for
+     * {@link HttpHeaderMangleEncoder#forChannel}.
      *
-     * @param armed {@code true} when the first handshake record on this socket is the one to cut
-     *              (HTTPS upstream); otherwise the upstream handshake calls {@link ClientHelloSplitHandler#arm}
+     * @param upstreamTls {@code true} for an HTTPS upstream: the first handshake record on this socket is the one
+     *                    to cut and HTTP inside it is encrypted; otherwise the upstream handshake calls
+     *                    {@link ClientHelloSplitHandler#arm}
      */
-    void install(ChannelPipeline pipeline, boolean armed) {
-        if (httpHeaderMangle) {
-            pipeline.addFirst(new HttpHeaderMangleHandler());
+    void install(ChannelPipeline pipeline, boolean upstreamTls) {
+        if (httpHeaderMangle && !upstreamTls) {
+            HttpHeaderMangleEncoder.enable(pipeline.channel());
         }
         if (clientHelloSplit) {
-            pipeline.addFirst(new ClientHelloSplitHandler(splitMode, splitPosition, armed));
+            pipeline.addFirst(new ClientHelloSplitHandler(splitMode, splitPosition, upstreamTls));
         }
     }
 }

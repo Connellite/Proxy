@@ -11,10 +11,14 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.codec.http.DefaultFullHttpRequest;
 import io.netty.handler.codec.http.DefaultHttpHeaders;
 import io.netty.handler.codec.http.FullHttpResponse;
-import io.netty.handler.codec.http.HttpClientCodec;
 import io.netty.handler.codec.http.HttpHeaderNames;
+import io.netty.handler.codec.http.HttpMessage;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpObjectAggregator;
+import io.netty.handler.codec.http.HttpRequestEncoder;
+import io.netty.handler.codec.http.HttpResponse;
+import io.netty.handler.codec.http.HttpResponseDecoder;
+import io.netty.handler.codec.http.HttpStatusClass;
 import io.netty.handler.codec.http.HttpVersion;
 
 import java.nio.charset.StandardCharsets;
@@ -42,7 +46,8 @@ class HttpConnectUpstreamHandler extends ChannelInitializer<SocketChannel> {
         OutboundIpTtl.apply(ch, outboundTtl);
         tweaks.install(ch.pipeline(), firstRecordIsUpstreamHello());
         configureTransport(ch);
-        ch.pipeline().addLast(new HttpClientCodec());
+        ch.pipeline().addLast(new ConnectResponseDecoder());
+        ch.pipeline().addLast(HttpHeaderMangleEncoder.forChannel(ch));
         ch.pipeline().addLast(new HttpObjectAggregator(8192));
         ch.pipeline().addLast(new ConnectResponseHandler());
         QuietCloseHandlerAdapter.installLast(ch.pipeline());
@@ -68,6 +73,18 @@ class HttpConnectUpstreamHandler extends ChannelInitializer<SocketChannel> {
 
     protected UpstreamSnapshot upstream() {
         return upstream;
+    }
+
+    /**
+     * CONNECT is the only request on this socket, so a 2xx reply has no body even without Content-Length.
+     */
+    private static final class ConnectResponseDecoder extends HttpResponseDecoder {
+
+        @Override
+        protected boolean isContentAlwaysEmpty(HttpMessage msg) {
+            return ((HttpResponse) msg).status().codeClass() == HttpStatusClass.SUCCESS
+                    || super.isContentAlwaysEmpty(msg);
+        }
     }
 
     private final class ConnectResponseHandler extends SimpleChannelInboundHandler<FullHttpResponse> {
@@ -103,7 +120,8 @@ class HttpConnectUpstreamHandler extends ChannelInitializer<SocketChannel> {
                 ChannelPipeline pipeline = ctx.pipeline();
                 pipeline.remove(this);
                 removeIfPresent(pipeline, HttpObjectAggregator.class);
-                removeIfPresent(pipeline, HttpClientCodec.class);
+                removeIfPresent(pipeline, HttpResponseDecoder.class);
+                removeIfPresent(pipeline, HttpRequestEncoder.class);
                 ClientHelloSplitHandler.arm(pipeline);
                 callback.onSuccess(ctx.channel());
             } else {

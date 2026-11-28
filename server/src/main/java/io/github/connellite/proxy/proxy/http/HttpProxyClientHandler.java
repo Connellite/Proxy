@@ -2,6 +2,7 @@ package io.github.connellite.proxy.proxy.http;
 
 import com.google.common.net.HostAndPort;
 import io.github.connellite.proxy.dto.AuthenticatedSession;
+import io.github.connellite.proxy.proxy.outbound.HttpHeaderMangleEncoder;
 import io.github.connellite.proxy.proxy.outbound.OutboundConnector;
 import io.github.connellite.proxy.proxy.outbound.TunnelCallback;
 import io.github.connellite.proxy.proxy.QuietCloseHandlerAdapter;
@@ -26,7 +27,6 @@ import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpObjectAggregator;
-import io.netty.handler.codec.http.HttpRequestEncoder;
 import io.netty.handler.codec.http.HttpResponseDecoder;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpServerCodec;
@@ -239,7 +239,7 @@ public class HttpProxyClientHandler extends SimpleChannelInboundHandler<FullHttp
         outboundConnector.openTunnel(inbound, host, port, new TunnelCallback() {
             @Override
             public void onSuccess(Channel outbound) {
-                outbound.pipeline().addLast(new HttpRequestEncoder());
+                outbound.pipeline().addLast(HttpHeaderMangleEncoder.forChannel(outbound));
                 outbound.pipeline().addLast(new HttpResponseDecoder());
                 outbound.pipeline().addLast(new ChannelInboundHandlerAdapter() {
                     @Override
