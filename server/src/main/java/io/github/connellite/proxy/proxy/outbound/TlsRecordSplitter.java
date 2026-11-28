@@ -133,21 +133,45 @@ public final class TlsRecordSplitter {
         p += 2;
         while (p + 4 <= extensionsEnd) {
             int type = fragment.getUnsignedShort(p);
-            int length = fragment.getUnsignedShort(p + 2);
             int data = p + 4;
-            if (type == EXTENSION_SERVER_NAME) {
-                // server_name_list length (2) + name_type (1) + host_name length (2)
-                if (data + 5 > extensionsEnd || fragment.getUnsignedByte(data + 2) != SNI_HOST_NAME) {
-                    return null;
-                }
-                int nameLength = fragment.getUnsignedShort(data + 3);
-                int nameStart = data + 5;
-                if (nameLength == 0 || nameStart + nameLength > end) {
-                    return null;
-                }
-                return new int[] {nameStart - base, nameLength};
+            int extensionEnd = data + fragment.getUnsignedShort(p + 2);
+            if (extensionEnd > extensionsEnd) {
+                return null;
             }
-            p = data + length;
+            if (type == EXTENSION_SERVER_NAME) {
+                int[] name = findHostName(fragment, data, extensionEnd);
+                if (name != null) {
+                    name[0] -= base;
+                }
+                return name;
+            }
+            p = extensionEnd;
+        }
+        return null;
+    }
+
+    /**
+     * Walks the server_name_list (RFC 6066, section 3) of one SNI extension.
+     *
+     * @return {@code {absolute offset, length}} of the host_name entry, or {@code null} if absent or malformed
+     */
+    private static int[] findHostName(ByteBuf fragment, int data, int extensionEnd) {
+        // server_name_list length (2), then entries of name_type (1) + name length (2) + name
+        if (extensionEnd - data < 2 + 3 || fragment.getUnsignedShort(data) != extensionEnd - data - 2) {
+            return null;
+        }
+        int p = data + 2;
+        while (p + 3 <= extensionEnd) {
+            int nameType = fragment.getUnsignedByte(p);
+            int nameLength = fragment.getUnsignedShort(p + 1);
+            int nameStart = p + 3;
+            if (nameStart + nameLength > extensionEnd) {
+                return null;
+            }
+            if (nameType == SNI_HOST_NAME) {
+                return nameLength == 0 ? null : new int[] {nameStart, nameLength};
+            }
+            p = nameStart + nameLength;
         }
         return null;
     }

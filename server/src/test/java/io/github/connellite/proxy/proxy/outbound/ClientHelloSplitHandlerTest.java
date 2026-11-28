@@ -66,6 +66,25 @@ class ClientHelloSplitHandlerTest {
     }
 
     @Test
+    void malformedServerNameIsNotUsed() {
+        byte[] good = fragment(clientHelloRecord(HOST));
+        ByteBuf probe = Unpooled.wrappedBuffer(good);
+        int start = TlsRecordSplitter.findSni(probe)[0];
+        probe.release();
+
+        byte[] badListLength = good.clone();
+        badListLength[start - 4]++;
+        byte[] nameTooLong = good.clone();
+        nameTooLong[start - 1]++;
+
+        for (byte[] bad : new byte[][] {badListLength, nameTooLong}) {
+            ByteBuf fragment = Unpooled.wrappedBuffer(bad);
+            assertThat(TlsRecordSplitter.findSni(fragment)).isNull();
+            fragment.release();
+        }
+    }
+
+    @Test
     void recordWithoutSniStaysWhole() {
         byte[] record = clientHelloRecord(null);
         byte[] out = writeThrough(new ClientHelloSplitHandler(ClientHelloSplitMode.BEFORE_SNI, 1, true), record);
