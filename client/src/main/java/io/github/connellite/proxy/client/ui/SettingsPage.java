@@ -44,7 +44,6 @@ public class SettingsPage extends Composite {
     private final PlainIntegerBox httpPort = new PlainIntegerBox();
     private final PlainIntegerBox socksPort = new PlainIntegerBox();
     private final PlainIntegerBox sshPort = new PlainIntegerBox();
-    private final PlainIntegerBox outboundTtl = new PlainIntegerBox();
     private final TextBox allowInput = new TextBox();
     private final FlowPanel allowHost = new FlowPanel();
     private final Label adminPortHint = new Label();
@@ -62,8 +61,6 @@ public class SettingsPage extends Composite {
         socksPort.setMax(65535);
         sshPort.setMin(1);
         sshPort.setMax(65535);
-        outboundTtl.setMin(0);
-        outboundTtl.setMax(255);
         newPassword.getElement().setAttribute("minlength", "4");
         confirmPassword.getElement().setAttribute("minlength", "4");
 
@@ -156,12 +153,6 @@ public class SettingsPage extends Composite {
         allowHost.setVisible(false);
         allowPanel.add(allowHost);
         root.add(allowPanel);
-
-        FlowPanel outboundPanel = new FlowPanel();
-        outboundPanel.setStyleName("panel form");
-        outboundPanel.add(new HTML(UiTemplates.HEADINGS.h2(text.outbound())));
-        outboundPanel.add(Forms.field(text.outboundTtl(), outboundTtl, text.outboundTtlHint()));
-        root.add(outboundPanel);
 
         Button save = new Button(text.saveRestart());
         save.setStyleName("primary");
@@ -280,7 +271,6 @@ public class SettingsPage extends Composite {
                 httpPort.setIntValue(dto.getHttpPort());
                 socksPort.setIntValue(dto.getSocksPort());
                 sshPort.setIntValue(dto.getSshPort());
-                outboundTtl.setIntValue(dto.getOutboundTtl());
                 renderAllows(dto.getProxyAllows());
                 adminPortHint.setText(text.adminPortHint());
                 status.setText(text.listenerStatus(
@@ -361,11 +351,9 @@ public class SettingsPage extends Composite {
         Integer hp = httpPort.getIntValue();
         Integer sp = socksPort.getIntValue();
         Integer sshp = sshPort.getIntValue();
-        Integer ttl = outboundTtl.getIntValue();
         dto.setHttpPort(hp == null ? 0 : hp);
         dto.setSocksPort(sp == null ? 0 : sp);
         dto.setSshPort(sshp == null ? 0 : sshp);
-        dto.setOutboundTtl(ttl == null ? 0 : ttl);
         return dto;
     }
 

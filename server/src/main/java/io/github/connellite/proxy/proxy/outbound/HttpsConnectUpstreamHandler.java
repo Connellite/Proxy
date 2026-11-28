@@ -9,8 +9,8 @@ class HttpsConnectUpstreamHandler extends HttpConnectUpstreamHandler {
     private final SslContext sslContext;
 
     HttpsConnectUpstreamHandler(SslContext sslContext, UpstreamSnapshot upstream, String authority,
-                                TunnelCallback callback, int outboundTtl) {
-        super(upstream, authority, callback, outboundTtl);
+                                TunnelCallback callback, int outboundTtl, OutboundTweaks tweaks) {
+        super(upstream, authority, callback, outboundTtl, tweaks);
         this.sslContext = sslContext;
     }
 
@@ -18,6 +18,11 @@ class HttpsConnectUpstreamHandler extends HttpConnectUpstreamHandler {
     protected void configureTransport(SocketChannel ch) {
         UpstreamSnapshot proxy = upstream();
         ch.pipeline().addLast(sslContext.newHandler(ch.alloc(), proxy.host(), proxy.port()));
+    }
+
+    @Override
+    protected boolean firstRecordIsUpstreamHello() {
+        return true;
     }
 
     @Override

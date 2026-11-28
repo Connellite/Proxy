@@ -87,8 +87,15 @@ proxy:
   socks-auth-required: false
   socks-udp-enabled: false
   connect-timeout-ms: 15000
-  # Outbound IP TTL (0 = OS default). Prefer Settings UI; applies to proxy→direct/upstream sockets.
+  # Outbound IP TTL (0 = OS default). Prefer the Upstream page; applies to proxy→direct/upstream sockets.
   outbound-ttl: 0
+  # Cut the first TLS handshake record to an HTTP/HTTPS/SOCKS5 upstream in two.
+  # Modes: FIXED, BEFORE_SNI, AFTER_SNI, MIDDLE_SNI, RANDOM_SNI. Position (1–1500) is used by FIXED.
+  client-hello-split-enabled: false
+  client-hello-split-mode: FIXED
+  client-hello-split-position: 1
+  # Extra space, hoSt, no space after the colon and mixed-case Host in plain HTTP to an upstream.
+  http-header-mangle-enabled: false
   idle-timeout-seconds: 300
   # SSH server asks the client this many times per idle window.
   ssh-keepalive-enabled: true

@@ -11,10 +11,14 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.codec.http.DefaultFullHttpRequest;
 import io.netty.handler.codec.http.DefaultHttpHeaders;
 import io.netty.handler.codec.http.FullHttpResponse;
-import io.netty.handler.codec.http.HttpClientCodec;
 import io.netty.handler.codec.http.HttpHeaderNames;
+import io.netty.handler.codec.http.HttpMessage;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpObjectAggregator;
+import io.netty.handler.codec.http.HttpRequestEncoder;
+import io.netty.handler.codec.http.HttpResponse;
+import io.netty.handler.codec.http.HttpResponseDecoder;
+import io.netty.handler.codec.http.HttpStatusClass;
 import io.netty.handler.codec.http.HttpVersion;
 
 import java.nio.charset.StandardCharsets;
@@ -26,20 +30,24 @@ class HttpConnectUpstreamHandler extends ChannelInitializer<SocketChannel> {
     private final String authority;
     private final TunnelCallback callback;
     private final int outboundTtl;
+    private final OutboundTweaks tweaks;
 
     HttpConnectUpstreamHandler(UpstreamSnapshot upstream, String authority,
-                               TunnelCallback callback, int outboundTtl) {
+                               TunnelCallback callback, int outboundTtl, OutboundTweaks tweaks) {
         this.upstream = upstream;
         this.authority = authority;
         this.callback = callback;
         this.outboundTtl = outboundTtl;
+        this.tweaks = tweaks;
     }
 
     @Override
     protected void initChannel(SocketChannel ch) {
         OutboundIpTtl.apply(ch, outboundTtl);
+        tweaks.install(ch.pipeline(), firstRecordIsUpstreamHello());
         configureTransport(ch);
-        ch.pipeline().addLast(new HttpClientCodec());
+        ch.pipeline().addLast(new ConnectResponseDecoder());
+        ch.pipeline().addLast(HttpHeaderMangleEncoder.forChannel(ch));
         ch.pipeline().addLast(new HttpObjectAggregator(8192));
         ch.pipeline().addLast(new ConnectResponseHandler());
         QuietCloseHandlerAdapter.installLast(ch.pipeline());
@@ -51,12 +59,32 @@ class HttpConnectUpstreamHandler extends ChannelInitializer<SocketChannel> {
     protected void configureTransport(SocketChannel ch) {
     }
 
+    /**
+     * {@code true} when this proxy's own TLS ClientHello to the upstream is the first handshake record
+     * on the socket. Plain HTTP waits for the CONNECT reply before the client's ClientHello.
+     */
+    protected boolean firstRecordIsUpstreamHello() {
+        return false;
+    }
+
     protected String scheme() {
         return "HTTP";
     }
 
     protected UpstreamSnapshot upstream() {
         return upstream;
+    }
+
+    /**
+     * CONNECT is the only request on this socket, so a 2xx reply has no body even without Content-Length.
+     */
+    private static final class ConnectResponseDecoder extends HttpResponseDecoder {
+
+        @Override
+        protected boolean isContentAlwaysEmpty(HttpMessage msg) {
+            return ((HttpResponse) msg).status().codeClass() == HttpStatusClass.SUCCESS
+                    || super.isContentAlwaysEmpty(msg);
+        }
     }
 
     private final class ConnectResponseHandler extends SimpleChannelInboundHandler<FullHttpResponse> {
@@ -92,7 +120,9 @@ class HttpConnectUpstreamHandler extends ChannelInitializer<SocketChannel> {
                 ChannelPipeline pipeline = ctx.pipeline();
                 pipeline.remove(this);
                 removeIfPresent(pipeline, HttpObjectAggregator.class);
-                removeIfPresent(pipeline, HttpClientCodec.class);
+                removeIfPresent(pipeline, HttpResponseDecoder.class);
+                removeIfPresent(pipeline, HttpRequestEncoder.class);
+                ClientHelloSplitHandler.arm(pipeline);
                 callback.onSuccess(ctx.channel());
             } else {
                 ctx.close();

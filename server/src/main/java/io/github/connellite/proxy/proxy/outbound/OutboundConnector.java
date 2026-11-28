@@ -1,6 +1,7 @@
 package io.github.connellite.proxy.proxy.outbound;
 
 import io.github.connellite.proxy.config.ProxyProperties;
+import io.github.connellite.proxy.dto.AppSettings;
 import io.github.connellite.proxy.dto.UpstreamSnapshot;
 import io.github.connellite.proxy.proxy.QuietCloseHandlerAdapter;
 import io.github.connellite.proxy.proxy.ssh.SshUpstreamClient;
@@ -87,10 +88,12 @@ public class OutboundConnector {
         }
         String scheme = tls ? "HTTPS" : "HTTP";
         String authority = NetUtil.toSocketAddressString(targetHost, targetPort);
-        int outboundTtl = settingsService.get().getOutboundTtl();
+        AppSettings settings = settingsService.get();
+        int outboundTtl = settings.getOutboundTtl();
+        OutboundTweaks tweaks = OutboundTweaks.from(settings);
         HttpConnectUpstreamHandler handler = tls
-                ? new HttpsConnectUpstreamHandler(sslContext, upstream, authority, callback, outboundTtl)
-                : new HttpConnectUpstreamHandler(upstream, authority, callback, outboundTtl);
+                ? new HttpsConnectUpstreamHandler(sslContext, upstream, authority, callback, outboundTtl, tweaks)
+                : new HttpConnectUpstreamHandler(upstream, authority, callback, outboundTtl, tweaks);
         Bootstrap bootstrap = newBootstrap(inbound);
         bootstrap.handler(handler);
         bootstrap.connect(upstream.host(), upstream.port()).addListener((ChannelFutureListener) future -> {
@@ -105,11 +108,14 @@ public class OutboundConnector {
     private void connectViaSocks5(Channel inbound, UpstreamSnapshot upstream,
                                   String targetHost, int targetPort, TunnelCallback callback) {
         boolean wantAuth = upstream.hasAuth();
+        AppSettings settings = settingsService.get();
+        OutboundTweaks tweaks = OutboundTweaks.from(settings);
         Bootstrap bootstrap = newBootstrap(inbound);
         bootstrap.handler(new ChannelInitializer<SocketChannel>() {
             @Override
             protected void initChannel(SocketChannel ch) {
-                applyOutboundTtl(ch);
+                OutboundIpTtl.apply(ch, settings.getOutboundTtl());
+                tweaks.install(ch.pipeline(), false);
                 ch.pipeline().addLast(Socks5ClientEncoder.DEFAULT);
                 ch.pipeline().addLast(new Socks5InitialResponseDecoder());
                 ch.pipeline().addLast(new Socks5UpstreamHandler(upstream, targetHost, targetPort, wantAuth, callback));

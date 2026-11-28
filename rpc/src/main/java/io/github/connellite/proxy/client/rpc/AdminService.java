@@ -7,6 +7,7 @@ import io.github.connellite.proxy.client.rpc.dto.DashboardProxyGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.DirectoryListingGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.EncryptionGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.HttpStripHeadersPageGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.OutboundSettingsGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.PasswordChangeGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.RelayPageGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.RelayQueryRowGWTDTO;
@@ -80,6 +81,9 @@ public interface AdminService extends RemoteService {
     void selectUpstreamProxy(long id) throws AdminRpcException;
 
     void clearUpstreamProxySelection();
+
+    /** Saves TTL and DPI tweaks for outbound sockets. Listeners keep running. */
+    void saveOutboundSettings(OutboundSettingsGWTDTO form) throws AdminRpcException;
 
     HttpStripHeadersPageGWTDTO getHttpStripHeaders();
 

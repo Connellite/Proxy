@@ -2,6 +2,7 @@ package io.github.connellite.proxy.client.messages;
 
 import com.google.gwt.core.client.GWT;
 import io.github.connellite.proxy.client.rpc.dto.AutoRefreshIntervalGWT;
+import io.github.connellite.proxy.client.rpc.dto.ClientHelloSplitModeGWT;
 import io.github.connellite.proxy.client.rpc.dto.RelayRouteModeGWT;
 import io.github.connellite.proxy.client.rpc.dto.UpstreamProxyTypeGWT;
 
@@ -37,6 +38,25 @@ public final class AppMessages {
                 return UPSTREAM.typeSsh();
             default:
                 return "";
+        }
+    }
+
+    public static String splitMode(ClientHelloSplitModeGWT mode) {
+        if (mode == null) {
+            return UPSTREAM.splitFixed();
+        }
+        switch (mode) {
+            case BEFORE_SNI:
+                return UPSTREAM.splitBeforeSni();
+            case AFTER_SNI:
+                return UPSTREAM.splitAfterSni();
+            case MIDDLE_SNI:
+                return UPSTREAM.splitMiddleSni();
+            case RANDOM_SNI:
+                return UPSTREAM.splitRandomSni();
+            case FIXED:
+            default:
+                return UPSTREAM.splitFixed();
         }
     }
 

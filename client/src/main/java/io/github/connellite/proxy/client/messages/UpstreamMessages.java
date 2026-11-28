@@ -117,4 +117,55 @@ public interface UpstreamMessages extends Messages {
 
     @Key("typeSsh")
     String typeSsh();
+
+    @Key("outbound")
+    String outbound();
+
+    @Key("outboundTtl")
+    String outboundTtl();
+
+    @Key("outboundTtlHint")
+    String outboundTtlHint();
+
+    @Key("clientHelloSplit")
+    String clientHelloSplit();
+
+    @Key("clientHelloSplitHint")
+    String clientHelloSplitHint();
+
+    @Key("clientHelloSplitMode")
+    String clientHelloSplitMode();
+
+    @Key("clientHelloSplitPosition")
+    String clientHelloSplitPosition();
+
+    @Key("clientHelloSplitPositionHint")
+    String clientHelloSplitPositionHint();
+
+    @Key("splitFixed")
+    String splitFixed();
+
+    @Key("splitBeforeSni")
+    String splitBeforeSni();
+
+    @Key("splitAfterSni")
+    String splitAfterSni();
+
+    @Key("splitMiddleSni")
+    String splitMiddleSni();
+
+    @Key("splitRandomSni")
+    String splitRandomSni();
+
+    @Key("httpHeaderMangle")
+    String httpHeaderMangle();
+
+    @Key("httpHeaderMangleHint")
+    String httpHeaderMangleHint();
+
+    @Key("saveOutbound")
+    String saveOutbound();
+
+    @Key("outboundSaved")
+    String outboundSaved();
 }

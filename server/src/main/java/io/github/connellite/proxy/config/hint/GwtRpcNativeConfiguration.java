@@ -22,12 +22,14 @@ import com.google.gwt.user.server.rpc.core.java.util.Vector_ServerCustomFieldSer
 import io.github.connellite.proxy.client.rpc.AdminRpcException;
 import io.github.connellite.proxy.client.rpc.AdminService;
 import io.github.connellite.proxy.client.rpc.dto.AutoRefreshIntervalGWT;
+import io.github.connellite.proxy.client.rpc.dto.ClientHelloSplitModeGWT;
 import io.github.connellite.proxy.client.rpc.dto.DashboardDnsGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.DashboardProxyGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.DirectoryListingGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.EncryptionGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.HttpStripHeaderRowGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.HttpStripHeadersPageGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.OutboundSettingsGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.PasswordChangeGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.RelayAllowRowGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.RelayPageGWTDTO;
@@ -120,6 +122,8 @@ public class GwtRpcNativeConfiguration {
                 RelayTcpSessionRowGWTDTO.class,
                 UserConnectionRowGWTDTO.class,
                 UpstreamProxyTypeGWT.class,
+                OutboundSettingsGWTDTO.class,
+                ClientHelloSplitModeGWT.class,
                 AutoRefreshIntervalGWT.class,
                 ArrayList.class,
                 LinkedList.class,

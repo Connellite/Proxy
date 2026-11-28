@@ -112,7 +112,9 @@ final class Socks5UpstreamHandler extends SimpleChannelInboundHandler<Object> {
         }
         finished = true;
         phase = Phase.DONE;
-        stripSocksClientHandlers(ctx.pipeline());
+        ChannelPipeline pipeline = ctx.pipeline();
+        stripSocksClientHandlers(pipeline);
+        ClientHelloSplitHandler.arm(pipeline);
         callback.onSuccess(ctx.channel());
     }
 

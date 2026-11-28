@@ -18,6 +18,7 @@ import io.github.connellite.proxy.client.rpc.dto.DirectoryListingGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.EncryptionGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.HttpStripHeaderRowGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.HttpStripHeadersPageGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.OutboundSettingsGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.PasswordChangeGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.RelayAllowRowGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.RelayPageGWTDTO;
@@ -483,7 +484,19 @@ public class AdminServiceImpl extends RemoteServiceServlet implements AdminServi
                 page.setSelectedId(proxy.getId());
             }
         }
+        page.setOutbound(adminRpcManualMapper.toOutboundGWTDTO(settingsService.get()));
         return page;
+    }
+
+    @Override
+    public void saveOutboundSettings(OutboundSettingsGWTDTO form) throws AdminRpcException {
+        try {
+            AppSettings settings = settingsService.get();
+            adminRpcManualMapper.applyOutbound(settings, form);
+            settingsService.save(settings);
+        } catch (RuntimeException ex) {
+            throw toRpcException("Failed to save outbound settings", ex);
+        }
     }
 
     @Override
