@@ -24,6 +24,11 @@ public class ProxyProperties {
     private int connectTimeoutMs = 15_000;
     /** Outbound IP TTL; 0 = OS default. Overridable in Settings UI. */
     private int outboundTtl = 0;
+    /** Initial ClientHello split settings; overridable on the Upstream page. */
+    private boolean clientHelloSplitEnabled = false;
+    private String clientHelloSplitMode = "FIXED";
+    private int clientHelloSplitPosition = 1;
+    private boolean httpHeaderMangleEnabled = false;
     private int idleTimeoutSeconds = 300;
     /** SSH server probes (OpenSSH ClientAlive). A peer silent for about {@link #idleTimeoutSeconds} is closed. */
     private boolean sshKeepaliveEnabled = true;

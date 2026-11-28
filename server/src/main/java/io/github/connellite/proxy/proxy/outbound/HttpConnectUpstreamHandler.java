@@ -26,18 +26,21 @@ class HttpConnectUpstreamHandler extends ChannelInitializer<SocketChannel> {
     private final String authority;
     private final TunnelCallback callback;
     private final int outboundTtl;
+    private final OutboundTweaks tweaks;
 
     HttpConnectUpstreamHandler(UpstreamSnapshot upstream, String authority,
-                               TunnelCallback callback, int outboundTtl) {
+                               TunnelCallback callback, int outboundTtl, OutboundTweaks tweaks) {
         this.upstream = upstream;
         this.authority = authority;
         this.callback = callback;
         this.outboundTtl = outboundTtl;
+        this.tweaks = tweaks;
     }
 
     @Override
     protected void initChannel(SocketChannel ch) {
         OutboundIpTtl.apply(ch, outboundTtl);
+        tweaks.install(ch.pipeline(), firstRecordIsUpstreamHello());
         configureTransport(ch);
         ch.pipeline().addLast(new HttpClientCodec());
         ch.pipeline().addLast(new HttpObjectAggregator(8192));
@@ -49,6 +52,14 @@ class HttpConnectUpstreamHandler extends ChannelInitializer<SocketChannel> {
      * HTTP connects in the clear. HTTPS overrides this and inserts TLS first.
      */
     protected void configureTransport(SocketChannel ch) {
+    }
+
+    /**
+     * {@code true} when this proxy's own TLS ClientHello to the upstream is the first handshake record
+     * on the socket. Plain HTTP waits for the CONNECT reply before the client's ClientHello.
+     */
+    protected boolean firstRecordIsUpstreamHello() {
+        return false;
     }
 
     protected String scheme() {
@@ -93,6 +104,7 @@ class HttpConnectUpstreamHandler extends ChannelInitializer<SocketChannel> {
                 pipeline.remove(this);
                 removeIfPresent(pipeline, HttpObjectAggregator.class);
                 removeIfPresent(pipeline, HttpClientCodec.class);
+                ClientHelloSplitHandler.arm(pipeline);
                 callback.onSuccess(ctx.channel());
             } else {
                 ctx.close();

@@ -6,6 +6,7 @@ import io.github.connellite.proxy.client.rpc.dto.DashboardProxyGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.DirectoryListingGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.EncryptionGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.HttpStripHeadersPageGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.OutboundSettingsGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.PasswordChangeGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.RelayPageGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.RelayQueryRowGWTDTO;
@@ -75,6 +76,8 @@ public interface AdminServiceAsync {
     void selectUpstreamProxy(long id, AsyncCallback<Void> callback);
 
     void clearUpstreamProxySelection(AsyncCallback<Void> callback);
+
+    void saveOutboundSettings(OutboundSettingsGWTDTO form, AsyncCallback<Void> callback);
 
     void getHttpStripHeaders(AsyncCallback<HttpStripHeadersPageGWTDTO> callback);
 

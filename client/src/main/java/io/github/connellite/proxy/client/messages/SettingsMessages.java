@@ -85,15 +85,6 @@ public interface SettingsMessages extends Messages {
     @Key("networkDeleted")
     String networkDeleted();
 
-    @Key("outbound")
-    String outbound();
-
-    @Key("outboundTtl")
-    String outboundTtl();
-
-    @Key("outboundTtlHint")
-    String outboundTtlHint();
-
     @Key("saveRestart")
     String saveRestart();
 

@@ -4,6 +4,8 @@ import io.github.connellite.proxy.config.ProxyProperties;
 import io.github.connellite.proxy.dto.AppSettings;
 import io.github.connellite.proxy.mapper.AppSettingsMapper;
 import io.github.connellite.proxy.model.ConfigEntry;
+import io.github.connellite.proxy.proxy.outbound.ClientHelloSplitMode;
+import io.github.connellite.proxy.proxy.outbound.TlsRecordSplitter;
 import io.github.connellite.proxy.repository.ConfigRepository;
 import io.github.connellite.proxy.util.ParseUtils;
 import lombok.RequiredArgsConstructor;
@@ -59,6 +61,12 @@ public class SettingsService {
         if (settings.getOutboundTtl() < 0 || settings.getOutboundTtl() > 255) {
             throw new IllegalArgumentException("Outbound TTL must be between 0 and 255 (0 = OS default)");
         }
+        if (settings.getClientHelloSplitPosition() < TlsRecordSplitter.MIN_POSITION
+                || settings.getClientHelloSplitPosition() > TlsRecordSplitter.MAX_POSITION) {
+            throw new IllegalArgumentException("ClientHello split position must be between "
+                    + TlsRecordSplitter.MIN_POSITION + " and " + TlsRecordSplitter.MAX_POSITION);
+        }
+        settings.setClientHelloSplitMode(ClientHelloSplitMode.fromWire(settings.getClientHelloSplitMode()).name());
         repository.saveAll(toEntries(settings));
         // Publish before other afterCommit callbacks. They restart listeners and must not
         // read the previous cache; afterCompletion still drops it so the next get() loads the database.
@@ -147,6 +155,10 @@ public class SettingsService {
         settings.setSshBindHost(properties.getSsh().getBindHost());
         settings.setSshPort(properties.getSsh().getPort());
         settings.setOutboundTtl(properties.getOutboundTtl());
+        settings.setClientHelloSplitEnabled(properties.isClientHelloSplitEnabled());
+        settings.setClientHelloSplitMode(properties.getClientHelloSplitMode());
+        settings.setClientHelloSplitPosition(properties.getClientHelloSplitPosition());
+        settings.setHttpHeaderMangleEnabled(properties.isHttpHeaderMangleEnabled());
         settings.setRelayUpstreamResolver("1.1.1.1:53");
         return settings;
     }
@@ -197,6 +209,10 @@ public class SettingsService {
         settings.setRelayAdvertisedAddress(StringUtils.trimToNull(map.get(ConfigEntry.RELAY_ADVERTISED_ADDRESS)));
         settings.setRelayUpstreamResolver(ParseUtils.parseString(map.get(ConfigEntry.RELAY_UPSTREAM_RESOLVER), settings.getRelayUpstreamResolver()));
         settings.setOutboundTtl(ParseUtils.parseInt(map.get(ConfigEntry.OUTBOUND_TTL), settings.getOutboundTtl()));
+        settings.setClientHelloSplitEnabled(ParseUtils.parseBoolean(map.get(ConfigEntry.CLIENT_HELLO_SPLIT_ENABLED), settings.isClientHelloSplitEnabled()));
+        settings.setClientHelloSplitMode(ParseUtils.parseString(map.get(ConfigEntry.CLIENT_HELLO_SPLIT_MODE), settings.getClientHelloSplitMode()));
+        settings.setClientHelloSplitPosition(ParseUtils.parseInt(map.get(ConfigEntry.CLIENT_HELLO_SPLIT_POSITION), settings.getClientHelloSplitPosition()));
+        settings.setHttpHeaderMangleEnabled(ParseUtils.parseBoolean(map.get(ConfigEntry.HTTP_HEADER_MANGLE_ENABLED), settings.isHttpHeaderMangleEnabled()));
         settings.setBytesUpTotal(ParseUtils.parseLong(map.get(ConfigEntry.BYTES_UP_TOTAL), 0L));
         settings.setBytesDownTotal(ParseUtils.parseLong(map.get(ConfigEntry.BYTES_DOWN_TOTAL), 0L));
         return settings;
@@ -247,6 +263,10 @@ public class SettingsService {
         entries.add(new ConfigEntry(ConfigEntry.RELAY_ADVERTISED_ADDRESS, settings.getRelayAdvertisedAddress()));
         entries.add(new ConfigEntry(ConfigEntry.RELAY_UPSTREAM_RESOLVER, settings.getRelayUpstreamResolver()));
         entries.add(new ConfigEntry(ConfigEntry.OUTBOUND_TTL, Integer.toString(settings.getOutboundTtl())));
+        entries.add(new ConfigEntry(ConfigEntry.CLIENT_HELLO_SPLIT_ENABLED, Boolean.toString(settings.isClientHelloSplitEnabled())));
+        entries.add(new ConfigEntry(ConfigEntry.CLIENT_HELLO_SPLIT_MODE, settings.getClientHelloSplitMode()));
+        entries.add(new ConfigEntry(ConfigEntry.CLIENT_HELLO_SPLIT_POSITION, Integer.toString(settings.getClientHelloSplitPosition())));
+        entries.add(new ConfigEntry(ConfigEntry.HTTP_HEADER_MANGLE_ENABLED, Boolean.toString(settings.isHttpHeaderMangleEnabled())));
         entries.add(new ConfigEntry(ConfigEntry.BYTES_UP_TOTAL, Long.toString(settings.getBytesUpTotal())));
         entries.add(new ConfigEntry(ConfigEntry.BYTES_DOWN_TOTAL, Long.toString(settings.getBytesDownTotal())));
         return entries;

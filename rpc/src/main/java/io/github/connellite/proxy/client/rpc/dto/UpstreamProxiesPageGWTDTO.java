@@ -15,4 +15,5 @@ public class UpstreamProxiesPageGWTDTO implements IsSerializable {
 
     private List<UpstreamProxyRowGWTDTO> proxies = new ArrayList<>();
     private long selectedId;
+    private OutboundSettingsGWTDTO outbound = new OutboundSettingsGWTDTO();
 }

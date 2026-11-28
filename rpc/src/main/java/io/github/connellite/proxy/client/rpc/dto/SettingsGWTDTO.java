@@ -26,8 +26,6 @@ public class SettingsGWTDTO implements IsSerializable {
     private int httpPort;
     private int socksPort;
     private int sshPort;
-    /** 0 = OS default; 1–255 = set IP TTL on proxy outbound sockets. */
-    private int outboundTtl;
     private boolean httpRunning;
     private boolean httpsRunning;
     private boolean socksRunning;

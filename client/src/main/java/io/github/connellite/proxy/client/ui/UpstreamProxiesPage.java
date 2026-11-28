@@ -1,14 +1,19 @@
 package io.github.connellite.proxy.client.ui;
 
 import com.google.gwt.core.client.GWT;
+import com.google.gwt.event.dom.client.ChangeEvent;
+import com.google.gwt.event.dom.client.ChangeHandler;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
+import com.google.gwt.event.logical.shared.ValueChangeEvent;
+import com.google.gwt.event.logical.shared.ValueChangeHandler;
 import com.google.gwt.safehtml.client.SafeHtmlTemplates;
 import com.google.gwt.safehtml.client.SafeHtmlTemplates.Template;
 import com.google.gwt.safehtml.shared.SafeHtml;
 import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.ui.Button;
+import com.google.gwt.user.client.ui.CheckBox;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.FlexTable;
 import com.google.gwt.user.client.ui.FlowPanel;
@@ -16,9 +21,14 @@ import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.Label;
 import io.github.connellite.proxy.client.messages.AppMessages;
 import io.github.connellite.proxy.client.messages.UpstreamMessages;
+import io.github.connellite.proxy.client.rpc.dto.ClientHelloSplitModeGWT;
+import io.github.connellite.proxy.client.rpc.dto.OutboundSettingsGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.UpstreamProxiesPageGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.UpstreamProxyRowGWTDTO;
 import io.github.connellite.proxy.client.util.CellCopy;
+import io.github.connellite.proxy.client.util.EnumListBox;
+import io.github.connellite.proxy.client.util.Forms;
+import io.github.connellite.proxy.client.util.PlainIntegerBox;
 import io.github.connellite.proxy.client.util.Rpc;
 import io.github.connellite.proxy.client.util.Tables;
 
@@ -27,6 +37,17 @@ public class UpstreamProxiesPage extends Composite {
     private final AppShell shell;
     private final FlowPanel tableHost = new FlowPanel();
     private final Label status = new Label();
+    private final PlainIntegerBox outboundTtl = new PlainIntegerBox();
+    private final CheckBox clientHelloSplit = Forms.checkbox(AppMessages.UPSTREAM.clientHelloSplit());
+    private final EnumListBox<ClientHelloSplitModeGWT> splitMode = new EnumListBox<>(ClientHelloSplitModeGWT.values(),
+            new EnumListBox.Labels<ClientHelloSplitModeGWT>() {
+                @Override
+                public String label(ClientHelloSplitModeGWT value) {
+                    return AppMessages.splitMode(value);
+                }
+            });
+    private final PlainIntegerBox splitPosition = new PlainIntegerBox();
+    private final CheckBox httpHeaderMangle = Forms.checkbox(AppMessages.UPSTREAM.httpHeaderMangle());
     private static final Templates TEMPLATES = GWT.create(Templates.class);
 
     interface Templates extends SafeHtmlTemplates {
@@ -75,9 +96,85 @@ public class UpstreamProxiesPage extends Composite {
         root.add(header);
         root.add(hint);
         root.add(status);
+        root.add(outboundPanel(text));
         root.add(tableHost);
         initWidget(root);
         load();
+    }
+
+    private FlowPanel outboundPanel(UpstreamMessages text) {
+        outboundTtl.setMin(0);
+        outboundTtl.setMax(255);
+        splitPosition.setMin(1);
+        splitPosition.setMax(1500);
+        splitMode.addChangeHandler(new ChangeHandler() {
+            @Override
+            public void onChange(ChangeEvent event) {
+                updateSplitFields();
+            }
+        });
+        clientHelloSplit.addValueChangeHandler(new ValueChangeHandler<Boolean>() {
+            @Override
+            public void onValueChange(ValueChangeEvent<Boolean> event) {
+                updateSplitFields();
+            }
+        });
+
+        FlowPanel panel = new FlowPanel();
+        panel.setStyleName("panel form");
+        panel.add(new HTML(UiTemplates.HEADINGS.h2(text.outbound())));
+        panel.add(Forms.field(text.outboundTtl(), outboundTtl, text.outboundTtlHint()));
+        panel.add(clientHelloSplit);
+        Label splitHint = new Label(text.clientHelloSplitHint());
+        splitHint.setStyleName("muted");
+        panel.add(splitHint);
+        panel.add(Forms.twoCol(
+                Forms.field(text.clientHelloSplitMode(), splitMode),
+                Forms.field(text.clientHelloSplitPosition(), splitPosition, text.clientHelloSplitPositionHint())));
+        panel.add(httpHeaderMangle);
+        Label mangleHint = new Label(text.httpHeaderMangleHint());
+        mangleHint.setStyleName("muted");
+        panel.add(mangleHint);
+        Button save = new Button(text.saveOutbound());
+        save.setStyleName("primary");
+        save.addClickHandler(new ClickHandler() {
+            @Override
+            public void onClick(ClickEvent event) {
+                shell.getRpc().saveOutboundSettings(collectOutbound(), voidReload(AppMessages.UPSTREAM.outboundSaved()));
+            }
+        });
+        panel.add(Forms.formActions(save));
+        return panel;
+    }
+
+    private void renderOutbound(OutboundSettingsGWTDTO outbound) {
+        if (outbound == null) {
+            outbound = new OutboundSettingsGWTDTO();
+        }
+        outboundTtl.setIntValue(outbound.getOutboundTtl());
+        clientHelloSplit.setValue(outbound.isClientHelloSplitEnabled());
+        splitMode.select(outbound.getClientHelloSplitMode());
+        splitPosition.setIntValue(outbound.getClientHelloSplitPosition());
+        httpHeaderMangle.setValue(outbound.isHttpHeaderMangleEnabled());
+        updateSplitFields();
+    }
+
+    private OutboundSettingsGWTDTO collectOutbound() {
+        OutboundSettingsGWTDTO dto = new OutboundSettingsGWTDTO();
+        Integer ttl = outboundTtl.getIntValue();
+        Integer position = splitPosition.getIntValue();
+        dto.setOutboundTtl(ttl == null ? 0 : ttl);
+        dto.setClientHelloSplitEnabled(clientHelloSplit.getValue());
+        dto.setClientHelloSplitMode(splitMode.selected());
+        dto.setClientHelloSplitPosition(position == null ? 1 : position);
+        dto.setHttpHeaderMangleEnabled(httpHeaderMangle.getValue());
+        return dto;
+    }
+
+    private void updateSplitFields() {
+        boolean enabled = clientHelloSplit.getValue();
+        splitMode.setEnabled(enabled);
+        splitPosition.setEnabled(enabled && splitMode.selected() == ClientHelloSplitModeGWT.FIXED);
     }
 
     private void load() {
@@ -90,6 +187,7 @@ public class UpstreamProxiesPage extends Composite {
             @Override
             public void onSuccess(UpstreamProxiesPageGWTDTO result) {
                 render(result);
+                renderOutbound(result.getOutbound());
             }
         });
     }

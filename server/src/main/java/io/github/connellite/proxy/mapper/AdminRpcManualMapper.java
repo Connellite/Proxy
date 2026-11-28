@@ -1,10 +1,13 @@
 package io.github.connellite.proxy.mapper;
 
+import io.github.connellite.proxy.client.rpc.dto.ClientHelloSplitModeGWT;
 import io.github.connellite.proxy.client.rpc.dto.EncryptionGWTDTO;
+import io.github.connellite.proxy.client.rpc.dto.OutboundSettingsGWTDTO;
 import io.github.connellite.proxy.client.rpc.dto.SettingsGWTDTO;
 import io.github.connellite.proxy.dto.AppSettings;
 import io.github.connellite.proxy.dto.EncryptionForm;
 import io.github.connellite.proxy.proxy.ProxyServerManager;
+import io.github.connellite.proxy.proxy.outbound.ClientHelloSplitMode;
 import io.github.connellite.proxy.util.LocalBindAddresses;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
@@ -35,7 +38,6 @@ public class AdminRpcManualMapper {
         dto.setHttpAuthRequired(settings.isHttpAuthRequired());
         dto.setSocksAuthRequired(settings.isSocksAuthRequired());
         dto.setSocksUdpEnabled(settings.isSocksUdpEnabled());
-        dto.setOutboundTtl(settings.getOutboundTtl());
         dto.setHttpRunning(proxyServerManager.isHttpRunning());
         dto.setHttpsRunning(proxyServerManager.isHttpsRunning());
         dto.setSocksRunning(proxyServerManager.isSocksRunning());
@@ -44,6 +46,25 @@ public class AdminRpcManualMapper {
         dto.setBindHostOptions(new ArrayList<>(LocalBindAddresses.optionsIncluding(
                 settings.getHttpBindHost(), settings.getSocksBindHost(), settings.getSshBindHost())));
         return dto;
+    }
+
+    public OutboundSettingsGWTDTO toOutboundGWTDTO(AppSettings settings) {
+        OutboundSettingsGWTDTO dto = new OutboundSettingsGWTDTO();
+        dto.setOutboundTtl(settings.getOutboundTtl());
+        dto.setClientHelloSplitEnabled(settings.isClientHelloSplitEnabled());
+        dto.setClientHelloSplitMode(ClientHelloSplitModeGWT.fromWire(settings.getClientHelloSplitMode()));
+        dto.setClientHelloSplitPosition(settings.getClientHelloSplitPosition());
+        dto.setHttpHeaderMangleEnabled(settings.isHttpHeaderMangleEnabled());
+        return dto;
+    }
+
+    public void applyOutbound(AppSettings settings, OutboundSettingsGWTDTO form) {
+        settings.setOutboundTtl(form.getOutboundTtl());
+        settings.setClientHelloSplitEnabled(form.isClientHelloSplitEnabled());
+        ClientHelloSplitModeGWT mode = form.getClientHelloSplitMode();
+        settings.setClientHelloSplitMode(ClientHelloSplitMode.fromWire(mode == null ? null : mode.name()).name());
+        settings.setClientHelloSplitPosition(form.getClientHelloSplitPosition());
+        settings.setHttpHeaderMangleEnabled(form.isHttpHeaderMangleEnabled());
     }
 
     public EncryptionGWTDTO toEncryptionGWTDTO(AppSettings settings) {

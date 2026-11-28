@@ -109,6 +109,18 @@ public class AppSettings {
      */
     private int outboundTtl = 0;
 
+    /** Cut the first TLS handshake record on sockets to an upstream into two records. */
+    private boolean clientHelloSplitEnabled = false;
+
+    /** {@code ClientHelloSplitMode} name. */
+    private String clientHelloSplitMode = "FIXED";
+
+    /** Offset inside the record fragment for the fixed mode, 1–1500. */
+    private int clientHelloSplitPosition = 1;
+
+    /** Extra space, {@code hoSt}, no space after the colon and mixed-case value in plain HTTP to an upstream. */
+    private boolean httpHeaderMangleEnabled = false;
+
     private long bytesUpTotal = 0;
 
     private long bytesDownTotal = 0;

@@ -71,6 +71,10 @@ public class ConfigEntry {
     public static final String RELAY_UPSTREAM_RESOLVER = "relay_upstream_resolver";
     /** Outbound IP TTL (0 = OS default, 1–255 = override on proxy→direct/upstream sockets). */
     public static final String OUTBOUND_TTL = "outbound_ttl";
+    public static final String CLIENT_HELLO_SPLIT_ENABLED = "client_hello_split_enabled";
+    public static final String CLIENT_HELLO_SPLIT_MODE = "client_hello_split_mode";
+    public static final String CLIENT_HELLO_SPLIT_POSITION = "client_hello_split_position";
+    public static final String HTTP_HEADER_MANGLE_ENABLED = "http_header_mangle_enabled";
     public static final String BYTES_UP_TOTAL = "bytes_up_total";
     public static final String BYTES_DOWN_TOTAL = "bytes_down_total";
 
