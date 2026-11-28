@@ -1,18 +1,24 @@
 package io.github.connellite.proxy.util;
 
 import lombok.experimental.UtilityClass;
+import org.apache.commons.lang3.SystemUtils;
+import org.graalvm.nativeimage.ImageInfo;
 
 import java.awt.GraphicsEnvironment;
 
 @UtilityClass
 public final class RuntimeEnvironment {
 
+    public static boolean isLinux() {
+        return SystemUtils.IS_OS_LINUX;
+    }
+
     public static boolean isWindows() {
-        return System.getProperty("os.name", "").toLowerCase().contains("win");
+        return SystemUtils.IS_OS_WINDOWS;
     }
 
     public static boolean isNativeImage() {
-        return "runtime".equals(System.getProperty("org.graalvm.nativeimage.imagecode"));
+        return ImageInfo.inImageRuntimeCode();
     }
 
     public static boolean isHeadless() {

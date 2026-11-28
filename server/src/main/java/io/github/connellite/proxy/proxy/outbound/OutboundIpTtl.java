@@ -1,9 +1,11 @@
 package io.github.connellite.proxy.proxy.outbound;
 
+import io.github.connellite.proxy.util.RuntimeEnvironment;
 import io.netty.channel.Channel;
 import io.netty.channel.socket.DatagramChannel;
 import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.FileDescriptor;
@@ -19,12 +21,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * Native images need {@link io.github.connellite.proxy.config.hint.OutboundIpTtlNativeConfiguration}.
  */
 @Slf4j
+@UtilityClass
 public final class OutboundIpTtl {
 
     private static final AtomicBoolean WARNED = new AtomicBoolean();
 
-    private static final String OS = System.getProperty("os.name", "").toLowerCase();
-    private static final boolean LINUX = OS.contains("linux");
     /**
      * {@code IPPROTO_IP}
      */
@@ -36,14 +37,11 @@ public final class OutboundIpTtl {
     /**
      * Linux {@code IP_TTL}=2; Windows/macOS {@code IP_TTL}=4
      */
-    private static final int IP_TTL = LINUX ? 2 : 4;
+    private static final int IP_TTL = RuntimeEnvironment.isLinux() ? 2 : 4;
     /**
      * Linux {@code IPV6_UNICAST_HOPS}=16; Windows/macOS=4
      */
-    private static final int IPV6_UNICAST_HOPS = LINUX ? 16 : 4;
-
-    private OutboundIpTtl() {
-    }
+    private static final int IPV6_UNICAST_HOPS = RuntimeEnvironment.isLinux() ? 16 : 4;
 
     /**
      * @return {@code true} if {@code ttl} is in the valid config range (0–255).

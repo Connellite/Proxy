@@ -4,18 +4,17 @@ import io.github.connellite.proxy.dto.AuthenticatedSession;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelPipeline;
 import io.netty.handler.traffic.ChannelTrafficShapingHandler;
+import lombok.experimental.UtilityClass;
 
 /**
  * Installs Netty per-channel traffic shaping for authenticated users with speed caps.
  * Netty treats {@code 0} as unlimited; our model uses {@code < 0}.
  */
+@UtilityClass
 public final class UserTrafficShaping {
 
     private static final String HANDLER_NAME = "userTrafficShaping";
     private static final long CHECK_INTERVAL_MS = 1_000L;
-
-    private UserTrafficShaping() {
-    }
 
     public static void install(Channel inbound, AuthenticatedSession session) {
         if (inbound == null || session == null || !session.hasSpeedLimit()) {
