@@ -42,7 +42,14 @@ final class ClientHelloSplitHandler extends ChannelOutboundHandlerAdapter {
 
     @Override
     public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) {
-        if (done || !(msg instanceof ByteBuf buf)) {
+        if (done) {
+            ctx.write(msg, promise);
+            return;
+        }
+        if (!(msg instanceof ByteBuf buf)) {
+            if (pending != null) {
+                flushPending(ctx, ctx.newPromise(), null);
+            }
             ctx.write(msg, promise);
             return;
         }
@@ -51,7 +58,7 @@ final class ClientHelloSplitHandler extends ChannelOutboundHandlerAdapter {
                 ctx.write(msg, promise);
                 return;
             }
-            if (!TlsRecordSplitter.startsWithHandshake(buf)) {
+            if (!TlsRecordSplitter.startsWithClientHello(buf)) {
                 if (armed) {
                     done = true;
                 }
@@ -64,7 +71,7 @@ final class ClientHelloSplitHandler extends ChannelOutboundHandlerAdapter {
         buf.release();
 
         int recordLength = TlsRecordSplitter.recordLength(pending);
-        if (pending.readableBytes() >= 2 && !TlsRecordSplitter.startsWithHandshake(pending)
+        if (!TlsRecordSplitter.startsWithClientHello(pending)
                 || recordLength - TlsRecordSplitter.RECORD_HEADER > TlsRecordSplitter.MAX_FRAGMENT) {
             flushPending(ctx, promise, null);
             return;

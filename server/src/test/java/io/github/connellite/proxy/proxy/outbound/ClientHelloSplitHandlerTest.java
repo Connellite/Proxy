@@ -3,6 +3,8 @@ package io.github.connellite.proxy.proxy.outbound;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.embedded.EmbeddedChannel;
+import io.netty.handler.ssl.SslContext;
+import io.netty.handler.ssl.SslContextBuilder;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
@@ -156,6 +158,61 @@ class ClientHelloSplitHandlerTest {
         assertThat(out).hasSize(in.length + TlsRecordSplitter.RECORD_HEADER);
         byte[] outTail = Arrays.copyOfRange(out, out.length - tail.length, out.length);
         assertThat(outTail).isEqualTo(tail);
+    }
+
+    @Test
+    void cutsTls13ClientHelloWrittenBySslHandler() throws Exception {
+        SslContext context = SslContextBuilder.forClient().protocols("TLSv1.3").build();
+        EmbeddedChannel channel = new EmbeddedChannel();
+        channel.pipeline().addLast(new ClientHelloSplitHandler(ClientHelloSplitMode.BEFORE_SNI, 1, true));
+        channel.pipeline().addLast(context.newHandler(channel.alloc(), HOST, 443));
+        channel.runPendingTasks();
+
+        ByteArrayOutputStream wire = new ByteArrayOutputStream();
+        ByteBuf buf;
+        while ((buf = channel.readOutbound()) != null) {
+            byte[] bytes = new byte[buf.readableBytes()];
+            buf.readBytes(bytes);
+            buf.release();
+            wire.writeBytes(bytes);
+        }
+        channel.finishAndReleaseAll();
+        byte[] out = wire.toByteArray();
+
+        int firstLength = recordLengthAt(out, 0);
+        int secondAt = TlsRecordSplitter.RECORD_HEADER + firstLength;
+        assertThat(out[0]).isEqualTo((byte) 22);
+        assertThat(out[secondAt]).isEqualTo((byte) 22);
+        assertThat(new String(out, secondAt + TlsRecordSplitter.RECORD_HEADER, HOST.length(),
+                StandardCharsets.ISO_8859_1)).isEqualTo(HOST);
+        byte[] hello = joinFragments(out);
+        assertThat(hello[0]).isEqualTo((byte) 1);
+        int helloLength = ((hello[1] & 0xff) << 16) | ((hello[2] & 0xff) << 8) | (hello[3] & 0xff);
+        assertThat(hello).hasSize(4 + helloLength);
+    }
+
+    @Test
+    void otherHandshakeMessageIsNotHeld() {
+        byte[] serverHelloStart = {22, 3, 3, 0, 40, 2, 0, 0};
+        byte[] out = writeThrough(new ClientHelloSplitHandler(ClientHelloSplitMode.FIXED, 1, true), serverHelloStart);
+
+        assertThat(out).isEqualTo(serverHelloStart);
+    }
+
+    @Test
+    void heldBytesGoOutBeforeANonBufferWrite() {
+        EmbeddedChannel channel = new EmbeddedChannel(new ClientHelloSplitHandler(ClientHelloSplitMode.FIXED, 1, true));
+        byte[] record = clientHelloRecord(HOST);
+        Object marker = new Object();
+
+        channel.writeOutbound(Unpooled.wrappedBuffer(record, 0, 20));
+        channel.writeOutbound(marker);
+
+        ByteBuf held = channel.readOutbound();
+        assertThat(held.readableBytes()).isEqualTo(20);
+        held.release();
+        assertThat((Object) channel.readOutbound()).isSameAs(marker);
+        channel.finishAndReleaseAll();
     }
 
     private static byte[] writeThrough(ClientHelloSplitHandler handler, byte[] data) {

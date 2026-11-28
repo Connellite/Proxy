@@ -26,17 +26,20 @@ public final class TlsRecordSplitter {
     private static final int SNI_HOST_NAME = 0;
 
     /**
-     * @return {@code true} if {@code buf} starts with a TLS handshake record header
+     * @return {@code true} if {@code buf} starts with a TLS handshake record whose message is a ClientHello
      * (only the bytes already present are checked).
      */
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
-    public static boolean startsWithHandshake(ByteBuf buf) {
+    public static boolean startsWithClientHello(ByteBuf buf) {
         int readable = buf.readableBytes();
         int at = buf.readerIndex();
         if (readable < 1 || buf.getUnsignedByte(at) != CONTENT_HANDSHAKE) {
             return false;
         }
-        return readable < 2 || buf.getUnsignedByte(at + 1) == 3;
+        if (readable >= 2 && buf.getUnsignedByte(at + 1) != 3) {
+            return false;
+        }
+        return readable <= RECORD_HEADER || buf.getUnsignedByte(at + RECORD_HEADER) == HANDSHAKE_CLIENT_HELLO;
     }
 
     /**
