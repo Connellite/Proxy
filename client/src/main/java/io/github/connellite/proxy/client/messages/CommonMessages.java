@@ -55,6 +55,9 @@ public interface CommonMessages extends Messages {
     @Key("requestFailed")
     String requestFailed();
 
+    @Key("connectionLost")
+    String connectionLost();
+
     @Key("infinity")
     String infinity();
 
