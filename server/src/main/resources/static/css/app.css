@@ -541,33 +541,52 @@ input[type="date"].date-input::-webkit-calendar-picker-indicator {
   padding: 0.25rem 0;
   font-size: 0.92rem;
 }
-.dir-tree-row {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.18rem 0.4rem 0.18rem 0.15rem;
-  border-radius: 3px;
+/*
+ * com.google.gwt.user.client.ui.Tree renders each item as <table><tr><td>image</td><td>content</td></tr></table>
+ * followed by the children block; undo the global table/td rules so one item looks like a single row.
+ */
+.dir-tree-item > table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
   cursor: pointer;
-  white-space: nowrap;
   user-select: none;
 }
-.dir-tree-row:hover { background: #f1f4f7; }
-.dir-tree-row.selected { background: #dfe6ec; }
-.dir-tree-row.loading { opacity: 0.6; cursor: progress; }
-.dir-tree-toggle {
-  display: inline-block;
-  flex: none;
+.dir-tree-item > table td {
+  padding: 0.18rem 0.4rem 0.18rem 0;
+  border: none;
+  border-radius: 0 3px 3px 0;
+  text-align: left;
+  white-space: nowrap;
+}
+.dir-tree-item > table td:first-child {
   width: 14px;
-  height: 14px;
-  background-color: #6f7a85;
+  padding: 0.18rem 0.35rem 0.18rem 0.15rem;
+  border-radius: 3px 0 0 3px;
+  line-height: 0;
+}
+.dir-tree-item > table:hover td { background: #f1f4f7; }
+.dir-tree-item > table:has(.gwt-TreeItem-selected) td { background: #dfe6ec; }
+.dir-tree-item.loading > table { opacity: 0.6; cursor: progress; }
+.gwt-Tree.dir-tree .gwt-TreeItem,
+.gwt-Tree.dir-tree .gwt-TreeItem-selected { padding: 0; background: none; }
+/* Tree's open/closed image: !important beats the sprite GWT writes inline. */
+.dir-tree-item > table td:first-child > img {
+  width: 14px !important;
+  height: 14px !important;
+  background: #6f7a85 !important;
   -webkit-mask: url("../icons/tree-toggle.svg") center / 10px 10px no-repeat;
   mask: url("../icons/tree-toggle.svg") center / 10px 10px no-repeat;
   transition: transform 0.12s ease;
 }
-.dir-tree-toggle.expanded { transform: rotate(90deg); }
-.dir-tree-toggle.empty { visibility: hidden; }
+.dir-tree-item.expanded > table td:first-child > img { transform: rotate(90deg); }
+.dir-tree-item.empty > table td:first-child > img { visibility: hidden; }
+.dir-tree-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
 .dir-tree-name { overflow: hidden; text-overflow: ellipsis; }
-.dir-tree-children { padding-left: 1.15rem; }
 .dir-picker-path-row {
   display: flex;
   align-items: center;

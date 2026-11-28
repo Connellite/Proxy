@@ -1,5 +1,6 @@
 package io.github.connellite.proxy.client.ui;
 
+import com.google.gwt.dom.client.Element;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.event.dom.client.DoubleClickEvent;
@@ -9,16 +10,21 @@ import com.google.gwt.event.dom.client.KeyDownEvent;
 import com.google.gwt.event.dom.client.KeyDownHandler;
 import com.google.gwt.event.dom.client.KeyUpEvent;
 import com.google.gwt.event.dom.client.KeyUpHandler;
+import com.google.gwt.event.logical.shared.SelectionEvent;
+import com.google.gwt.event.logical.shared.SelectionHandler;
+import com.google.gwt.safehtml.shared.SafeHtmlBuilder;
 import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.ui.Anchor;
 import com.google.gwt.user.client.ui.Button;
-import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.FlowPanel;
+import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.InlineLabel;
 import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.PopupPanel;
 import com.google.gwt.user.client.ui.TextBox;
+import com.google.gwt.user.client.ui.Tree;
+import com.google.gwt.user.client.ui.TreeItem;
 import io.github.connellite.proxy.client.messages.AppMessages;
 import io.github.connellite.proxy.client.messages.SftpMessages;
 import io.github.connellite.proxy.client.rpc.AdminServiceAsync;
@@ -41,10 +47,9 @@ public class DirectoryPickerDialog extends PopupPanel {
 
     private final AdminServiceAsync rpc;
     private final Callback callback;
-    private final FlowPanel tree = new FlowPanel();
+    private final Tree tree = new Tree();
     private final TextBox pathBox = new TextBox();
     private final Button select = new Button(AppMessages.COMMON.select());
-    private Node selected;
 
     public DirectoryPickerDialog(AdminServiceAsync rpc, String initialPath, Callback callback) {
         super(false, true);
@@ -82,8 +87,16 @@ public class DirectoryPickerDialog extends PopupPanel {
             }
         });
 
-        tree.setStyleName("dir-tree");
-
+        tree.addStyleName("dir-tree");
+        tree.addSelectionHandler(new SelectionHandler<TreeItem>() {
+            @Override
+            public void onSelection(SelectionEvent<TreeItem> event) {
+                if (event.getSelectedItem() instanceof FolderItem) {
+                    pathBox.setText(((FolderItem) event.getSelectedItem()).path);
+                    updateSelectState();
+                }
+            }
+        });
         FlowPanel pathRow = new FlowPanel();
         pathRow.setStyleName("dir-picker-path-row");
         InlineLabel pathLabel = new InlineLabel(text.path());
@@ -157,13 +170,13 @@ public class DirectoryPickerDialog extends PopupPanel {
             @Override
             public void onSuccess(DirectoryListingGWTDTO result) {
                 tree.clear();
-                List<Node> roots = new ArrayList<Node>();
+                List<FolderItem> roots = new ArrayList<FolderItem>();
                 for (String root : result.getDirectories()) {
-                    Node node = new Node(root, root);
-                    roots.add(node);
-                    tree.add(node);
+                    FolderItem item = new FolderItem(root, root);
+                    roots.add(item);
+                    tree.addItem(item);
                 }
-                Node start = target.isEmpty() ? null : containing(roots, target);
+                FolderItem start = target.isEmpty() ? null : containing(roots, target);
                 if (start != null) {
                     revealPath(start, target);
                 } else if (roots.size() == 1) {
@@ -175,20 +188,22 @@ public class DirectoryPickerDialog extends PopupPanel {
         });
     }
 
-    /** Expands nodes from {@code node} down to {@code target}, then selects the deepest match. */
-    private void revealPath(final Node node, final String target) {
-        if (samePath(node.path, target)) {
-            select(node);
-            node.scrollIntoView();
+    /**
+     * Expands items from {@code item} down to {@code target}, then selects the deepest match.
+     */
+    private void revealPath(final FolderItem item, final String target) {
+        if (samePath(item.path, target)) {
+            select(item);
+            scrollIntoView(item);
             return;
         }
-        node.expand(new Runnable() {
+        item.expand(new Runnable() {
             @Override
             public void run() {
-                Node next = containing(node.children(), target);
+                FolderItem next = containing(item.children(), target);
                 if (next == null) {
-                    select(node);
-                    node.scrollIntoView();
+                    select(item);
+                    scrollIntoView(item);
                 } else {
                     revealPath(next, target);
                 }
@@ -196,16 +211,17 @@ public class DirectoryPickerDialog extends PopupPanel {
         });
     }
 
-    private void select(Node node) {
-        if (selected != null) {
-            selected.setSelected(false);
-        }
-        selected = node;
-        if (node != null) {
-            node.setSelected(true);
-            pathBox.setText(node.path);
-        }
-        updateSelectState();
+    private void select(FolderItem item) {
+        tree.setSelectedItem(item);
+    }
+
+    /**
+     * Scrolls only the tree box (not the page) so the row sits near the top third.
+     */
+    private void scrollIntoView(FolderItem item) {
+        Element box = tree.getElement();
+        int top = item.getAbsoluteTop() - box.getAbsoluteTop() + box.getScrollTop();
+        box.setScrollTop(Math.max(0, top - box.getClientHeight() / 3));
     }
 
     private void updateSelectState() {
@@ -222,11 +238,11 @@ public class DirectoryPickerDialog extends PopupPanel {
     }
 
     private void createFolder() {
-        if (selected == null) {
+        if (!(tree.getSelectedItem() instanceof FolderItem)) {
             Window.alert(AppMessages.SFTP.selectFolderFirst());
             return;
         }
-        final Node parent = selected;
+        final FolderItem parent = (FolderItem) tree.getSelectedItem();
         String name = Window.prompt(AppMessages.SFTP.newFolderPrompt(parent.path), "");
         if (name == null || name.trim().isEmpty()) {
             return;
@@ -242,10 +258,10 @@ public class DirectoryPickerDialog extends PopupPanel {
                 parent.reload(new Runnable() {
                     @Override
                     public void run() {
-                        for (Node child : parent.children()) {
+                        for (FolderItem child : parent.children()) {
                             if (samePath(child.path, created)) {
                                 select(child);
-                                child.scrollIntoView();
+                                scrollIntoView(child);
                                 return;
                             }
                         }
@@ -255,10 +271,10 @@ public class DirectoryPickerDialog extends PopupPanel {
         });
     }
 
-    private static Node containing(List<Node> nodes, String target) {
-        for (Node node : nodes) {
-            if (isSameOrAncestor(node.path, target)) {
-                return node;
+    private static FolderItem containing(List<FolderItem> items, String target) {
+        for (FolderItem item : items) {
+            if (isSameOrAncestor(item.path, target)) {
+                return item;
             }
         }
         return null;
@@ -302,89 +318,58 @@ public class DirectoryPickerDialog extends PopupPanel {
         return cut >= 0 && cut < path.length() - 1 ? path.substring(cut + 1) : path;
     }
 
-    /** One folder: a row (toggle, icon, name) and a lazily filled list of subfolders. */
-    private final class Node extends Composite {
+    /**
+     * One folder: a row (toggle, icon, name) and lazily loaded subfolders.
+     */
+    private final class FolderItem extends TreeItem {
 
         private final String path;
-        private final FlowPanel row = new FlowPanel();
-        private final InlineLabel toggle = new InlineLabel();
-        private final FlowPanel childPanel = new FlowPanel();
-        private final List<Node> children = new ArrayList<>();
         private boolean loaded;
         private boolean loading;
-        private boolean expanded;
 
-        Node(String path, String label) {
+        FolderItem(String path, String label) {
             this.path = path;
+            getElement().addClassName("dir-tree-item");
+            SafeHtmlBuilder html = new SafeHtmlBuilder();
+            html.appendHtmlConstant("<span class=\"dir-tree-icon\"></span><span class=\"dir-tree-name\">");
+            html.appendEscaped(label);
+            html.appendHtmlConstant("</span>");
+            HTML row = new HTML(html.toSafeHtml());
             row.setStyleName("dir-tree-row");
             row.setTitle(path);
-            toggle.setStyleName("dir-tree-toggle");
-            InlineLabel icon = new InlineLabel();
-            icon.setStyleName("dir-tree-icon");
-            InlineLabel name = new InlineLabel(label);
-            name.setStyleName("dir-tree-name");
-            row.add(toggle);
-            row.add(icon);
-            row.add(name);
-            childPanel.setStyleName("dir-tree-children");
-            childPanel.setVisible(false);
-
-            toggle.addClickHandler(new ClickHandler() {
-                @Override
-                public void onClick(ClickEvent event) {
-                    event.stopPropagation();
-                    if (expanded) {
-                        collapse();
-                    } else {
-                        expand(null);
-                    }
-                }
-            });
-            row.addDomHandler(new ClickHandler() {
-                @Override
-                public void onClick(ClickEvent event) {
-                    select(Node.this);
-                }
-            }, ClickEvent.getType());
-            row.addDomHandler(new DoubleClickHandler() {
+            row.addDoubleClickHandler(new DoubleClickHandler() {
                 @Override
                 public void onDoubleClick(DoubleClickEvent event) {
-                    if (expanded) {
-                        collapse();
-                    } else {
-                        expand(null);
-                    }
+                    setState(!getState());
                 }
-            }, DoubleClickEvent.getType());
-
-            FlowPanel wrapper = new FlowPanel();
-            wrapper.add(row);
-            wrapper.add(childPanel);
-            initWidget(wrapper);
+            });
+            setWidget(row);
+            addPlaceholder();
         }
 
-        List<Node> children() {
-            return children;
-        }
-
-        void setSelected(boolean value) {
-            if (value) {
-                row.addStyleName("selected");
-            } else {
-                row.removeStyleName("selected");
+        @Override
+        public void setState(boolean open, boolean fireEvents) {
+            if (open && !loaded) {
+                load(null);
+                return;
             }
+            super.setState(open, fireEvents);
+            updateToggle();
         }
 
-        /** Scrolls only the tree box (not the page) so the row sits near the top third. */
-        void scrollIntoView() {
-            com.google.gwt.dom.client.Element box = tree.getElement();
-            int top = row.getElement().getOffsetTop();
-            box.setScrollTop(Math.max(0, top - box.getClientHeight() / 3));
+        List<FolderItem> children() {
+            List<FolderItem> result = new ArrayList<>();
+            for (int i = 0; i < getChildCount(); i++) {
+                if (getChild(i) instanceof FolderItem) {
+                    result.add((FolderItem) getChild(i));
+                }
+            }
+            return result;
         }
 
         void expand(final Runnable after) {
             if (loaded) {
-                show(true);
+                setState(true, false);
                 if (after != null) {
                     after.run();
                 }
@@ -398,17 +383,23 @@ public class DirectoryPickerDialog extends PopupPanel {
             load(after);
         }
 
-        private void collapse() {
-            show(false);
+        private void addPlaceholder() {
+            TreeItem placeholder = new TreeItem();
+            placeholder.setText("\u2026");
+            addItem(placeholder);
         }
 
-        private void show(boolean value) {
-            expanded = value;
-            childPanel.setVisible(value && !children.isEmpty());
-            if (value) {
-                toggle.addStyleName("expanded");
+        private void updateToggle() {
+            Element elem = getElement();
+            if (getState() && getChildCount() > 0) {
+                elem.addClassName("expanded");
             } else {
-                toggle.removeStyleName("expanded");
+                elem.removeClassName("expanded");
+            }
+            if (loaded && getChildCount() == 0) {
+                elem.addClassName("empty");
+            } else {
+                elem.removeClassName("empty");
             }
         }
 
@@ -417,12 +408,12 @@ public class DirectoryPickerDialog extends PopupPanel {
                 return;
             }
             loading = true;
-            row.addStyleName("loading");
+            getElement().addClassName("loading");
             rpc.listServerDirectories(path, new AsyncCallback<DirectoryListingGWTDTO>() {
                 @Override
                 public void onFailure(Throwable caught) {
                     loading = false;
-                    row.removeStyleName("loading");
+                    getElement().removeClassName("loading");
                     Rpc.showFailure(caught);
                 }
 
@@ -430,20 +421,12 @@ public class DirectoryPickerDialog extends PopupPanel {
                 public void onSuccess(DirectoryListingGWTDTO result) {
                     loading = false;
                     loaded = true;
-                    row.removeStyleName("loading");
-                    childPanel.clear();
-                    children.clear();
+                    getElement().removeClassName("loading");
+                    removeItems();
                     for (String dir : result.getDirectories()) {
-                        Node child = new Node(dir, lastSegment(dir));
-                        children.add(child);
-                        childPanel.add(child);
+                        addItem(new FolderItem(dir, lastSegment(dir)));
                     }
-                    if (children.isEmpty()) {
-                        toggle.addStyleName("empty");
-                    } else {
-                        toggle.removeStyleName("empty");
-                    }
-                    show(true);
+                    setState(true, false);
                     if (after != null) {
                         after.run();
                     }
